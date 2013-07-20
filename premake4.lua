@@ -11,9 +11,11 @@ solution "VM"
      	flags { "Optimize" } 
      	defines { "NDEBUG" }
 
+    project "unittest"
+
     project "vm"
         language "C++"
-        kind "SharedLib"
+        kind "StaticLib"
         targetdir "bin"
         includedirs "include"
 
@@ -31,6 +33,8 @@ solution "VM"
         targetdir "bin"
         includedirs "include"
 
+        links { "vm" }
+        
         files {
            "unittest/*.h",
            "unittest/*.cpp",

@@ -1,5 +1,6 @@
-#include "VM.h"
 #include <assert.h>
+#include <iostream>
+#include "VM.h"
 
 namespace MyVMNamespace
 {
@@ -26,6 +27,11 @@ public:
 
     static void op_load(VM& vm, Instruction current)
     {
+    }
+
+    static void op_load_int_constant(RuntimeEnvironment& environment, Instruction& current)
+    {
+        environment.stackFrame.push(current.arg0);
     }
 
     static void op_getfield(RuntimeEnvironment& environment, Instruction current)
@@ -57,27 +63,59 @@ public:
 typedef void (*execute_function_t)(VM& vm, Instruction current); 
 
 
-void VM::execute()
+VM::VM(std::vector<Instruction>& instructions)
+    : instructions(instructions)
+    , currentInstruction(0)
 {
-    Instruction instruction = this->instructions[currentInstruction];
-    
-    switch (instruction.op)
-    {
-    case Instruction::MOVE:
-        VMI::op_move(*this->currentEnvironment, instruction);
-        break;
-    case Instruction::GETFIELD:
-        VMI::op_getfield(*this->currentEnvironment, instruction);
-        break;
-    case Instruction::SETFIELD:
-        VMI::op_setfield(*this->currentEnvironment, instruction);
-        break;
-    case Instruction::ADD:
-        VMI::op_add(*this->currentEnvironment, instruction);
-        break;
+}
 
-    default:
-        break;
+StackFrame VM::newStackFrame()
+{
+    return StackFrame(this->stack.data(), 0);
+}
+
+void printValue(StackObject obj)
+{
+    std::cout << obj.intValue << std::endl;
+}
+
+void VM::printstack()
+{
+    for (size_t ii = 0; ii < this->stack.size(); ++ii)
+    {
+        printValue(this->stack[ii]);
+    }
+}
+
+void VM::execute(RuntimeEnvironment& environment)
+{
+    while (currentInstruction < this->instructions.size())
+    {
+        Instruction instruction = this->instructions[currentInstruction];
+    
+        switch (instruction.op)
+        {
+        case OP::MOVE:
+            VMI::op_move(environment, instruction);
+            break;
+        case OP::LOAD_INT_CONST:
+            environment.stackFrame.push(instruction.arg0);
+            break;
+        case OP::GETFIELD:
+            VMI::op_getfield(environment, instruction);
+            break;
+        case OP::SETFIELD:
+            VMI::op_setfield(environment, instruction);
+            break;
+        case OP::ADD:
+            VMI::op_add(environment, instruction);
+            break;
+
+        default:
+            std::cout << "No implementation for instruction : " << op2string(instruction.op) << std::endl;
+            break;
+        }
+        this->currentInstruction++;
     }
 }
 
