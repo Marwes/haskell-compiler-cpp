@@ -15,6 +15,9 @@ namespace MyVMNamespace
 
         ADD,
         SUBTRACT,
+        MULTIPLY,
+        DIVIDE,
+        REMAINDER,
 
         NUM_INSTRUCTIONS,
     };

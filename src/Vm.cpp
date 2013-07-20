@@ -52,13 +52,12 @@ public:
         environment.stackFrame.at<unsigned char*>(current.arg0) = obj + offset;
     }
 
-    static void op_add(RuntimeEnvironment& environment, Instruction current)
-    {
-        VMInt lhs = environment.stackFrame.at<VMInt>(current.arg1);
-        VMInt rhs = environment.stackFrame.at<VMInt>(current.arg2);
-        environment.stackFrame.at<VMInt>(current.arg0) = lhs + rhs;
-    }
 };
+
+#define DO_ARITH(op, environment, instruction) {\
+    VMInt lhs = environment.stackFrame.at<VMInt>(instruction.arg1);\
+    VMInt rhs = environment.stackFrame.at<VMInt>(instruction.arg2);\
+    environment.stackFrame.at<VMInt>(instruction.arg0) = lhs op rhs; }
 
 typedef void (*execute_function_t)(VM& vm, Instruction current); 
 
@@ -108,7 +107,19 @@ void VM::execute(RuntimeEnvironment& environment)
             VMI::op_setfield(environment, instruction);
             break;
         case OP::ADD:
-            VMI::op_add(environment, instruction);
+            DO_ARITH(+, environment, instruction);
+            break;
+        case OP::SUBTRACT:
+            DO_ARITH(-, environment, instruction);
+            break;
+        case OP::MULTIPLY:
+            DO_ARITH(*, environment, instruction);
+            break;
+        case OP::DIVIDE:
+            DO_ARITH(/, environment, instruction);
+            break;
+        case OP::REMAINDER:
+            DO_ARITH(%, environment, instruction);
             break;
 
         default:
