@@ -5,7 +5,7 @@ RM=rm -f
 INCLUDEDIRS=-Iinclude
 
 CFLAGS=-Wall -g
-CPPFLAGS=-g $(INCLUDEDIRS) --std=c++0x $(shell root-config --cflags)
+CPPFLAGS=-g $(INCLUDEDIRS) -Wall --std=c++0x $(shell root-config --cflags)
 LDFLAGS=-g $(shell root-config --ldflags)
 LDLIBS=$(shell root-config --libs)
 
