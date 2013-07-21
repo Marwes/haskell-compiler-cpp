@@ -3,12 +3,14 @@
 
 namespace MyVMNamespace
 {
-    enum class OP
+    enum class OP : unsigned char
     {
         MOVE,
         LOAD,
         LOAD_INT_CONST,
         
+        NEWOBJECT,
+
         GETFIELD,
         
         SETFIELD,

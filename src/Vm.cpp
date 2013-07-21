@@ -34,6 +34,12 @@ public:
         environment.stackFrame.push(current.arg0);
     }
 
+    static void op_newobject(RuntimeEnvironment& environment, Instruction current)
+    {
+        const VMField& field = environment.data[current.arg0];
+        
+    }
+
     static void op_getfield(RuntimeEnvironment& environment, Instruction current)
     {
         unsigned char* obj = environment.stackFrame.top<unsigned char*>();
@@ -100,6 +106,8 @@ void VM::execute(RuntimeEnvironment& environment)
         case OP::LOAD_INT_CONST:
             environment.stackFrame.push(instruction.arg0);
             break;
+        case OP::NEWOBJECT:
+            VMI::op_newobject(environment, instruction);
         case OP::GETFIELD:
             VMI::op_getfield(environment, instruction);
             break;
