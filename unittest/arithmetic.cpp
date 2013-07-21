@@ -6,6 +6,18 @@
 
 using namespace MyVMNamespace;
 
+int LongSwap (int i)
+{
+  unsigned char b1, b2, b3, b4;
+
+  b1 = i & 255;
+  b2 = ( i >> 8 ) & 255;
+  b3 = ( i>>16 ) & 255;
+  b4 = ( i>>24 ) & 255;
+
+  return ((int)b1 << 24) + ((int)b2 << 16) + ((int)b3 << 8) + b4;
+}
+
 std::istream& operator>>(std::ifstream& stream, Instruction& instruction)
 {
     char op;
@@ -15,6 +27,7 @@ std::istream& operator>>(std::ifstream& stream, Instruction& instruction)
     if (stream.read(&op, sizeof(char)) && stream.read((char*)&arg0, sizeof(VMInt)) &&
         stream.read(&arg1, sizeof(char)) && stream.read(&arg2, sizeof(char)))
     {
+        arg0 = LongSwap(arg0);
         OP actual = static_cast<OP>(op);
         if (op2string(actual) == NULL)
         {
@@ -42,7 +55,7 @@ std::vector<const Instruction> readAsm(const std::string& filename)
 
 bool compareInstructions(const Instruction& lhs, const Instruction& rhs)
 {
-    return memcmp(&lhs, &rhs, sizeof(lhs)) != 0;
+    return memcmp(&lhs, &rhs, sizeof(lhs)) == 0;
 }
 
 TEST_CASE("arithmetic", "test arithmetic")
@@ -54,9 +67,8 @@ TEST_CASE("arithmetic", "test arithmetic")
     instructions.push_back(Instruction(OP::ADD, 0, 1, 2));
 
     std::vector<const Instruction> fileInstructions(readAsm("Arithmetic.asm"));
-    bool a = std::equal(instructions.begin(), instructions.end(), fileInstructions.begin(), compareInstructions);
-    REQUIRE(a);
-
+    REQUIRE(std::equal(instructions.begin(), instructions.end(), fileInstructions.begin(), compareInstructions));
+    instructions = fileInstructions;
     {
         VM vm(instructions);
         MethodEnvironment env(vm.newStackFrame());

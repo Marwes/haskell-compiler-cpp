@@ -49,4 +49,23 @@ struct Type
     TypeEnum type;
 };
 
+
+union StackObject
+{
+    VMInt intValue;
+    VMFloat floatValue;
+    VMPointer pointerValue;
+};
+
+struct VMField
+{
+    VMField(Type type, int offset)
+        : type(type)
+        , offset(offset)
+    {}
+
+    const Type type;
+    const int offset;
+};
+
 }
