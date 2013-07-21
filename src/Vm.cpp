@@ -20,7 +20,7 @@ OP_CLASS(MOVE, from, to, na);
 class VMI
 {
 public:
-    static void op_move(RuntimeEnvironment& environment, Instruction current)
+    static void op_move(MethodEnvironment& environment, Instruction current)
     {
         environment.stackFrame.at<VMInt>(current.arg0) = environment.stackFrame.at<VMInt>(current.arg1);
     }
@@ -29,33 +29,34 @@ public:
     {
     }
 
-    static void op_load_int_constant(RuntimeEnvironment& environment, Instruction& current)
+    static void op_load_int_constant(MethodEnvironment& environment, Instruction& current)
     {
         environment.stackFrame.push(current.arg0);
     }
 
-    static void op_newobject(RuntimeEnvironment& environment, Instruction current)
+    static void op_newobject(MethodEnvironment& environment, Instruction current)
     {
-        const VMField& field = environment.data[current.arg0];
-        
+        VMInt size = current.arg0;
+        VMPointer obj = malloc(size);
+        memset(obj, 0, size);
+
+        environment.stackFrame.push(obj);
     }
 
-    static void op_getfield(RuntimeEnvironment& environment, Instruction current)
+    static void op_getfield(MethodEnvironment& environment, Instruction current)
     {
-        unsigned char* obj = environment.stackFrame.top<unsigned char*>();
-        unsigned char index = environment.stackFrame.at<unsigned char>(current.arg1);
-        unsigned char resultStackIndex = environment.stackFrame.at<unsigned char>(current.arg2);
+        StackObject* obj = &environment.stackFrame.top();
+        const VMField& field = environment.fieldData[current.arg0];
 
-        const VMField& field = environment.data[index];
-        //environment.stackFrame.at(resultStackIndex) = obj + field.offset;
+        environment.stackFrame[current.arg1] = *(obj + field.offset);
     }
     
-    static void op_setfield(RuntimeEnvironment& environment, Instruction current)
+    static void op_setfield(MethodEnvironment& environment, Instruction current)
     {
-        unsigned char* obj = environment.stackFrame.at<unsigned char*>(current.arg1);
-        unsigned char offset = environment.stackFrame.at<unsigned char>(current.arg2);
-        
-        environment.stackFrame.at<unsigned char*>(current.arg0) = obj + offset;
+        StackObject* obj = &environment.stackFrame.top();
+        const VMField& field = environment.fieldData[current.arg0];
+
+        *(obj + field.offset) = environment.stackFrame[current.arg1];
     }
 
 };
@@ -68,9 +69,12 @@ public:
 typedef void (*execute_function_t)(VM& vm, Instruction current); 
 
 
-VM::VM(std::vector<Instruction>& instructions)
+VM::VM(std::vector<const Instruction>& instructions)
     : instructions(instructions)
     , currentInstruction(0)
+{ }
+
+VM::~VM()
 {
 }
 
@@ -92,7 +96,7 @@ void VM::printstack()
     }
 }
 
-void VM::execute(RuntimeEnvironment& environment)
+void VM::execute(MethodEnvironment& environment)
 {
     while (currentInstruction < this->instructions.size())
     {
@@ -108,6 +112,7 @@ void VM::execute(RuntimeEnvironment& environment)
             break;
         case OP::NEWOBJECT:
             VMI::op_newobject(environment, instruction);
+            break;
         case OP::GETFIELD:
             VMI::op_getfield(environment, instruction);
             break;
@@ -135,6 +140,23 @@ void VM::execute(RuntimeEnvironment& environment)
             break;
         }
         this->currentInstruction++;
+    }
+}
+
+void VM::endFrame(MethodEnvironment& environment)
+{
+    int stackLevel = 0;
+    unsigned char* base = reinterpret_cast<unsigned char*>(environment.stackFrame.data());
+    for (TypeEnum type : environment.layout.types)
+    {
+        switch (type)
+        {
+        case TYPE_ARRAY:
+        case TYPE_CLASS:
+            VMPointer stackPos = reinterpret_cast<VMPointer>(base + stackLevel);
+            break;
+        }
+        stackLevel += sizeofType(type);
     }
 }
 

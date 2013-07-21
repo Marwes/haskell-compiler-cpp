@@ -11,8 +11,18 @@ namespace MyVMNamespace
 
 struct VMField
 {
+    VMField(Type type, int offset)
+        : type(type)
+        , offset(offset)
+    {}
+
     const Type type;
     const int offset;
+};
+
+struct StackLayout
+{
+    std::vector<TypeEnum> types;
 };
 
 union StackObject
@@ -45,13 +55,18 @@ public:
     }
 
     template<typename T>
-    T& top()
+    T& base()
     {
-        return *reinterpret_cast<T*>(this->stackBase - 1 - sizeof(T));
+        return *reinterpret_cast<T*>(this->stackBase);
+    }
+
+    StackObject& top()
+    {
+        return *(this->stackBase - 1 - sizeof(StackObject));
     }
     
 
-    void setStack(VMField field, size_t index, void* data)
+    void setStack(VMField field, size_t index, VMPointer data)
     {
         switch (field.type.type)
         {
@@ -75,6 +90,18 @@ public:
         StackObject& val = this->stackBase[index];
         return reinterpret_cast<T&>(val);
     }
+
+    StackObject& operator[](size_t index)
+    {
+        StackObject& val = this->stackBase[index];
+        return val;
+    }
+
+    StackObject* data()
+    {
+        return stackBase;
+    }
+
 private:
     StackObject* stackBase;
     size_t currentSize;
@@ -104,21 +131,24 @@ private:
     T* dataPtr;
 };
 
-struct RuntimeEnvironment
+struct MethodEnvironment
 {
-    RuntimeEnvironment(StackFrame frame)
+    MethodEnvironment(StackFrame frame, std::vector<VMField> fieldData = std::vector<VMField>())
         : stackFrame(frame)
+        , fieldData(fieldData)
     {
     }
 
-    const std::vector<VMField> data;
+    const std::vector<VMField> fieldData;
 
+    StackLayout layout;
     StackFrame stackFrame;
 };
 
 struct VM
 {
-    VM(std::vector<Instruction>& instructions);
+    VM(std::vector<const Instruction>& instructions);
+    ~VM();
 
     StackObject getValue(size_t index) { return stack[index]; }
 
@@ -126,12 +156,13 @@ struct VM
 
     StackFrame newStackFrame();
 
-    void execute(RuntimeEnvironment& environment);
+    void execute(MethodEnvironment& environment);
+    void endFrame(MethodEnvironment& environment);
 
     void printstack();
 private:
     VMInt currentInstruction;
-    std::vector<Instruction> instructions;
+    std::vector<const Instruction> instructions;
     
     Array<StackObject> stack;
 
