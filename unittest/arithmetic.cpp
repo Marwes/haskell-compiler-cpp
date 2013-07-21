@@ -3,55 +3,10 @@
 #include <string>
 #include <fstream>
 #include <vector>
+#include "Util.h"
 
 using namespace MyVMNamespace;
 
-int LongSwap (int i)
-{
-  unsigned char b1, b2, b3, b4;
-
-  b1 = i & 255;
-  b2 = ( i >> 8 ) & 255;
-  b3 = ( i>>16 ) & 255;
-  b4 = ( i>>24 ) & 255;
-
-  return ((int)b1 << 24) + ((int)b2 << 16) + ((int)b3 << 8) + b4;
-}
-
-std::istream& operator>>(std::ifstream& stream, Instruction& instruction)
-{
-    char op;
-    VMInt arg0;
-    char arg1;
-    char arg2;
-    if (stream.read(&op, sizeof(char)) && stream.read((char*)&arg0, sizeof(VMInt)) &&
-        stream.read(&arg1, sizeof(char)) && stream.read(&arg2, sizeof(char)))
-    {
-        arg0 = LongSwap(arg0);
-        OP actual = static_cast<OP>(op);
-        if (op2string(actual) == NULL)
-        {
-            throw new std::runtime_error(std::string("The value ") + op + " does not represent a valid opcode.");
-        }
-        instruction = Instruction(actual, arg0, arg1, arg2);
-    }
-    return stream;
-}
-
-std::vector<const Instruction> readAsm(const std::string& filename)
-{
-    std::vector<const Instruction> instructions;
-    std::ifstream stream(filename.c_str(), std::ios::binary);
-    if (!stream.is_open() || stream.bad())
-        throw new std::runtime_error("Could not find the file " + filename);
-    Instruction i;
-
-    while (stream >> i)
-    {
-        instructions.push_back(i);
-    }
-    return std::move(instructions);
-}
 
 bool compareInstructions(const Instruction& lhs, const Instruction& rhs)
 {
@@ -66,7 +21,7 @@ TEST_CASE("arithmetic", "test arithmetic")
     instructions.push_back(Instruction(OP::LOAD_INT_CONST, 5)); 
     instructions.push_back(Instruction(OP::ADD, 0, 1, 2));
 
-    std::vector<const Instruction> fileInstructions(readAsm("Arithmetic.asm"));
+    std::vector<const Instruction> fileInstructions(readAssemblyFile("Arithmetic.asm"));
     REQUIRE(std::equal(instructions.begin(), instructions.end(), fileInstructions.begin(), compareInstructions));
     instructions = fileInstructions;
     {
