@@ -11,6 +11,7 @@ import System.Environment (getArgs)
 import System.IO (IOMode(..), withFile)
 
 keywords = [
+    "NOP",
     "MOVE",
     "LOADI",
     "NEWOBJECT",
@@ -20,7 +21,8 @@ keywords = [
     "SUBTRACT",
     "MULTIPLY",
     "DIVIDE",
-    "REMAINDER"]
+    "REMAINDER",
+    "CALL"]
 
 instructions :: [(String, Char)]
 instructions = zip keywords $ iterate succ '\0'

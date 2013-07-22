@@ -5,6 +5,7 @@ namespace MyVMNamespace
 {
     enum class OP : unsigned char
     {
+        NOP,
         MOVE,
         LOAD_INT_CONST,
         
@@ -20,7 +21,6 @@ namespace MyVMNamespace
         DIVIDE,
         REMAINDER,
 
-        NOP,
 
         CALL,
 
