@@ -1,5 +1,6 @@
 #pragma once
 #include <assert.h>
+#include <vector>
 
 namespace MyVMNamespace
 {
@@ -15,6 +16,7 @@ enum TypeEnum
     TYPE_CHAR,
     TYPE_ARRAY,
     TYPE_CLASS,
+    TYPE_METHOD,
 
 };
 inline size_t sizeofType(TypeEnum  e)
@@ -57,8 +59,25 @@ union StackObject
     VMPointer pointerValue;
 };
 
-struct VMField
+class Data
 {
+public:
+    virtual ~Data() { }
+};
+
+template<class T, class U>
+inline T data_cast(U&& v)
+{
+#ifdef DEBUG
+    return dynamic_cast<T>(v);
+#else
+    return static_cast<T>(v);
+#endif
+}
+
+class VMField : public Data
+{
+public:
     VMField(Type type, int offset)
         : type(type)
         , offset(offset)
@@ -67,5 +86,6 @@ struct VMField
     const Type type;
     const int offset;
 };
+
 
 }

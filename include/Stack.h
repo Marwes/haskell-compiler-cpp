@@ -82,6 +82,11 @@ public:
         return stackBase;
     }
 
+    StackFrame makeChildFrame()
+    {
+        return StackFrame(stackBase + currentSize, maxSize - currentSize);
+    }
+
 private:
     StackObject* stackBase;
     size_t currentSize;

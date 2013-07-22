@@ -38,9 +38,9 @@ std::istream& operator>>(std::ifstream& stream, Instruction& instruction)
     return stream;
 }
 
-std::vector<const Instruction> readAssemblyFile(const char* filename)
+std::vector<Instruction> readAssemblyFile(const char* filename)
 {
-    std::vector<const Instruction> instructions;
+    std::vector<Instruction> instructions;
     std::ifstream stream(filename, std::ios::binary);
     if (!stream.is_open() || stream.bad())
         throw new std::runtime_error(std::string("Could not find the file ") + filename);

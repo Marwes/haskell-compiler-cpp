@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <iostream>
 #include "VM.h"
+#include "Method.h"
 
 namespace MyVMNamespace
 {
@@ -25,9 +26,6 @@ public:
         environment.stackFrame.at<VMInt>(current.arg0) = environment.stackFrame.at<VMInt>(current.arg1);
     }
 
-    static void op_load(VM& vm, Instruction current)
-    {
-    }
 
     static void op_load_int_constant(MethodEnvironment& environment, Instruction& current)
     {
@@ -46,16 +44,25 @@ public:
     static void op_getfield(MethodEnvironment& environment, Instruction current)
     {
         StackObject* obj = &environment.stackFrame.top();
-        const VMField& field = environment.fieldData[current.arg0];
+        const VMField& field = data_cast<const VMField&>(*environment.method->data[current.arg0]);
 
         environment.stackFrame[current.arg1] = *(obj + field.offset);
+    }
+
+    static void op_call(VM& vm, MethodEnvironment& environment, Instruction current)
+    {
+        const Method& method = data_cast<const Method&>(*environment.method->data[current.arg0]);
+
+        MethodEnvironment newEnvironment(environment.stackFrame.makeChildFrame(), &method);
+        
+        vm.execute(newEnvironment);
     }
     
     static void op_setfield(MethodEnvironment& environment, Instruction current)
     {
         StackObject* obj = &environment.stackFrame.top();
-        const VMField& field = environment.fieldData[current.arg0];
-
+        const VMField& field = data_cast<const VMField&>(*environment.method->data[current.arg0]);
+        
         *(obj + field.offset) = environment.stackFrame[current.arg1];
     }
 
@@ -69,9 +76,7 @@ public:
 typedef void (*execute_function_t)(VM& vm, Instruction current); 
 
 
-VM::VM(std::vector<const Instruction>& instructions)
-    : instructions(instructions)
-    , currentInstruction(0)
+VM::VM()
 { }
 
 VM::~VM()
@@ -98,9 +103,11 @@ void VM::printstack()
 
 void VM::execute(MethodEnvironment& environment)
 {
-    while (currentInstruction < this->instructions.size())
+    size_t currentInstruction = 0;
+    const std::vector<Instruction>& code = environment.method->code;
+    while (currentInstruction < code.size())
     {
-        Instruction instruction = this->instructions[currentInstruction];
+        Instruction instruction = code[currentInstruction];
     
         switch (instruction.op)
         {
@@ -135,11 +142,15 @@ void VM::execute(MethodEnvironment& environment)
             DO_ARITH(%, environment, instruction);
             break;
 
+        case OP::CALL:
+            VMI::op_call(*this, environment, instruction);
+            break;
+
         default:
             std::cout << "No implementation for instruction : " << op2string(instruction.op) << std::endl;
             break;
         }
-        this->currentInstruction++;
+        currentInstruction++;
     }
 }
 
@@ -147,7 +158,7 @@ void VM::endFrame(MethodEnvironment& environment)
 {
     int stackLevel = 0;
     unsigned char* base = reinterpret_cast<unsigned char*>(environment.stackFrame.data());
-    for (TypeEnum type : environment.layout.types)
+    for (TypeEnum type : environment.method->layout.types)
     {
         switch (type)
         {

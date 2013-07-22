@@ -6,9 +6,9 @@
 
 int main(int argc, char* const argv [])
 {
-    chdir("unittest");
+    _chdir("unittest");
     char buffer[1024];
-    printf("%s", getcwd(buffer, sizeof(buffer)));
+    printf("%s", _getcwd(buffer, sizeof(buffer)));
 	Catch::ConfigData data;
 	data.shouldDebugBreak = true;
 	Catch::Config config(data);

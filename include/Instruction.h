@@ -22,6 +22,8 @@ namespace MyVMNamespace
 
         NOP,
 
+        CALL,
+
         NUM_INSTRUCTIONS,
     };
 

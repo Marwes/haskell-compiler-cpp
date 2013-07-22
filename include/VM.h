@@ -9,25 +9,24 @@
 namespace MyVMNamespace
 {
 
+class Method;
 class VMI;
 
 struct MethodEnvironment
 {
-    MethodEnvironment(const StackFrame& frame, const std::vector<VMField>& fieldData = std::vector<VMField>())
+    MethodEnvironment(const StackFrame& frame, const Method* method)
         : stackFrame(frame)
-        , fieldData(fieldData)
+        , method(method)
     {
     }
 
-    const std::vector<VMField> fieldData;
-
-    StackLayout layout;
     StackFrame stackFrame;
+    const Method* method;
 };
 
 struct VM
 {
-    VM(std::vector<const Instruction>& instructions);
+    VM();
     ~VM();
 
     StackObject getValue(size_t index) { return stack[index]; }
@@ -41,8 +40,6 @@ struct VM
 
     void printstack();
 private:
-    VMInt currentInstruction;
-    std::vector<const Instruction> instructions;
     
     Array<StackObject> stack;
 
