@@ -5,6 +5,6 @@
 namespace MyVMNamespace
 {
 
-std::vector<Instruction> readAssemblyFile(const char* filename);
+Assembly readAssemblyFile(const char* filename);
 
 }

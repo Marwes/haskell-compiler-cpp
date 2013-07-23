@@ -18,6 +18,13 @@ int swapEndian(int i)
     return ((int)b1 << 24) + ((int)b2 << 16) + ((int)b3 << 8) + b4;
 }
 
+
+#ifdef BIG_ENDIAN
+#define FROM_BIGENDIAN(x) (x)
+#else
+#define FROM_BIGENDIAN(x) (std::reverse(static_cast<char*>(static_cast<void*>(x)), static_cast<char*>(static_cast<void*>(x)) + sizeof(x)))
+#endif
+
 std::istream& operator>>(std::ifstream& stream, Instruction& instruction)
 {
     char op;
@@ -27,7 +34,7 @@ std::istream& operator>>(std::ifstream& stream, Instruction& instruction)
     if (stream.read(&op, sizeof(char)) && stream.read((char*)&arg0, sizeof(VMInt)) &&
         stream.read(&arg1, sizeof(char)) && stream.read(&arg2, sizeof(char)))
     {
-        arg0 = swapEndian(arg0);
+        FROM_BIGENDIAN(&arg0);
         OP actual = static_cast<OP>(op);
         if (op2string(actual) == NULL)
         {
@@ -38,18 +45,22 @@ std::istream& operator>>(std::ifstream& stream, Instruction& instruction)
     return stream;
 }
 
-std::vector<Instruction> readAssemblyFile(const char* filename)
+Assembly readAssemblyFile(const char* filename)
 {
-    std::vector<Instruction> instructions;
+    Assembly assembly;
     std::ifstream stream(filename, std::ios::binary);
     if (!stream.is_open() || stream.bad())
         throw new std::runtime_error(std::string("Could not find the file ") + filename);
     Instruction i;
 
+    stream.read((char*)&assembly.entrypoint, sizeof(assembly.entrypoint));
+
+    FROM_BIGENDIAN(&assembly.entrypoint);
+
     while (stream >> i)
     {
-        instructions.push_back(i);
+        assembly.instructions.push_back(i);
     }
-    return std::move(instructions);
+    return std::move(assembly);
 }
 }

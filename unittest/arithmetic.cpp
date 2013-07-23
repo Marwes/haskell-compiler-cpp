@@ -5,29 +5,42 @@
 #include <vector>
 #include "Util.h"
 #include "Method.h"
+#include "Array.h"
 
 using namespace MyVMNamespace;
 
+namespace MyVMNamespace
+{
 
-bool compareInstructions(const Instruction& lhs, const Instruction& rhs)
+bool operator==(const Instruction& lhs, const Instruction& rhs)
 {
     return memcmp(&lhs, &rhs, sizeof(lhs)) == 0;
 }
 
+bool operator==(const Assembly& lhs, const Assembly& rhs)
+{
+    return lhs.entrypoint == rhs.entrypoint && lhs.instructions == rhs.instructions;
+}
+
+}
+
 TEST_CASE("arithmetic", "test arithmetic")
 {
-    std::vector<Instruction> instructions;
-    instructions.push_back(Instruction(OP::LOAD_INT_CONST, 0));
-    instructions.push_back(Instruction(OP::LOAD_INT_CONST, 10)); 
-    instructions.push_back(Instruction(OP::LOAD_INT_CONST, 5)); 
-    instructions.push_back(Instruction(OP::ADD, 0, 1, 2));
+    Assembly assembly;
+    assembly.entrypoint = 1;
+    assembly.instructions.push_back(Instruction(OP::ADD, 0, 1, 2));
+    assembly.instructions.push_back(Instruction(OP::LOAD_INT_CONST, 0));
+    assembly.instructions.push_back(Instruction(OP::LOAD_INT_CONST, 10)); 
+    assembly.instructions.push_back(Instruction(OP::LOAD_INT_CONST, 5)); 
+    assembly.instructions.push_back(Instruction(OP::ADD, 0, 1, 2));
 
-    std::vector<Instruction> fileInstructions(readAssemblyFile("Arithmetic.asm"));
-    REQUIRE(std::equal(instructions.begin(), instructions.end(), fileInstructions.begin(), compareInstructions));
-    instructions = fileInstructions;
+    Assembly fileAssembly(readAssemblyFile("Arithmetic.asm"));
+    REQUIRE(assembly == fileAssembly);
+    Slice<Instruction> methodInstructions(assembly.instructions.data() + assembly.entrypoint, assembly.instructions.size() - assembly.entrypoint);
+    assembly = fileAssembly;
     {
         VM vm;
-        const Method method(instructions, std::vector<std::unique_ptr<Data>>(), std::vector<Type>());
+        const Method method = Method::main(assembly);
         MethodEnvironment env(vm.newStackFrame(), &method);
         vm.execute(env);
         REQUIRE(vm.getValue(0).intValue == 15);
@@ -37,10 +50,10 @@ TEST_CASE("arithmetic", "test arithmetic")
 
     // 15 10 5
     // [0] = 5 - 10
-    instructions.push_back(Instruction(OP::SUBTRACT, 0, 2, 1));
+    assembly.instructions.push_back(Instruction(OP::SUBTRACT, 0, 2, 1));
     {
         VM vm;
-        const Method method(instructions, std::vector<std::unique_ptr<Data>>(), std::vector<Type>());
+        const Method method = Method::main(assembly);
         MethodEnvironment env(vm.newStackFrame(), &method);
         vm.execute(env);
         REQUIRE(vm.getValue(0).intValue == -5);
@@ -48,30 +61,30 @@ TEST_CASE("arithmetic", "test arithmetic")
 
     // -5 10 5
     // [0] = -5 * 10
-    instructions.push_back(Instruction(OP::MULTIPLY, 0, 0, 1));
+    assembly.instructions.push_back(Instruction(OP::MULTIPLY, 0, 0, 1));
     {
         VM vm;
-        const Method method(instructions, std::vector<std::unique_ptr<Data>>(), std::vector<Type>());
+        const Method method = Method::main(assembly);
         MethodEnvironment env(vm.newStackFrame(), &method);
         vm.execute(env);
         REQUIRE(vm.getValue(0).intValue == -50);
     }
     // -50 10 5
     // [0] = 10 / 5
-    instructions.push_back(Instruction(OP::DIVIDE, 0, 1, 2));
+    assembly.instructions.push_back(Instruction(OP::DIVIDE, 0, 1, 2));
     {
         VM vm;
-        const Method method(instructions, std::vector<std::unique_ptr<Data>>(), std::vector<Type>());
+        const Method method = Method::main(assembly);
         MethodEnvironment env(vm.newStackFrame(), &method);
         vm.execute(env);
         REQUIRE(vm.getValue(0).intValue == 2);
     }
     // 2 10 5
     // [0] = 5 % 2
-    instructions.push_back(Instruction(OP::REMAINDER, 0, 2, 0));
+    assembly.instructions.push_back(Instruction(OP::REMAINDER, 0, 2, 0));
     {
         VM vm;
-        const Method method(instructions, std::vector<std::unique_ptr<Data>>(), std::vector<Type>());
+        const Method method = Method::main(assembly);
         MethodEnvironment env(vm.newStackFrame(), &method);
         vm.execute(env);
         REQUIRE(vm.getValue(0).intValue == 1);

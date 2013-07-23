@@ -24,4 +24,44 @@ private:
     T* dataPtr;
 };
 
+
+template<typename T>
+class Slice
+{
+public:
+    Slice(T* begin, size_t maxSize)
+        : begin(begin)
+        , maxSize(maxSize)
+    {
+    }
+
+    T& first()
+    {
+        return *begin;
+    }
+
+    T& last()
+    {
+        return *(begin + maxSize - 1);
+    }
+
+    T& operator[](size_t index)
+    {
+        return begin[index];
+    }
+    const T& operator[](size_t index) const
+    {
+        return begin[index];
+    }
+
+    size_t size() const
+    {
+        return maxSize;
+    }
+
+private:
+    T* begin;
+    size_t maxSize;
+};
+
 }

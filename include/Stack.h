@@ -42,9 +42,8 @@ public:
 
     StackObject& top()
     {
-        return *(this->stackBase - 1 - sizeof(StackObject));
+        return *(stackBase + currentSize - 1);
     }
-    
 
     void setStack(VMField field, size_t index, VMPointer data)
     {

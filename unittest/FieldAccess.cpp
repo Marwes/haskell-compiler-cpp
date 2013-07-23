@@ -6,17 +6,18 @@ using namespace MyVMNamespace;
 
 TEST_CASE("field", "test field access")
 {
-    std::vector<Instruction> instructions;
-    instructions.push_back(Instruction(OP::LOAD_INT_CONST, 10));
+    Assembly assembly;
+    assembly.instructions.push_back(Instruction(OP::LOAD_INT_CONST, 10));
     VMInt size = sizeof(StackObject) * 2;
-    instructions.push_back(Instruction(OP::NEWOBJECT, size));
-    instructions.push_back(Instruction(OP::SETFIELD, 0, 0, 2)); // field[0] = 10
-    instructions.push_back(Instruction(OP::GETFIELD, 0, 2, 2));
+    assembly.instructions.push_back(Instruction(OP::NEWOBJECT, size));
+    assembly.instructions.push_back(Instruction(OP::SETFIELD, 0, 0, 2)); // field[0] = 10
+    assembly.instructions.push_back(Instruction(OP::GETFIELD, 0, 2, 2));
+    Slice<Instruction> methodInstructions(assembly.instructions.data(), assembly.instructions.size());
     {
         VM vm;
         std::vector<std::unique_ptr<Data>> fields;
         fields.push_back(std::unique_ptr<Data>(new VMField(Type(TYPE_INT), 0)));
-        const Method method(instructions, std::move(fields), std::vector<Type>());
+        const Method method(methodInstructions, std::vector<Type>(), std::move(fields));
         MethodEnvironment env(vm.newStackFrame(), &method);
         
         vm.execute(env);

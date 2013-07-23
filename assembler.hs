@@ -45,7 +45,7 @@ instruction = do
             [x,y] -> Instruction keyword (read x) (read y) 0
             (x:y:z:_) -> Instruction keyword (read x) (read y) (read z)
     let binary = runPut (put i)
-    modify $ \st -> st { offset = offset st + fromIntegral (B.length binary) }
+    modify $ \st -> st { offset = offset st + 1 }
     return binary
 
 asmLabels = ["entrypoint", "method"]

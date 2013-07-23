@@ -104,7 +104,7 @@ void VM::printstack()
 void VM::execute(MethodEnvironment& environment)
 {
     size_t currentInstruction = 0;
-    const std::vector<Instruction>& code = environment.method->code;
+    const Slice<Instruction>& code = environment.method->code;
     while (currentInstruction < code.size())
     {
         Instruction instruction = code[currentInstruction];

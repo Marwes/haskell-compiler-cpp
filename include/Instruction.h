@@ -46,11 +46,25 @@ struct Instruction
     {
     }
 
-    OP op;
     VMInt arg0;
     unsigned char arg1;
     unsigned char arg2;
+    OP op;
+};
 
+
+class Assembly
+{
+public:
+    Assembly() : entrypoint(0) { }
+    Assembly(Assembly&& other)
+        : entrypoint(other.entrypoint)
+        , instructions(std::move(other.instructions))
+    {
+    }
+
+    int32_t entrypoint;
+    std::vector<Instruction> instructions;
 };
 
 }
