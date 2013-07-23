@@ -1,3 +1,7 @@
+.method add
+ADD 0,1,2
+
+.entrypoint
 LOADI 0
 LOADI 10
 LOADI 5
