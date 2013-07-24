@@ -13,6 +13,7 @@ import qualified Data.Map as Map
 import Data.Int
 import Instruction
 import Disassemble
+import Expression
 
 data ParseState = ParseState {
     offset :: Int32,
@@ -34,16 +35,24 @@ matchOne :: Stream s m Char => [String] -> ParsecT s u m String
 matchOne [] = fail "Could not find a match"
 matchOne (x:xs) = string x <|> matchOne xs
 
+readMaybe        :: (Read a) => String -> Maybe a
+readMaybe s      =  case [x | (x,t) <- reads s, ("","") <- lex t] of
+                         [x] -> Just x
+                         _   -> Nothing
+
 instruction :: StateParse B.ByteString
 instruction = do
     keyword <- matchOne keywords
+    instr <- case readMaybe keyword of
+        Nothing -> fail $ keyword ++ " is not a valid instruction"
+        Just i -> return i
     many1 space
     numbers <- sepBy1 (many1 digit) (char ',')
     let i = case numbers of
             [] -> error ""
-            [x] -> Instruction keyword (read x) 0 0
-            [x,y] -> Instruction keyword (read x) (read y) 0
-            (x:y:z:_) -> Instruction keyword (read x) (read y) (read z)
+            [x] -> Instruction instr (read x) 0 0
+            [x,y] -> Instruction instr (read x) (read y) 0
+            (x:y:z:_) -> Instruction instr (read x) (read y) (read z)
     let binary = runPut (put i)
     modify $ \st -> st { offset = offset st + 1 }
     return binary
@@ -99,10 +108,7 @@ run parser onSuccess filename = do
                 putStrLn $ show $ B.length str
                 onSuccess str endState
 
-writeAssemblyFile name code (ParseState _ (Assembly entry methods _)) = do
-    putStrLn $ show $ B.length code
-    putStrLn $ show $ B.length header
-    putStrLn $ show $ B.length output
+writeAssemblyFile name code (ParseState _ (Assembly entry _ _)) = do
     B.writeFile name output
     where
         output = header `B.append` code
@@ -117,3 +123,34 @@ main = do
     else
         run assemblyFile (writeAssemblyFile (baseFilename ++ ".asm")) filename
 
+
+type CompileState = StateT Module Identity
+
+lookupFunction name = do
+    gets (Map.lookup name . functions)
+
+compileCall :: String -> [Expr] -> CompileState [Instruction]
+compileCall name xs = do
+    maybeFunc <- lookupFunction name
+    case maybeFunc of
+        Nothing ->  fail $ "Could not find function " ++ name
+        Just func -> fail "Not implemented"
+    args <- (mapM compile xs)
+    return $ Instruction CALL 0 0 0 : concat args
+    
+
+arithInstruction op = lookup op [("+", ADD), ("-", SUBTRACT), ("*", MULTIPLY), ("/", DIVIDE)]
+
+compile :: Expr -> CompileState [Instruction]
+compile (IntegerValue i) = return [Instruction LOADI (fromIntegral i) 0 0]
+compile (Call name [l,r]) =
+    case arithInstruction name of
+        Just instructionName -> do
+            args <- liftM2 (++) (compile l) (compile r)
+            return $ Instruction instructionName 0 0 0 : args
+        Nothing -> compileCall name [l,r]
+compile _ = undefined
+
+compileFunction :: FunctionDefinition -> CompileState ()
+compileFunction (FunctionDefinition name args expr) = do
+    undefined

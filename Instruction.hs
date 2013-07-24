@@ -16,7 +16,7 @@ data Assembly = Assembly {
 instance Binary Assembly
 
 data Instruction = Instruction {
-    instructionName :: String,
+    instructionName :: InstructionEnum,
     argument0 :: Int32,
     argument1 :: Word8,
     argument2 :: Word8
@@ -25,7 +25,7 @@ data Instruction = Instruction {
 
 instance Show Instruction where
     show (Instruction opcode arg0 arg1 arg2) =
-        opcode ++ " " ++ show arg0 ++ "," ++ show arg1 ++ "," ++ show arg2
+        show opcode ++ " " ++ show arg0 ++ "," ++ show arg1 ++ "," ++ show arg2
 
 instance Binary Instruction where
     get = do
@@ -39,34 +39,39 @@ instance Binary Instruction where
         return $ Instruction name arg0 arg1 arg2
     put (Instruction name arg0 arg1 arg2) = do
         op <- case lookup name instructionTable of
-            Nothing -> fail $ "Unrecognized instruction " ++ name
+            Nothing -> fail $ "Unrecognized instruction " ++ show name
             Just opcode -> return opcode
         put op
         put arg0
         put arg1
         put arg2
 
-keywords = [
-    "NOP",
-    "MOVE",
-    "LOADI",
-    "NEWOBJECT",
-    "GETFIELD",
-    "SETFIELD",
-    "ADD",
-    "SUBTRACT",
-    "MULTIPLY",
-    "DIVIDE",
-    "REMAINDER",
-    "CALL"]
 
-instructionTable :: [(String, Char)]
-instructionTable = zip keywords $ iterate succ '\0'
+data InstructionEnum = NOP
+                     | MOVE
+                     | LOADI
+                     | LOADSTR
+                     | NEWOBJECT
+                     | GETFIELD
+                     | SETFIELD
+                     | ADD
+                     | SUBTRACT
+                     | MULTIPLY
+                     | DIVIDE
+                     | REMAINDER
+                     | CALL
+                     deriving (Eq, Enum, Show, Read)
+
+instructionList = enumFromTo NOP CALL
+keywords = map show $ instructionList
+
+instructionTable :: [(InstructionEnum, Char)]
+instructionTable = zip instructionList $ iterate succ '\0'
 
 instructionNames = map swap instructionTable
 
 
-makeInstruction :: String -> Int32 -> Word8 -> Word8 -> B.ByteString
+makeInstruction :: InstructionEnum -> Int32 -> Word8 -> Word8 -> B.ByteString
 makeInstruction keyword arg0 arg1 arg2 = encode i ++ encode arg0 ++ encode arg1 ++ encode arg2
     where
         (++) = B.append
