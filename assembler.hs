@@ -14,6 +14,7 @@ import Data.Int
 import Instruction
 import Disassemble
 import Expression
+import qualified Data.Vector as V
 
 data ParseState = ParseState {
     offset :: Int32,
@@ -124,19 +125,44 @@ main = do
         run assemblyFile (writeAssemblyFile (baseFilename ++ ".asm")) filename
 
 
-type CompileState = StateT Module Identity
+data Identifier = Local Int
+                | Global String
+    deriving(Eq)
 
-lookupFunction name = do
-    gets (Map.lookup name . functions)
+
+data Environment = Environment {
+    modul :: Module,
+    stack :: V.Vector String,
+    dataIdentifiers :: V.Vector String
+    }
+
+type CompileState = StateT Environment Identity
+
+--tries to find a identifier in the state
+lookupIdentifier :: String -> CompileState (Maybe Identifier)
+lookupIdentifier name = liftM2 mplus (gets local) (gets global)
+    where
+        --Use of mplus acts as a short circuit for Maybe
+        local = liftM Local . V.elemIndex name . stack
+        global env = do
+            let funcs = functions $ modul env
+            FunctionDefinition name _ _ <- Map.lookup name funcs
+            return $ Global name
 
 compileCall :: String -> [Expr] -> CompileState [Instruction]
 compileCall name xs = do
-    maybeFunc <- lookupFunction name
-    case maybeFunc of
-        Nothing ->  fail $ "Could not find function " ++ name
-        Just func -> fail "Not implemented"
+    maybeId <- lookupIdentifier name
+    instr <- case maybeId of
+        Nothing ->  fail $ "Could not find identifier " ++ name
+        Just ident -> f ident
     args <- (mapM compile xs)
-    return $ Instruction CALL 0 0 0 : concat args
+    return $ instr ++ concat args
+    where
+        f (Local index) = return [Instruction MOVE (fromIntegral index) 0 0]
+        f (Global ident) = do
+            modify $ \env -> env { dataIdentifiers = V.snoc (dataIdentifiers env) ident }
+            dataIndex <- gets (V.length . dataIdentifiers)
+            return [Instruction CALL (fromIntegral dataIndex) 0 0]
     
 
 arithInstruction op = lookup op [("+", ADD), ("-", SUBTRACT), ("*", MULTIPLY), ("/", DIVIDE)]
@@ -151,6 +177,9 @@ compile (Call name [l,r]) =
         Nothing -> compileCall name [l,r]
 compile _ = undefined
 
-compileFunction :: FunctionDefinition -> CompileState ()
+
+compileFunction :: FunctionDefinition -> CompileState [Instruction]
 compileFunction (FunctionDefinition name args expr) = do
-    undefined
+    modify $ \env -> env { stack = V.fromList args }
+    compile expr
+    

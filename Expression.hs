@@ -147,7 +147,7 @@ dataDefinition = do
             return $ Constructor name fields
 
 
-identifierDefinition = do
+functionDefinition = do
     name <- identifier
     arguments <- many identifier
     reservedOp "="
@@ -169,7 +169,7 @@ file = do
     getState
     where
         defintion = do
-            x <- (identifierDefinition >>= return . Left) <|> (dataDefinition >>= return . Right)
+            x <- (functionDefinition >>= return . Left) <|> (dataDefinition >>= return . Right)
             case x of
                 Left func -> addFunction func
                 Right dat -> addData dat
