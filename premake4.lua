@@ -1,4 +1,6 @@
 
+DEV_VAR = os.getenv("DEV")
+BOOST_DIR = path.join(DEV_VAR, "boost_1_54_0")
 
 solution "VM"
     configurations { "Debug", "Release" }
@@ -17,7 +19,7 @@ solution "VM"
         language "C++"
         kind "StaticLib"
         targetdir "bin"
-        includedirs "include"
+        includedirs { "include", BOOST_DIR }
 
         files {
            "include/*.h",
@@ -31,7 +33,7 @@ solution "VM"
         language "C++"
         kind "ConsoleApp"
         targetdir "bin"
-        includedirs "include"
+        includedirs { "include", BOOST_DIR }
 
         links { "vm" }
         

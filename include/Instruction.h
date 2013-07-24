@@ -1,4 +1,5 @@
 #pragma once
+#include <stdint.h>
 #include "Types.h"
 
 namespace MyVMNamespace
@@ -8,6 +9,7 @@ namespace MyVMNamespace
         NOP,
         MOVE,
         LOAD_INT_CONST,
+        LOAD_STRING_CONST,
         
         NEWOBJECT,
 
@@ -45,11 +47,11 @@ struct Instruction
         , arg2(arg2)
     {
     }
-
+    
     VMInt arg0;
+    OP op;
     unsigned char arg1;
     unsigned char arg2;
-    OP op;
 };
 
 

@@ -1,6 +1,7 @@
 #pragma once
 #include <assert.h>
 #include <vector>
+#include <memory>
 
 namespace MyVMNamespace
 {
@@ -52,18 +53,36 @@ struct Type
 };
 
 
+class Object
+{
+public:
+    Object() : refCount(1) { }
+    virtual ~Object() { }
+
+    void addReference()
+    {
+        ++refCount;
+    }
+    bool removeReference()
+    {
+        if (--refCount <= 0)
+        {
+            delete this;
+            return true;
+        }
+        return false;
+    }
+private:
+    size_t refCount;
+};
+
 union StackObject
 {
     VMInt intValue;
     VMFloat floatValue;
-    VMPointer pointerValue;
+    Object* pointerValue;
 };
 
-class Data
-{
-public:
-    virtual ~Data() { }
-};
 
 template<class T, class U>
 inline T data_cast(U&& v)
@@ -75,7 +94,8 @@ inline T data_cast(U&& v)
 #endif
 }
 
-class VMField : public Data
+
+class VMField : public Object
 {
 public:
     VMField(Type type, int offset)
@@ -85,6 +105,15 @@ public:
 
     const Type type;
     const int offset;
+};
+
+class String : public Object
+{
+public:
+    String(std::string value)
+        : value(std::move(value))
+    { }
+    std::string value;
 };
 
 

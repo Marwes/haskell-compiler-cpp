@@ -14,14 +14,16 @@ class VMI;
 
 struct MethodEnvironment
 {
-    MethodEnvironment(const StackFrame& frame, const Method* method)
+    MethodEnvironment(const StackFrame& frame, Method* method)
         : stackFrame(frame)
         , method(method)
     {
     }
 
+    ~MethodEnvironment();
+
     StackFrame stackFrame;
-    const Method* method;
+    Method* method;
 };
 
 struct VM

@@ -32,10 +32,17 @@ public:
         environment.stackFrame.push(current.arg0);
     }
 
+    static void op_load_string_constant(MethodEnvironment& environment, Instruction& current)
+    {
+        String* string = data_cast<String*>(environment.method->data[current.arg0].get());
+
+        environment.stackFrame.push(string);
+    }
+
     static void op_newobject(MethodEnvironment& environment, Instruction current)
     {
         VMInt size = current.arg0;
-        VMPointer obj = malloc(size);
+        Object* obj = static_cast<Object*>(malloc(size));
         memset(obj, 0, size);
 
         environment.stackFrame.push(obj);
@@ -51,7 +58,7 @@ public:
 
     static void op_call(VM& vm, MethodEnvironment& environment, Instruction current)
     {
-        const Method& method = data_cast<const Method&>(*environment.method->data[current.arg0]);
+        Method& method = data_cast<Method&>(*environment.method->data[current.arg0]);
 
         MethodEnvironment newEnvironment(environment.stackFrame.makeChildFrame(), &method);
         
@@ -75,6 +82,30 @@ public:
 
 typedef void (*execute_function_t)(VM& vm, Instruction current); 
 
+
+MethodEnvironment::~MethodEnvironment()
+{
+    const StackLayout& stackLayout = this->method->stackLayout;
+    size_t ii = 0;
+    //cleanup the stack
+    for (StackObject* stack = this->stackFrame.data(); stack < this->stackFrame.data() + this->stackFrame.size(); )
+    {
+        TypeEnum type = stackLayout.types[ii];
+        switch (type)
+        {
+        case TYPE_ARRAY:
+        case TYPE_CLASS:
+            stack->pointerValue->removeReference();
+            break;
+        case TYPE_METHOD:
+            break;
+        default:
+            break;
+        }
+        stack += sizeofType(type);
+        ii++;
+    }
+}
 
 VM::VM()
 { }
@@ -117,6 +148,9 @@ void VM::execute(MethodEnvironment& environment)
         case OP::LOAD_INT_CONST:
             environment.stackFrame.push(instruction.arg0);
             break;
+        case OP::LOAD_STRING_CONST:
+            VMI::op_load_string_constant(environment, instruction);
+            break;
         case OP::NEWOBJECT:
             VMI::op_newobject(environment, instruction);
             break;
@@ -158,7 +192,7 @@ void VM::endFrame(MethodEnvironment& environment)
 {
     int stackLevel = 0;
     unsigned char* base = reinterpret_cast<unsigned char*>(environment.stackFrame.data());
-    for (TypeEnum type : environment.method->layout.types)
+    for (TypeEnum type : environment.method->stackLayout.types)
     {
         switch (type)
         {

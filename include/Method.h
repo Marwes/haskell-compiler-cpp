@@ -8,11 +8,39 @@
 namespace MyVMNamespace
 {
     
-class Method : public Data
+    class RefCountedPointer
+    {
+    public:
+        RefCountedPointer(Object* o = nullptr)
+            : value(o)
+        {
+            value->addReference();
+        }
+
+        ~RefCountedPointer()
+        {
+            if (value)
+                value->removeReference();
+        }
+
+        Object* get() { return value; }
+        const Object* get() const { return value; }
+
+        Object& operator->() { return *value; }
+        const Object& operator->() const { return *value; }
+
+        Object& operator*() { return *value; }
+        const Object& operator*() const { return *value; }
+
+    private:
+        Object* value;
+    };
+
+class Method : public Object
 {
 public:
-    typedef std::vector<std::unique_ptr<Data>> DataVector;
-    Method(Slice<Instruction> code, std::vector<Type> parameters, DataVector&& data = DataVector())
+    typedef std::vector<RefCountedPointer> ObjectVector;
+    Method(Slice<Instruction> code, std::vector<Type> parameters, ObjectVector&& data = ObjectVector())
         : code(std::move(code))
         , data(std::move(data))
         , parameterTypes(std::move(parameters))
@@ -23,7 +51,7 @@ public:
         : code(std::move(method.code))
         , data(std::move(method.data))
         , parameterTypes(std::move(method.parameterTypes))
-        , layout(std::move(method.layout))
+        , stackLayout(std::move(method.stackLayout))
     {
     }
 
@@ -35,9 +63,9 @@ public:
     }
 
     const Slice<Instruction> code;
-    std::vector<std::unique_ptr<Data>> data;
+    ObjectVector data;
     const std::vector<Type> parameterTypes;
-    StackLayout layout;
+    StackLayout stackLayout;
 };
 
 }

@@ -2,6 +2,7 @@
 #include <Util.h>
 #include <fstream>
 #include <string>
+#include <Method.h>
 
 namespace MyVMNamespace
 {
@@ -25,6 +26,7 @@ int swapEndian(int i)
 #define FROM_BIGENDIAN(x) (std::reverse(static_cast<char*>(static_cast<void*>(x)), static_cast<char*>(static_cast<void*>(x)) + sizeof(x)))
 #endif
 
+
 std::istream& operator>>(std::ifstream& stream, Instruction& instruction)
 {
     char op;
@@ -45,6 +47,33 @@ std::istream& operator>>(std::ifstream& stream, Instruction& instruction)
     return stream;
 }
 
+void checkStack(Method& method)
+{
+    auto& types = method.stackLayout.types;
+    for (auto& instruction : method.code)
+    {
+        switch (instruction.op)
+        {
+        case OP::MOVE:
+            {
+            VMInt fromPos = instruction.arg0;
+            unsigned char toPos = instruction.arg1;
+            if (types.size() < toPos)
+                types.reserve(toPos);
+            
+            if (types[toPos] != types[fromPos])
+                throw std::runtime_error("");
+            else
+                types[toPos] = types[fromPos];
+            break;
+            }
+
+        default:
+            break;
+        }
+    }
+}
+
 Assembly readAssemblyFile(const char* filename)
 {
     Assembly assembly;
@@ -63,4 +92,5 @@ Assembly readAssemblyFile(const char* filename)
     }
     return std::move(assembly);
 }
+
 }

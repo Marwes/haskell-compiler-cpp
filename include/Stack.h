@@ -21,17 +21,31 @@ public:
         , currentSize(0)
     {
     }
-
     
-    template<typename T>
-    void push(T& obj)
+    void push(VMInt p)
     {
-        typedef std::remove_const<T>::type T_mutable;
+        StackObject o;
+        o.intValue = p;
+        push(o);
+    }
+    void push(VMFloat p)
+    {
+        StackObject o;
+        o.floatValue = p;
+        push(o);
+    }
+    void push(Object* p)
+    {
+        StackObject o;
+        o.pointerValue = p;
+        push(o);
+    }
+
+    void push(const StackObject& obj)
+    {
         assert(currentSize < maxSize - 1);
-        T_mutable* address = reinterpret_cast<T_mutable*>(this->stackBase + currentSize);
-        *address = obj;
-        static_assert(sizeof(T) % sizeof(StackObject) == 0, "");
-        currentSize += sizeof(T) / sizeof(StackObject);
+        this->stackBase[currentSize] = obj;
+        currentSize++;
     }
 
     template<typename T>
@@ -55,7 +69,7 @@ public:
             this->stackBase[index].floatValue = *static_cast<VMFloat*>(data);
         case TYPE_ARRAY:
         case TYPE_CLASS:
-            this->stackBase[index].pointerValue = data;
+            this->stackBase[index].pointerValue = static_cast<Object*>(data);
             break;
 
         default:
@@ -84,6 +98,11 @@ public:
     StackFrame makeChildFrame()
     {
         return StackFrame(stackBase + currentSize, maxSize - currentSize);
+    }
+
+    size_t size()
+    {
+        return currentSize;
     }
 
 private:

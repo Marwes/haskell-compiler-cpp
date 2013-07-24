@@ -40,7 +40,7 @@ TEST_CASE("arithmetic", "test arithmetic")
     assembly = fileAssembly;
     {
         VM vm;
-        const Method method = Method::main(assembly);
+        Method method = Method::main(assembly);
         MethodEnvironment env(vm.newStackFrame(), &method);
         vm.execute(env);
         REQUIRE(vm.getValue(0).intValue == 15);
@@ -53,7 +53,7 @@ TEST_CASE("arithmetic", "test arithmetic")
     assembly.instructions.push_back(Instruction(OP::SUBTRACT, 0, 2, 1));
     {
         VM vm;
-        const Method method = Method::main(assembly);
+        Method method = Method::main(assembly);
         MethodEnvironment env(vm.newStackFrame(), &method);
         vm.execute(env);
         REQUIRE(vm.getValue(0).intValue == -5);
@@ -64,7 +64,7 @@ TEST_CASE("arithmetic", "test arithmetic")
     assembly.instructions.push_back(Instruction(OP::MULTIPLY, 0, 0, 1));
     {
         VM vm;
-        const Method method = Method::main(assembly);
+        Method method = Method::main(assembly);
         MethodEnvironment env(vm.newStackFrame(), &method);
         vm.execute(env);
         REQUIRE(vm.getValue(0).intValue == -50);
@@ -74,7 +74,7 @@ TEST_CASE("arithmetic", "test arithmetic")
     assembly.instructions.push_back(Instruction(OP::DIVIDE, 0, 1, 2));
     {
         VM vm;
-        const Method method = Method::main(assembly);
+        Method method = Method::main(assembly);
         MethodEnvironment env(vm.newStackFrame(), &method);
         vm.execute(env);
         REQUIRE(vm.getValue(0).intValue == 2);
@@ -84,7 +84,7 @@ TEST_CASE("arithmetic", "test arithmetic")
     assembly.instructions.push_back(Instruction(OP::REMAINDER, 0, 2, 0));
     {
         VM vm;
-        const Method method = Method::main(assembly);
+        Method method = Method::main(assembly);
         MethodEnvironment env(vm.newStackFrame(), &method);
         vm.execute(env);
         REQUIRE(vm.getValue(0).intValue == 1);

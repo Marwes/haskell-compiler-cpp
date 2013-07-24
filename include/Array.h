@@ -29,29 +29,40 @@ template<typename T>
 class Slice
 {
 public:
-    Slice(T* begin, size_t maxSize)
-        : begin(begin)
+    Slice(T* start, size_t maxSize)
+        : start(start)
         , maxSize(maxSize)
     {
     }
 
+    
+    Instruction* begin() const
+    {
+        return start;
+    }
+
+    Instruction* end() const
+    {
+        return start + maxSize;
+    }
+
     T& first()
     {
-        return *begin;
+        return *start;
     }
 
     T& last()
     {
-        return *(begin + maxSize - 1);
+        return *(start + maxSize - 1);
     }
 
     T& operator[](size_t index)
     {
-        return begin[index];
+        return start[index];
     }
     const T& operator[](size_t index) const
     {
-        return begin[index];
+        return start[index];
     }
 
     size_t size() const
@@ -60,7 +71,7 @@ public:
     }
 
 private:
-    T* begin;
+    T* start;
     size_t maxSize;
 };
 

@@ -15,9 +15,9 @@ TEST_CASE("field", "test field access")
     Slice<Instruction> methodInstructions(assembly.instructions.data(), assembly.instructions.size());
     {
         VM vm;
-        std::vector<std::unique_ptr<Data>> fields;
-        fields.push_back(std::unique_ptr<Data>(new VMField(Type(TYPE_INT), 0)));
-        const Method method(methodInstructions, std::vector<Type>(), std::move(fields));
+        std::vector<RefCountedPointer> fields;
+        fields.push_back(RefCountedPointer(new VMField(Type(TYPE_INT), 0)));
+        Method method(methodInstructions, std::vector<Type>(), std::move(fields));
         MethodEnvironment env(vm.newStackFrame(), &method);
         
         vm.execute(env);
