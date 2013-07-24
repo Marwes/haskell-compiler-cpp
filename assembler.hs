@@ -130,10 +130,13 @@ data Identifier = Local Int
     deriving(Eq)
 
 
+data Data = StringData String
+          | FunctionData String
+
 data Environment = Environment {
     modul :: Module,
     stack :: V.Vector String,
-    dataIdentifiers :: V.Vector String
+    dataIdentifiers :: V.Vector Data
     }
 
 type CompileState = StateT Environment Identity
@@ -149,7 +152,20 @@ lookupIdentifier name = liftM2 mplus (gets local) (gets global)
             FunctionDefinition name _ _ <- Map.lookup name funcs
             return $ Global name
 
+addData :: Data -> CompileState Int32
+addData d = do
+    modify $ \env -> env { dataIdentifiers = V.snoc (dataIdentifiers env) d }
+    i <- gets (V.length . dataIdentifiers)
+    return $ fromIntegral i
+    
+
 compileCall :: String -> [Expr] -> CompileState [Instruction]
+compileCall name [l,r] =
+    case arithInstruction name of
+        Just instructionName -> do
+            args <- liftM2 (++) (compile l) (compile r)
+            return $ Instruction instructionName 0 0 0 : args
+        Nothing -> compileCall name [l,r]
 compileCall name xs = do
     maybeId <- lookupIdentifier name
     instr <- case maybeId of
@@ -160,8 +176,7 @@ compileCall name xs = do
     where
         f (Local index) = return [Instruction MOVE (fromIntegral index) 0 0]
         f (Global ident) = do
-            modify $ \env -> env { dataIdentifiers = V.snoc (dataIdentifiers env) ident }
-            dataIndex <- gets (V.length . dataIdentifiers)
+            dataIndex <- addData (FunctionData ident)
             return [Instruction CALL (fromIntegral dataIndex) 0 0]
     
 
@@ -169,12 +184,10 @@ arithInstruction op = lookup op [("+", ADD), ("-", SUBTRACT), ("*", MULTIPLY), (
 
 compile :: Expr -> CompileState [Instruction]
 compile (IntegerValue i) = return [Instruction LOADI (fromIntegral i) 0 0]
-compile (Call name [l,r]) =
-    case arithInstruction name of
-        Just instructionName -> do
-            args <- liftM2 (++) (compile l) (compile r)
-            return $ Instruction instructionName 0 0 0 : args
-        Nothing -> compileCall name [l,r]
+compile (StringLiteral str) = do
+    index <- addData (StringData str)
+    return [Instruction LOADSTR index 0 0]
+compile (Call name xs) = compileCall name xs
 compile _ = undefined
 
 

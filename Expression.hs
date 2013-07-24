@@ -1,5 +1,12 @@
 {-# LANGUAGE FlexibleContexts #-}
-module Expression where
+module Expression (
+    Module(..),
+    Expr(..),
+    FunctionDefinition(..),
+
+    parseExpr,
+    parseFile
+) where
 import qualified Text.ParserCombinators.Parsec.Token as T
 import Text.Parsec.Language (haskell)
 import Text.Parsec.Expr
