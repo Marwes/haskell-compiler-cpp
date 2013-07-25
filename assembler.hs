@@ -160,12 +160,6 @@ addData d = do
     
 
 compileCall :: String -> [Expr] -> CompileState [Instruction]
-compileCall name [l,r] =
-    case arithInstruction name of
-        Just instructionName -> do
-            args <- liftM2 (++) (compile l) (compile r)
-            return $ Instruction instructionName 0 0 0 : args
-        Nothing -> compileCall name [l,r]
 compileCall name xs = do
     maybeId <- lookupIdentifier name
     instr <- case maybeId of
@@ -187,7 +181,13 @@ compile (IntegerValue i) = return [Instruction LOADI (fromIntegral i) 0 0]
 compile (StringLiteral str) = do
     index <- addData (StringData str)
     return [Instruction LOADSTR index 0 0]
-compile (Call name xs) = compileCall name xs
+compile (Call name [l,r]) =
+    case arithInstruction name of
+        Just instructionName -> do
+            args <- liftM2 (++) (compile l) (compile r)
+            return $ Instruction instructionName 0 0 0 : args
+        Nothing -> compileCall name [l,r]
+compile (Call name args) = compileCall name args
 compile _ = undefined
 
 
