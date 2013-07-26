@@ -1,6 +1,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 module Expression (
     Module(..),
+    Literal(..),
     Expr(..),
     FunctionDefinition(..),
 
@@ -19,65 +20,74 @@ import qualified Data.Map as Map
 
 data PatternMatch = PatternMatch String [String] deriving (Eq, Show)
 
-data Expr = IntegerValue Integer
-          | FloatValue Double
-          | StringLiteral String
+data Literal = Integer Integer
+             | Float Double
+             | StringLiteral String
+             deriving (Eq, Show)
+
+data Expr = Literal Literal
           | Call String [Expr]
           | If Expr Expr Expr
           | Case Expr [(PatternMatch, Expr)]
+          | Let [FunctionDefinition] Expr
           deriving (Eq, Show)
 
-data FunctionDefinition = FunctionDefinition String [String] Expr
+data FunctionDefinition = FunctionDefinition String [String] Expr deriving(Eq, Show)
 
-data Constructor = Constructor String [String]
-data DataDefinition = DataDefinition String [Constructor]
+data Constructor = Constructor String [String] deriving(Eq, Show)
+data DataDefinition = DataDefinition String [Constructor] deriving(Eq, Show)
 
 data Module = Module {
     functions :: Map.Map String FunctionDefinition,
     datas :: Map.Map String DataDefinition
-    }
+    } deriving(Eq, Show)
 
-type HaskellParser u = ParsecT String u Identity Expr
+type Parser u a = ParsecT String u Identity a
+type HaskellParser u = Parser u Expr
 type FileParser a = ParsecT String Module Identity a
 --type HaskellParser u = T.TokenParser ()
 
-identifier = T.identifier haskell
 
-integer :: HaskellParser u
-integer = liftM IntegerValue $ T.integer haskell
+lexeme = T.lexeme haskell
 
-float = liftM FloatValue $ T.float haskell
+identifier = T.identifier haskell <?> "Identifier"
+
+integer :: Parser u Literal
+integer = liftM Integer (T.integer haskell) <?> "Integerliteral"
+
+float = liftM Float (T.float haskell) <?> "Floatliteral"
 
 stringLiteral = liftM StringLiteral $ T.stringLiteral haskell
 
-literal = integer <|> float <|> stringLiteral
+literal = liftM Literal (integer <|> float <|> stringLiteral <?> "Literal")
 
 functionCall :: HaskellParser u
 functionCall = do
     name <- identifier
     spaces
-    arguments <- many (spaces >> expression)
+    arguments <- many (try expression1)
     return $ Call name arguments
-
+    where
+        
 infixOp = do
-    op <- many1 (oneOf "+-*/")
+    op <- lexeme $ many1 (oneOf "+-*/")
     return $ "(" ++ op ++ ")"
 
 binopExpr :: HaskellParser u
 binopExpr = do
     lhs <- expression
     op <- infixOp
-    rhs <- expression
+    rhs <- expression <?> fail "Expected expression as second argument to " ++ show op
     return $ Call op [lhs, rhs]
 
 parens = T.parens haskell
 
+expression1 =  parens expression <|> literal <|> (identifier >>= \n -> return $ Call n [])
 
 expression :: HaskellParser u
-expression = do
-    parens expr <|> expr
+expression = parens expr <|> expr
     where
-        expr = spaces *> (ifExpr <|> caseExpr <|> functionCall <|> literal) <* spaces
+        expr = lexeme (ifExpr <|> caseExpr <|> literal <|> functionCall)
 
 reserved = T.reserved haskell
 whiteSpace = T.whiteSpace haskell
@@ -91,6 +101,13 @@ ifExpr = do
     reserved "else"
     whenFalse <- expression
     return $ If test whenTrue whenFalse
+
+letExpr = do
+    reserved "let"
+    xs <- many functionDefinition
+    reserved "in"
+    expr <- expression
+    return $ Let xs expr
 
 typename = liftM2 (:) upper (many alphaNum)
 
@@ -131,13 +148,7 @@ arithmeticOperators = [[Prefix (reservedOp "-"   >> return (unaryOp "negate"))]
                       , [Infix  (reservedOp "+"   >> return (binaryOp "+")) AssocLeft]
                       , [Infix  (reservedOp "-"   >> return (binaryOp "-")) AssocLeft]]
  
-boolOperators = [ [Prefix (reservedOp "not" >> return (unaryOp "not"))]
-                , [Infix  (reservedOp "and" >> return (binaryOp "and")) AssocLeft]
-                , [Infix  (reservedOp "or"  >> return (binaryOp "or"))  AssocLeft]]
-
-
 arithmeticExpr = buildExpressionParser arithmeticOperators expression
-boolExpr = buildExpressionParser boolOperators expression
 
 
 
@@ -155,8 +166,8 @@ dataDefinition = do
 
 
 functionDefinition = do
-    name <- identifier
-    arguments <- many identifier
+    name <- identifier <?> fail "Expected function name"
+    arguments <- many (identifier <?> fail "Unexpected token in argument list")
     reservedOp "="
     expr <- expression
     return $ FunctionDefinition name arguments expr
@@ -172,10 +183,11 @@ addData dat@(DataDefinition name _) = do
 
 file :: FileParser Module
 file = do
-    many defintion
+    definition
+    --many definition
     getState
     where
-        defintion = do
+        definition = do
             x <- (functionDefinition >>= return . Left) <|> (dataDefinition >>= return . Right)
             case x of
                 Left func -> addFunction func
@@ -187,5 +199,6 @@ parseFile :: String -> IO (Either ParseError Module)
 parseFile filename = do
     withFile filename ReadMode $ \handle -> do
         contents <- hGetContents handle
+        putStrLn contents
         return $ runParser file (Module Map.empty Map.empty) filename contents
 

@@ -13,8 +13,11 @@ import qualified Data.Map as Map
 import Data.Int
 import Instruction
 import Disassemble
-import Expression
-import qualified Data.Vector as V
+
+data Assembly = Assembly {
+    entrypoint :: Int32,
+    methods :: Map.Map String Int32
+    }
 
 data ParseState = ParseState {
     offset :: Int32,
@@ -41,19 +44,18 @@ readMaybe s      =  case [x | (x,t) <- reads s, ("","") <- lex t] of
                          [x] -> Just x
                          _   -> Nothing
 
-instruction :: StateParse B.ByteString
-instruction = do
-    keyword <- matchOne keywords
-    instr <- case readMaybe keyword of
-        Nothing -> fail $ keyword ++ " is not a valid instruction"
+instructionParser :: StateParse B.ByteString
+instructionParser = do
+    instructionName <- matchOne instructionNames
+    instr <- case readMaybe instructionName of
+        Nothing -> fail $ instructionName ++ " is not a valid instruction"
         Just i -> return i
     many1 space
-    numbers <- sepBy1 (many1 digit) (char ',')
+    numbers <- sepBy (many1 digit) (char ',')
     let i = case numbers of
-            [] -> error ""
-            [x] -> Instruction instr (read x) 0 0
-            [x,y] -> Instruction instr (read x) (read y) 0
-            (x:y:z:_) -> Instruction instr (read x) (read y) (read z)
+            [] -> instruction instr 0
+            [x] -> instruction instr (read x)
+            _ -> fail "To many arguments to instruction"
     let binary = runPut (put i)
     modify $ \st -> st { offset = offset st + 1 }
     return binary
@@ -83,7 +85,7 @@ asmLabel = do
 
 
 assemblyFile = do
-    let line = asmLabel <|> instruction 
+    let line = asmLabel <|> instructionParser
     lines <- sepEndBy line (many1 eol)
     eof
     return $ B.concat lines
@@ -101,7 +103,7 @@ runStateParse parser sourceName input state = runIdentity $ runStateT runParse s
 run parser onSuccess filename = do
     withFile filename ReadMode $ \handle -> do
         contents <- B.hGetContents handle
-        let startState = ParseState 0 (Assembly 0 Map.empty [])
+        let startState = ParseState 0 (Assembly 0 Map.empty)
             (parseResult, endState) = runStateParse parser filename contents startState
         case parseResult of
             Left err -> putStrLn $ show err 
@@ -109,7 +111,7 @@ run parser onSuccess filename = do
                 putStrLn $ show $ B.length str
                 onSuccess str endState
 
-writeAssemblyFile name code (ParseState _ (Assembly entry _ _)) = do
+writeAssemblyFile name code (ParseState _ (Assembly entry _)) = do
     B.writeFile name output
     where
         output = header `B.append` code
@@ -123,76 +125,3 @@ main = do
         disassemble filename (baseFilename ++ ".disasm")
     else
         run assemblyFile (writeAssemblyFile (baseFilename ++ ".asm")) filename
-
-
-data Identifier = Local Int
-                | Global String
-    deriving(Eq)
-
-
-data Data = StringData String
-          | FunctionData String
-
-data Environment = Environment {
-    modul :: Module,
-    stack :: V.Vector String,
-    dataIdentifiers :: V.Vector Data
-    }
-
-type CompileState = StateT Environment Identity
-
---tries to find a identifier in the state
-lookupIdentifier :: String -> CompileState (Maybe Identifier)
-lookupIdentifier name = liftM2 mplus (gets local) (gets global)
-    where
-        --Use of mplus acts as a short circuit for Maybe
-        local = liftM Local . V.elemIndex name . stack
-        global env = do
-            let funcs = functions $ modul env
-            FunctionDefinition name _ _ <- Map.lookup name funcs
-            return $ Global name
-
-addData :: Data -> CompileState Int32
-addData d = do
-    modify $ \env -> env { dataIdentifiers = V.snoc (dataIdentifiers env) d }
-    i <- gets (V.length . dataIdentifiers)
-    return $ fromIntegral i
-    
-
-compileCall :: String -> [Expr] -> CompileState [Instruction]
-compileCall name xs = do
-    maybeId <- lookupIdentifier name
-    instr <- case maybeId of
-        Nothing ->  fail $ "Could not find identifier " ++ name
-        Just ident -> f ident
-    args <- (mapM compile xs)
-    return $ instr ++ concat args
-    where
-        f (Local index) = return [Instruction MOVE (fromIntegral index) 0 0]
-        f (Global ident) = do
-            dataIndex <- addData (FunctionData ident)
-            return [Instruction CALL (fromIntegral dataIndex) 0 0]
-    
-
-arithInstruction op = lookup op [("+", ADD), ("-", SUBTRACT), ("*", MULTIPLY), ("/", DIVIDE)]
-
-compile :: Expr -> CompileState [Instruction]
-compile (IntegerValue i) = return [Instruction LOADI (fromIntegral i) 0 0]
-compile (StringLiteral str) = do
-    index <- addData (StringData str)
-    return [Instruction LOADSTR index 0 0]
-compile (Call name [l,r]) =
-    case arithInstruction name of
-        Just instructionName -> do
-            args <- liftM2 (++) (compile l) (compile r)
-            return $ Instruction instructionName 0 0 0 : args
-        Nothing -> compileCall name [l,r]
-compile (Call name args) = compileCall name args
-compile _ = undefined
-
-
-compileFunction :: FunctionDefinition -> CompileState [Instruction]
-compileFunction (FunctionDefinition name args expr) = do
-    modify $ \env -> env { stack = V.fromList args }
-    compile expr
-    

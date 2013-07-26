@@ -1,78 +1,94 @@
 {-# LANGUAGE DeriveGeneric #-}
-module Instruction where
-import GHC.Generics (Generic)
-import qualified Data.ByteString.Lazy as B
+module Instruction (
+    SimpleInstruction(..),
+    FloatInstruction(..),
+    IntInstruction(..),
+    Instruction(..),
+
+    instructionNames,
+    instruction,
+    instructionName
+) where
 import Data.Int
 import Data.Binary
 import Data.Tuple (swap)
-import qualified Data.Map as Map
-
-data Assembly = Assembly {
-    entrypoint :: Int32,
-    methods :: Map.Map String Int32,
-    instructions :: [Instruction] }
-    deriving (Generic)
-
-instance Binary Assembly
-
-data Instruction = Instruction {
-    instructionName :: InstructionEnum,
-    argument0 :: Int32,
-    argument1 :: Word8,
-    argument2 :: Word8
-    }
+import Control.Applicative ((<*>), (<|>), pure)
+import Data.List (genericLength)
 
 
-instance Show Instruction where
-    show (Instruction opcode arg0 arg1 arg2) =
-        show opcode ++ " " ++ show arg0 ++ "," ++ show arg1 ++ "," ++ show arg2
-
-instance Binary Instruction where
-    get = do
-        op <- get
-        arg0 <- get
-        arg1 <- getWord8
-        arg2 <- getWord8
-        name <- case lookup op instructionNames of
-            Nothing -> fail $ "Unrecognized instruction " ++ [op]
-            Just opcode -> return  opcode
-        return $ Instruction name arg0 arg1 arg2
-    put (Instruction name arg0 arg1 arg2) = do
-        op <- case lookup name instructionTable of
-            Nothing -> fail $ "Unrecognized instruction " ++ show name
-            Just opcode -> return opcode
-        put op
-        put arg0
-        put arg1
-        put arg2
+data SimpleInstruction = NOP
+                       | NEWOBJECT
+                       | GETFIELD
+                       | SETFIELD
+                       | ADD
+                       | SUBTRACT
+                       | MULTIPLY
+                       | DIVIDE
+                       | REMAINDER
+                       deriving (Eq, Show, Read, Enum)
 
 
-data InstructionEnum = NOP
-                     | MOVE
-                     | LOADI
-                     | LOADSTR
-                     | NEWOBJECT
-                     | GETFIELD
-                     | SETFIELD
-                     | ADD
-                     | SUBTRACT
-                     | MULTIPLY
-                     | DIVIDE
-                     | REMAINDER
-                     | CALL
-                     deriving (Eq, Enum, Show, Read)
+data IntInstruction = MOVE
+                    | LOADI
+                    | LOADSTR
+                    | CALL
+                    deriving (Eq, Show, Read, Enum)
 
-instructionList = enumFromTo NOP CALL
-keywords = map show $ instructionList
+data FloatInstruction = LOADF deriving (Eq, Show, Read, Enum)
 
-instructionTable :: [(InstructionEnum, Char)]
-instructionTable = zip instructionList $ iterate succ '\0'
+data Instruction = IntInstruction IntInstruction Int32
+                 | FloatInstruction FloatInstruction Double
+                 | SimpleInstruction SimpleInstruction
+                 deriving (Eq, Show, Read)
 
-instructionNames = map swap instructionTable
+instructionName :: Instruction -> String
+instructionName (IntInstruction i _) = show i
+instructionName (FloatInstruction i _) = show i
+instructionName (SimpleInstruction i) = show i
 
+simpleInstructions = [NOP .. REMAINDER]
+floatInstructions = [LOADF]
+intInstructions = [MOVE .. CALL]
 
-makeInstruction :: InstructionEnum -> Int32 -> Word8 -> Word8 -> B.ByteString
-makeInstruction keyword arg0 arg1 arg2 = encode i ++ encode arg0 ++ encode arg1 ++ encode arg2
+instructionNames = map show simpleInstructions ++ map show floatInstructions ++ map show intInstructions
+
+simpleILookup = zip [0..] simpleInstructions
+floatILookup = zip [genericLength simpleILookup..] floatInstructions
+intILookup = zip [genericLength floatILookup..] intInstructions
+
+readBinaryInstruction :: Word8 -> Get Instruction
+readBinaryInstruction iBinary = try simpleWrapper simpleILookup <|> try FloatInstruction floatILookup <|> try IntInstruction intILookup
     where
-        (++) = B.append
-        Just i = lookup keyword instructionTable
+        try :: Binary a => (t -> a -> Instruction) -> [(Word8, t)] -> Get Instruction
+        try ctor lookupTable = do
+            instruction <- maybeToGet (lookup iBinary lookupTable)
+            i <- get
+            return $ ctor instruction i
+        maybeToGet (Just x) = return x
+        maybeToGet Nothing = fail "Got Nothing in maybeToGet"
+        --Use unit as the second argument to ignore the get action
+        simpleWrapper i () = SimpleInstruction i
+            
+instance Binary Instruction where
+    get = get >>= readBinaryInstruction
+
+    put (SimpleInstruction i) = do
+        let Just w = lookup i $ map swap simpleILookup
+        put w
+    put (FloatInstruction i f) = do
+        let Just w = lookup i $ map swap floatILookup
+        put w
+        put f
+    put (IntInstruction instr intValue) = do
+        let Just w = lookup instr $ map swap intILookup
+        put w
+        put intValue
+
+
+instruction :: Integral a => Word8 -> a -> Maybe Instruction
+instruction w i =
+    (fmap IntInstruction (lookupI intILookup) <*> (pure $ fromIntegral i)) <|>
+    (fmap FloatInstruction (lookupI floatILookup) <*> (pure $ fromIntegral i)) <|>
+    (fmap SimpleInstruction (lookupI simpleILookup))
+    where
+        lookupI = lookup w
