@@ -39,6 +39,16 @@ public:
         environment.stackFrame.push(string);
     }
 
+    static void op_branch_true(MethodEnvironment& environment, Instruction& current, size_t instructionPointer)
+    {
+        StackObject& obj = environment.stackFrame.top();
+        if (obj.intValue != 0)
+        {
+            assert(current.arg0 < environment.method->code.size());
+            instructionPointer = current.arg0;
+        }
+    }
+
     static void op_newobject(MethodEnvironment& environment, Instruction current)
     {
         VMInt size = current.arg0;
@@ -150,6 +160,9 @@ void VM::execute(MethodEnvironment& environment)
             break;
         case OP::LOAD_STRING_CONST:
             VMI::op_load_string_constant(environment, instruction);
+            break;
+        case OP::BRANCH_TRUE:
+            VMI::op_branch_true(environment, instruction, currentInstruction);
             break;
         case OP::NEWOBJECT:
             VMI::op_newobject(environment, instruction);

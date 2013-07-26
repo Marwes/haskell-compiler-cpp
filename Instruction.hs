@@ -50,6 +50,30 @@ setInstruction table op = do
     w <- maybeToMonad "" $ lookup op (map swap table)
     put w
 
+simpleInstructions = [NOP .. REMAINDER]
+floatInstructions = [LOADF]
+intInstructions = [MOVE .. CALL]
+
+class Opcode o where
+    instruction :: Integral i => o -> i -> Instruction
+
+    instructions :: [o]
+
+instance Opcode SimpleInstruction where
+    instruction op _ = SimpleInstruction op
+    
+    instructions = simpleInstructions
+
+instance Opcode FloatInstruction where
+    instruction op i = FloatInstruction op $ fromIntegral i
+    
+    instructions = floatInstructions
+
+instance Opcode IntInstruction where
+    instruction op i = IntInstruction op $ fromIntegral i
+
+    instructions = intInstructions
+
 instance Binary SimpleInstruction where
     get = getInstruction simpleILookup
     put = setInstruction simpleILookup
@@ -82,23 +106,12 @@ instructionName (IntInstruction i _) = show i
 instructionName (FloatInstruction i _) = show i
 instructionName (SimpleInstruction i) = show i
 
-simpleInstructions = [NOP .. REMAINDER]
-floatInstructions = [LOADF]
-intInstructions = [MOVE .. CALL]
 
 instructionNames = map show simpleInstructions ++ map show floatInstructions ++ map show intInstructions
 
 simpleILookup = zip [0..] simpleInstructions
 floatILookup = zip [genericLength simpleILookup..] floatInstructions
 intILookup = zip [genericLength floatILookup..] intInstructions          
-
-instruction :: Integral a => Word8 -> a -> Maybe Instruction
-instruction w i =
-    (fmap IntInstruction (lookupI intILookup) <*> (pure $ fromIntegral i)) <|>
-    (fmap FloatInstruction (lookupI floatILookup) <*> (pure $ fromIntegral i)) <|>
-    (fmap SimpleInstruction (lookupI simpleILookup))
-    where
-        lookupI = lookup w
 
 maybeToMonad _ (Just x) = return x
 maybeToMonad msg Nothing = fail msg

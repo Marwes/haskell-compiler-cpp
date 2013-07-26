@@ -67,10 +67,10 @@ compileCall closure name xs = do
     args <- (mapM (compileExpr closure) xs)
     return $ instr ++ concat args
     where
-        f (Local index) = return [Instruction MOVE (fromIntegral index) 0 0]
+        f (Local index) = return [instruction MOVE (fromIntegral index)]
         f (Global ident) = do
             dataIndex <- addData (FunctionData ident)
-            return [Instruction CALL (fromIntegral dataIndex) 0 0]
+            return [instruction CALL (fromIntegral dataIndex)]
     
 
 arithInstruction op = lookup op [("+", ADD), ("-", SUBTRACT), ("*", MULTIPLY), ("/", DIVIDE)]
@@ -81,17 +81,17 @@ compileExpr closure (Call name [l,r]) =
     case arithInstruction name of
         Just instructionName -> do
             args <- liftM2 (++) (compileExpr closure l) (compileExpr closure r)
-            return $ Instruction instructionName 0 0 0 : args
+            return $ instruction instructionName 0 : args
         Nothing -> compileCall closure name [l,r]
 compileExpr closure (Call name args) = compileCall closure name args
 compileExpr _ _ = undefined
 
 compileLiteral :: Closure -> Literal -> CompileState [Instruction]
-compileLiteral _ (Integer i) = return [Instruction LOADI (fromIntegral i) 0 0]
-compileLiteral _ (Float f) = return [Instruction LOADF f 0 0]
+compileLiteral _ (Integer i) = return [instruction LOADI (fromIntegral i)]
+compileLiteral _ (Float f) = return [instruction LOADF undefined]
 compileLiteral _ (StringLiteral str) = do
     index <- addData (StringData str)
-    return [Instruction LOADSTR index 0 0]
+    return [instruction LOADSTR index]
 
 compileFunction :: Closure -> CompileState ()
 compileFunction closure = do

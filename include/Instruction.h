@@ -10,6 +10,8 @@ namespace MyVMNamespace
         MOVE,
         LOAD_INT_CONST,
         LOAD_STRING_CONST,
+
+        BRANCH_TRUE,
         
         NEWOBJECT,
 
