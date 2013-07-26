@@ -26,7 +26,9 @@ data Literal = Integer Integer
              deriving (Eq, Show)
 
 data Expr = Literal Literal
-          | Call String [Expr]
+          | Var String
+          | Apply Expr Expr
+          | Lambda String Expr
           | Case Expr [(PatternMatch, Expr)]
           | Let [FunctionDefinition] Expr
           deriving (Eq, Show)
@@ -46,6 +48,7 @@ type HaskellParser u = Parser u Expr
 type FileParser a = ParsecT String Module Identity a
 --type HaskellParser u = T.TokenParser ()
 
+applyArgs func args = foldl Apply func args
 
 lexeme = T.lexeme haskell
 
@@ -65,7 +68,7 @@ functionCall = do
     name <- identifier
     spaces
     arguments <- many (try expression1)
-    return $ Call name arguments
+    return $ applyArgs (Var name) arguments
     where
         
 infixOp = do
@@ -77,11 +80,11 @@ binopExpr = do
     lhs <- expression
     op <- infixOp
     rhs <- expression <?> fail "Expected expression as second argument to " ++ show op
-    return $ Call op [lhs, rhs]
+    return $ applyArgs (Var op) [lhs, rhs]
 
 parens = T.parens haskell
 
-expression1 =  parens expression <|> literal <|> (identifier >>= \n -> return $ Call n [])
+expression1 =  parens expression <|> literal <|> (identifier >>= \n -> return $ Var n)
 
 expression :: HaskellParser u
 expression = parens expr <|> expr
@@ -136,10 +139,10 @@ caseExpr = do
 reservedOp = T.reservedOp haskell
 
 unaryOp :: String -> Expr -> Expr
-unaryOp op = \x -> Call op [x]
+unaryOp op = Apply (Var op)
 
 binaryOp :: String -> Expr -> Expr -> Expr
-binaryOp op = \l r -> Call op [l,r]
+binaryOp op = \l r -> applyArgs (Var op) [l,r]
 
 arithmeticOperators = [[Prefix (reservedOp "-"   >> return (unaryOp "negate"))]
                       , [Infix  (reservedOp "*"   >> return (binaryOp "*")) AssocLeft]

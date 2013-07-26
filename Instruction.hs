@@ -24,6 +24,7 @@ data SimpleInstruction = NOP
                        | GETFIELD
                        | SETFIELD
                        | ADD
+                       | CALLI --Calls the function on the top of the stack
                        | SUBTRACT
                        | MULTIPLY
                        | DIVIDE

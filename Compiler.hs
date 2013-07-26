@@ -57,6 +57,12 @@ addData d = do
             put $ env { dataIdentifiers = V.snoc (dataIdentifiers env) d }
             gets (fromIntegral . V.length . dataIdentifiers)
     
+toArgList :: Expr -> [Expr]
+toArgList = reverse . toArgList'
+    where
+        toArgList' (Apply (Var _) expr) = [expr]
+        toArgList' (Apply lhs rhs) = rhs : toArgList' lhs
+        toArgList' _ = error "Not a chained function application"
 
 compileCall :: Closure -> String -> [Expr] -> CompileState [Instruction]
 compileCall closure name xs = do
@@ -77,18 +83,18 @@ arithInstruction op = lookup op [("+", ADD), ("-", SUBTRACT), ("*", MULTIPLY), (
 
 compileExpr :: Closure -> Expr -> CompileState [Instruction]
 compileExpr closure (Literal lit) = compileLiteral closure lit
-compileExpr closure (Call name [l,r]) =
+compileExpr closure (Apply (Apply (Var name) lhs) rhs) =
     case arithInstruction name of
         Just instructionName -> do
-            args <- liftM2 (++) (compileExpr closure l) (compileExpr closure r)
+            args <- liftM2 (++) (compileExpr closure lhs) (compileExpr closure rhs)
             return $ instruction instructionName 0 : args
-        Nothing -> compileCall closure name [l,r]
-compileExpr closure (Call name args) = compileCall closure name args
+        Nothing -> compileCall closure name [lhs,rhs]
+compileExpr closure expr@(Apply (Var name) _) = compileCall closure name (toArgList expr)
 compileExpr _ _ = undefined
 
 compileLiteral :: Closure -> Literal -> CompileState [Instruction]
 compileLiteral _ (Integer i) = return [instruction LOADI (fromIntegral i)]
-compileLiteral _ (Float f) = return [instruction LOADF undefined]
+compileLiteral _ (Float f) = return [FloatInstruction LOADF f]
 compileLiteral _ (StringLiteral str) = do
     index <- addData (StringData str)
     return [instruction LOADSTR index]
