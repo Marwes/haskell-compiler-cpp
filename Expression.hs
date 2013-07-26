@@ -27,7 +27,6 @@ data Literal = Integer Integer
 
 data Expr = Literal Literal
           | Call String [Expr]
-          | If Expr Expr Expr
           | Case Expr [(PatternMatch, Expr)]
           | Let [FunctionDefinition] Expr
           deriving (Eq, Show)
@@ -100,7 +99,7 @@ ifExpr = do
     whenTrue <- expression
     reserved "else"
     whenFalse <- expression
-    return $ If test whenTrue whenFalse
+    return $ Case test [(PatternMatch "True" [], whenTrue), (PatternMatch "False" [], whenFalse)]
 
 letExpr = do
     reserved "let"
