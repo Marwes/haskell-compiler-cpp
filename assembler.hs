@@ -39,24 +39,17 @@ matchOne :: Stream s m Char => [String] -> ParsecT s u m String
 matchOne [] = fail "Could not find a match"
 matchOne (x:xs) = string x <|> matchOne xs
 
-readMaybe        :: (Read a) => String -> Maybe a
-readMaybe s      =  case [x | (x,t) <- reads s, ("","") <- lex t] of
-                         [x] -> Just x
-                         _   -> Nothing
 
 instructionParser :: StateParse B.ByteString
 instructionParser = do
     instructionName <- matchOne instructionNames
-    instr <- case readMaybe instructionName of
-        Nothing -> fail $ instructionName ++ " is not a valid instruction"
-        Just i -> return i
     many1 space
-    numbers <- sepBy (many1 digit) (char ',')
-    let i = case numbers of
-            [] -> instruction instr 0
-            [x] -> instruction instr (read x)
-            _ -> fail "To many arguments to instruction"
-    let binary = runPut (put i)
+    number <- many digit
+    let i = if null number then 0 :: Int32 else read number
+    instr <- case readInstruction instructionName i of
+        Nothing -> fail $ instructionName ++ " is not a valid instruction"
+        Just x -> return x
+    let binary = runPut (put instr)
     modify $ \st -> st { offset = offset st + 1 }
     return binary
 

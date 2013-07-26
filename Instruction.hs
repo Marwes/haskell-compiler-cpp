@@ -7,14 +7,16 @@ module Instruction (
 
     instructionNames,
     instruction,
-    instructionName
+    instructionName,
+    readInstruction
 ) where
 import Data.Int
 import Data.Binary
 import Data.Tuple (swap)
-import Control.Applicative ((<*>), (<|>), pure)
+import Control.Applicative ((<$>), (<*>), (<|>), pure)
 import Data.List (genericLength)
 import Control.Applicative (liftA, liftA2)
+import Text.Read (readMaybe)
 
 
 data SimpleInstruction = NOP
@@ -115,3 +117,6 @@ intILookup = zip [genericLength floatILookup..] intInstructions
 
 maybeToMonad _ (Just x) = return x
 maybeToMonad msg Nothing = fail msg
+
+readInstruction :: Integral i => String -> i -> Maybe Instruction
+readInstruction str i = (SimpleInstruction <$> readMaybe str) <|> (FloatInstruction <$> readMaybe str <*> pure (fromIntegral i)) <|> (IntInstruction <$> readMaybe str <*> pure (fromIntegral i))
