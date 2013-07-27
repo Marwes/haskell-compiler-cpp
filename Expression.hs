@@ -77,48 +77,47 @@ type HaskellParser u = Parser u Expr
 type FileParser a = ParsecT String Module Identity a
 --type HaskellParser u = T.TokenParser ()
 
+showLiteral (Integer i) = show i
+showLiteral (Float f) = show f
+showLiteral (StringLiteral s) = s
+
+showExpr (Literal l) = showLiteral l
+showExpr (Var x) = ' ':x
+showExpr (Apply func expr) = "(" ++ showExpr func ++ " " ++ showExpr expr ++ ")"
+showExpr (Lambda bind expr) = "\\" ++ bind ++ " -> " ++ showExpr expr
+showExpr (Case expr patterns) = "case " ++ showExpr expr ++ " of\n" ++ choices
+    where
+        choices = unlines $ map showCase patterns
+        showCase (pattern, expr) = showPattern pattern ++ " -> " ++ showExpr expr
+        showPattern (Pattern typename patterns) = "(" ++ typename ++ " " ++ concat (map showPattern patterns) ++ ")"
+        showPattern (PatternLiteral literal) = showLiteral literal
+        showPattern (Binding (Identifier s)) = s
+
 applyArgs func args = foldl Apply func args
 
 lexeme = T.lexeme haskell
 
 identifier = T.identifier haskell <?> "Identifier"
 
-integer :: Parser u Literal
-integer = liftM Integer (T.integer haskell) <?> "Integerliteral"
+natural = liftM Integer (T.natural haskell) <?> "Integerliteral"
 
 float = liftM Float (T.float haskell) <?> "Floatliteral"
 
 stringLiteral = liftM StringLiteral $ T.stringLiteral haskell
 
-literal = liftM Literal (integer <|> float <|> stringLiteral <?> "Literal")
-
-functionCall :: HaskellParser u
-functionCall = do
-    name <- identifier
-    spaces
-    arguments <- many (try expression1)
-    return $ applyArgs (Var name) arguments
-    where
-        
-infixOp = do
-    op <- lexeme $ many1 (oneOf "+-*/")
-    return $ "(" ++ op ++ ")"
-
-binopExpr :: HaskellParser u
-binopExpr = do
-    lhs <- expression
-    op <- infixOp
-    rhs <- expression <?> fail "Expected expression as second argument to " ++ show op
-    return $ applyArgs (Var op) [lhs, rhs]
+literal = liftM Literal (natural <|> float <|> stringLiteral <?> "Literal")
 
 parens = T.parens haskell
 
-expression1 =  parens expression <|> literal <|> (identifier >>= \n -> return $ Var n)
+expression1 = do
+    expr <- exprParser
+    args <- optionMaybe exprParser
+    case args of
+        Nothing -> return expr
+        Just arg -> return $ Apply expr arg
 
-expression :: HaskellParser u
-expression = parens expr <|> expr
-    where
-        expr = lexeme (ifExpr <|> caseExpr <|> literal <|> functionCall)
+exprParser = parens (expression) <|> literal <|> (identifier >>= \n -> return $ Var n)
+
 
 reserved = T.reserved haskell
 whiteSpace = T.whiteSpace haskell
@@ -180,7 +179,7 @@ arithmeticOperators = [[Prefix (reservedOp "-"   >> return (unaryOp "negate"))]
                       , [Infix  (reservedOp "+"   >> return (binaryOp "+")) AssocLeft]
                       , [Infix  (reservedOp "-"   >> return (binaryOp "-")) AssocLeft]]
  
-arithmeticExpr = buildExpressionParser arithmeticOperators expression
+expression = buildExpressionParser arithmeticOperators expression1
 
 
 
@@ -227,7 +226,7 @@ file = do
                 Left func -> addFunction func
                 Right dat -> addData dat
 
-parseExpr str = parse arithmeticExpr "" str
+parseExpr str = parse expression "" str
 
 parseFile :: String -> IO (Either ParseError Module) 
 parseFile filename = do
