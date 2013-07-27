@@ -5,7 +5,6 @@ import Control.Monad.Identity
 import Control.Monad.State
 import Control.Monad.Error
 import Expression
-import Debug.Trace
 
 data Interpreter = Interpreter {
     currentClosure :: IClosure
@@ -37,7 +36,6 @@ primitives = Map.fromList [("+", add')]
 
 add' :: Expr -> ErrorMsg IExpr
 add' l = Right $ Primitive $ (l.+)
-add' l = Right $ Primitive $ (l.+)
 
 lookupIExpr name (ITop (IModule vars)) = Map.lookup name vars
 lookupIExpr name (IClosure vars outer) = case Map.lookup name vars of
@@ -59,6 +57,11 @@ tryExprApply (Lambda bind expr) rhs = do
         Right expr -> return $ ExprDefault expr
 tryExprApply _ _ = throwError "Not a function"
 
+toExpr :: String -> IExpr -> InterpreterState Expr
+toExpr msg (Primitive _) = throwError msg
+toExpr _ (ExprDefault expr) = return expr
+
+
 interpret :: Expr -> InterpreterState IExpr
 interpret v@(Literal _) = return $ ExprDefault v
 interpret (Var name) = do
@@ -72,17 +75,22 @@ interpret (Var name) = do
 interpret (Apply lhs rhs) = do
     func <- interpret lhs
     case func of
-        Primitive prim -> case prim rhs of
-            Right expr -> return expr
-            Left msg -> throwError msg
+        Primitive prim -> do
+            r <- interpret rhs >>= toExpr "Primitive functions cannot take primitives"
+            case prim r of
+                Right expr -> return expr
+                Left msg -> throwError msg
         ExprDefault x -> tryExprApply x rhs
 interpret (Case expr choices) = do
-    result <- interpret expr
-    return result
+    result <- interpret expr >>= toExpr "Primitives can't be patternmatched"
+    case match result choices of
+        x:_ -> return $ ExprDefault x
+        [] -> throwError "Patterns exhausted"
 interpret x = return $ ExprDefault x
 
 
-match expr patterns = filter (matchPattern expr) patterns
+match :: Expr -> [(Pattern, Expr)] -> [Expr]
+match expr patterns = map snd $ filter (matchPattern expr . fst) patterns
 
 matchPattern :: Expr -> Pattern -> Bool
 matchPattern expr (Pattern dataCtorName restPatterns) = case expr of
