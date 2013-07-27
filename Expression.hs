@@ -1,10 +1,16 @@
 {-# LANGUAGE FlexibleContexts #-}
 module Expression (
     Module(..),
+    Closure(..),
     Literal(..),
+    Identifier(..),
     Expr(..),
+    Pattern(..),
     FunctionDefinition(..),
 
+    applyArgs,
+    emptyClosure,
+    lookupExpr,
     parseExpr,
     parseFile
 ) where
@@ -18,7 +24,13 @@ import qualified Control.Monad.State as S
 import System.IO (IOMode(..), withFile, hGetContents)
 import qualified Data.Map as Map
 
-data PatternMatch = PatternMatch String [String] deriving (Eq, Show)
+data Identifier = Identifier String deriving(Eq, Show)
+
+type Typename = String
+data Pattern = Pattern Typename [Pattern]
+             | PatternLiteral Literal
+             | Binding Identifier
+             deriving(Eq, Show)
 
 data Literal = Integer Integer
              | Float Double
@@ -29,19 +41,36 @@ data Expr = Literal Literal
           | Var String
           | Apply Expr Expr
           | Lambda String Expr
-          | Case Expr [(PatternMatch, Expr)]
-          | Let [FunctionDefinition] Expr
+          | Case Expr [(Pattern, Expr)]
+          | Let [(String, Expr)] Expr
           deriving (Eq, Show)
 
-data FunctionDefinition = FunctionDefinition String [String] Expr deriving(Eq, Show)
+data FunctionDefinition = FunctionDefinition String Expr deriving(Eq, Show)
 
-data Constructor = Constructor String [String] deriving(Eq, Show)
+data Constructor = Constructor String [Constructor]
+                 | Bind String
+                 deriving(Eq, Show)
 data DataDefinition = DataDefinition String [Constructor] deriving(Eq, Show)
 
+
 data Module = Module {
-    functions :: Map.Map String FunctionDefinition,
+    _variables :: Map.Map String Expr,
     datas :: Map.Map String DataDefinition
     } deriving(Eq, Show)
+
+data Closure = Closure {
+    variables :: Map.Map String Expr,
+    outer :: Closure
+    }
+    | Top Module
+    deriving(Eq)
+
+emptyClosure = Top (Module Map.empty Map.empty)
+
+lookupExpr name (Top (Module vars _)) = Map.lookup name vars
+lookupExpr name (Closure vars outer) = case Map.lookup name vars of
+                                            Just expr -> Just expr
+                                            Nothing -> lookupExpr name outer
 
 type Parser u a = ParsecT String u Identity a
 type HaskellParser u = Parser u Expr
@@ -102,23 +131,24 @@ ifExpr = do
     whenTrue <- expression
     reserved "else"
     whenFalse <- expression
-    return $ Case test [(PatternMatch "True" [], whenTrue), (PatternMatch "False" [], whenFalse)]
+    return $ Case test [(Pattern "True" [], whenTrue), (Pattern "False" [], whenFalse)]
 
 letExpr = do
     reserved "let"
     xs <- many functionDefinition
     reserved "in"
     expr <- expression
-    return $ Let xs expr
+    let ys = map (\(FunctionDefinition x y) -> (x,y)) xs
+    return $ Let ys expr
 
 typename = liftM2 (:) upper (many alphaNum)
 
-patternMatch :: ParsecT String u Identity PatternMatch
+patternMatch :: ParsecT String u Identity Pattern
 patternMatch = do
     name <- typename
     space >> whiteSpace
-    xs <- many identifier
-    return $ PatternMatch name xs
+    xs <- many patternMatch
+    return $ Pattern name xs
 
 
 caseExpr :: HaskellParser u
@@ -164,19 +194,21 @@ dataDefinition = do
         constructor = do
             name <- typename
             fields <- many typename
-            return $ Constructor name fields
+            return $ Constructor name (map Bind fields)
 
+
+toLambda argNames expr = foldr Lambda expr argNames
 
 functionDefinition = do
     name <- identifier <?> fail "Expected function name"
     arguments <- many (identifier <?> fail "Unexpected token in argument list")
     reservedOp "="
     expr <- expression
-    return $ FunctionDefinition name arguments expr
+    return $ FunctionDefinition name expr
 
 addFunction :: Monad m => FunctionDefinition -> ParsecT s Module m ()
-addFunction func@(FunctionDefinition name _ _) = do
-    modifyState $ \mod -> mod { functions = Map.insert name func (functions mod) }
+addFunction (FunctionDefinition name expr) = do
+    modifyState $ \mod -> mod { _variables = Map.insert name expr (_variables mod) }
 
 addData :: Monad m => DataDefinition -> ParsecT s Module m ()
 addData dat@(DataDefinition name _) = do
@@ -195,7 +227,7 @@ file = do
                 Left func -> addFunction func
                 Right dat -> addData dat
 
-parseExpr str = parse expression "" str
+parseExpr str = parse arithmeticExpr "" str
 
 parseFile :: String -> IO (Either ParseError Module) 
 parseFile filename = do

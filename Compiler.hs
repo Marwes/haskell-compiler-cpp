@@ -21,19 +21,6 @@ data Environment = Environment {
     dataIdentifiers :: V.Vector Data
     }
 
-data Definition = FuncDef FunctionDefinition
-                | VarDef String
-                deriving (Eq)
-
-data Closure = Closure {
-    function :: FunctionDefinition,
-    variables :: Map.Map String Definition,
-    outer :: Closure
-    }
-    | Top Module
-    deriving(Eq)
-
-emptyClosure = Top (Module Map.empty Map.empty)
 
 type CompileState = State Environment
 
