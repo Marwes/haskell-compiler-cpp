@@ -44,32 +44,38 @@ lookupIExpr name (IClosure vars outer) = case Map.lookup name vars of
                                             Just expr -> Just expr
                                             Nothing -> lookupIExpr name outer
 
+maybeError  _ (Just x) = return x
+maybeError msg Nothing = throwError msg
+
+
 getVariable :: String -> InterpreterState (Maybe IExpr)
 getVariable name = gets (lookupIExpr name . currentClosure)
+
+tryExprApply (Lambda bind expr) rhs = do
+    closure <- gets currentClosure
+    let newClosure = IClosure (Map.singleton bind (ExprDefault rhs)) closure 
+    case runExpr (expr) (Interpreter newClosure) of
+        Left msg -> throwError msg
+        Right expr -> return $ ExprDefault expr
+tryExprApply _ _ = throwError "Not a function"
 
 interpret :: Expr -> InterpreterState IExpr
 interpret v@(Literal _) = return $ ExprDefault v
 interpret (Var name) = do
     maybeIdent <- getVariable name
     case maybeIdent of
-        Nothing -> case Map.lookup name primitives of
-            Nothing -> fail $ "Could not find variable " ++ name
-            Just primFun -> return $ Primitive primFun
+        Nothing -> do
+            let msg = "Could not find primitive " ++ name 
+                tryPrimitive = maybeError msg $ Map.lookup name primitives
+            liftM Primitive tryPrimitive
         Just expr -> return expr
 interpret (Apply lhs rhs) = do
     func <- interpret lhs
     case func of
         Primitive prim -> case prim rhs of
             Right expr -> return expr
-            Left msg -> fail msg
-        ExprDefault x -> case x of
-            Lambda bind expr -> do
-                closure <- gets currentClosure
-                let newClosure = IClosure (Map.singleton bind (ExprDefault rhs)) closure 
-                case runExpr (expr) (Interpreter newClosure) of
-                    Left msg -> throwError msg
-                    Right expr -> return $ ExprDefault expr
-            _ -> fail "Not a function"
+            Left msg -> throwError msg
+        ExprDefault x -> tryExprApply x rhs
 interpret (Case expr choices) = do
     result <- interpret expr
     return result
