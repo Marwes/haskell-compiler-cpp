@@ -53,9 +53,16 @@ data Constructor = Constructor String [Constructor]
 data DataDefinition = DataDefinition String [Constructor] deriving(Eq, Show)
 
 
+data Decl = DataDecl DataDefinition
+          | FunctionDecl FunctionDefinition
+          deriving (Eq, Show)
+
+declIdentifier (DataDecl (DataDefinition name _)) = name
+declIdentifier (FunctionDecl (FunctionDefinition name _)) = name
+
 data Module = Module {
     _variables :: Map.Map String Expr,
-    datas :: Map.Map String DataDefinition
+    declarations :: Map.Map String Decl
     } deriving(Eq, Show)
 
 data Closure = Closure {
@@ -205,26 +212,13 @@ functionDefinition = do
     expr <- expression
     return $ FunctionDefinition name expr
 
-addFunction :: Monad m => FunctionDefinition -> ParsecT s Module m ()
-addFunction (FunctionDefinition name expr) = do
-    modifyState $ \mod -> mod { _variables = Map.insert name expr (_variables mod) }
-
-addData :: Monad m => DataDefinition -> ParsecT s Module m ()
-addData dat@(DataDefinition name _) = do
-    modifyState $ \mod -> mod { datas = Map.insert name dat (datas mod) }
-
-
-file :: FileParser Module
-file = do
-    definition
-    --many definition
-    getState
+file :: FileParser [Decl]
+file = many decl
     where
-        definition = do
-            x <- (functionDefinition >>= return . Left) <|> (dataDefinition >>= return . Right)
-            case x of
-                Left func -> addFunction func
-                Right dat -> addData dat
+        decl = do
+            x <- (functionDefinition >>= return . FunctionDecl) <|> (dataDefinition >>= return . DataDecl)
+            char '\n'
+            return x
 
 parseExpr str = parse expression "" str
 
@@ -233,5 +227,7 @@ parseFile filename = do
     withFile filename ReadMode $ \handle -> do
         contents <- hGetContents handle
         putStrLn contents
-        return $ runParser file (Module Map.empty Map.empty) filename contents
+        let m = liftM declMap $ runParser file (Module Map.empty Map.empty) filename contents
+            declMap x = Module Map.empty $ Map.fromList $ map (\decl -> (declIdentifier decl, decl)) x
+        return m
 
