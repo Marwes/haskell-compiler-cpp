@@ -27,15 +27,22 @@ type ErrorMsg = Either String
 type InterpreterState = StateT Interpreter (ErrorT String Identity)
 
 primitives :: Map.Map String (Expr -> ErrorMsg IExpr)
-primitives = Map.fromList [("+", add')]
+primitives = Map.fromList [("negate", negate'), ("+", op (+) (+)), ("-", op (-) (-)), ("*", op (*) (*))]
 
-(.+) :: Expr -> Expr -> ErrorMsg IExpr
-(.+) (Literal (Integer l)) (Literal (Integer r)) = Right $ ExprDefault $ Literal $ Integer $ l + r
-(.+) (Literal (Float l)) (Literal (Float r)) = Right $ ExprDefault $ Literal $ Float $ l + r
-(.+) l r = Left $ show l ++ " + " ++ show r ++ " is not valid"
+makeOp fi _ (Literal (Integer l)) (Literal (Integer r)) = Right $ ExprDefault $ Literal $ Integer $ fi l r
+makeOp _ fd (Literal (Float l)) (Literal (Float r)) = Right $ ExprDefault $ Literal $ Float $ fd l r
+makeOp _ _ l r = Left $ show l ++ " + " ++ show r ++ " is not valid"
 
-add' :: Expr -> ErrorMsg IExpr
-add' l = Right $ Primitive $ (l.+)
+op fi fd l = Right $ Primitive $ op l 
+    where
+        op = makeOp fi fd
+
+
+
+negate' :: Expr -> ErrorMsg IExpr
+negate' (Literal (Integer i)) = Right $ ExprDefault $ Literal $ Integer (-i)
+negate' (Literal (Float i)) = Right $ ExprDefault $ Literal $ Float (-i)
+netate' _ = Left "Can only negate numbers"
 
 lookupIExpr name (ITop (IModule vars)) = Map.lookup name vars
 lookupIExpr name (IClosure vars outer) = case Map.lookup name vars of
