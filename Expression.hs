@@ -7,6 +7,7 @@ module Expression (
     Expr(..),
     Pattern(..),
     FunctionDefinition(..),
+    Decl(..),
 
     applyArgs,
     emptyClosure,
@@ -102,6 +103,9 @@ showExpr (Case expr patterns) = "case " ++ showExpr expr ++ " of\n" ++ choices
 
 applyArgs func args = foldl Apply func args
 
+lambdas :: [String] -> Expr -> Expr
+lambdas names expr = foldr Lambda expr names
+
 lexeme = T.lexeme haskell
 
 identifier = T.identifier haskell <?> "Identifier"
@@ -116,14 +120,26 @@ literal = liftM Literal (natural <|> float <|> stringLiteral <?> "Literal")
 
 parens = T.parens haskell
 
+operator = T.operator haskell
+
+tuple :: Parser u Expr
+tuple = do
+    expressions <- parens (sepBy1 expression (char ','))
+    let ctor = take (length expressions - 1) (repeat ',')
+    return $ applyArgs (Var ctor) expressions
+
+prefixOperator :: Parser u Expr
+prefixOperator = operator >>= return . Var
+
+expression1 :: Parser u Expr
 expression1 = do
     expr <- exprParser
     args <- optionMaybe exprParser
     case args of
         Nothing -> return expr
         Just arg -> return $ Apply expr arg
-
-exprParser = parens (expression) <|> literal <|> (identifier >>= \n -> return $ Var n)
+    where
+        exprParser = try tuple <|> parens (expression <|> prefixOperator) <|> literal <|> (identifier >>= \n -> return $ Var n)
 
 
 reserved = T.reserved haskell
@@ -203,21 +219,19 @@ dataDefinition = do
             return $ Constructor name (map Bind fields)
 
 
-toLambda argNames expr = foldr Lambda expr argNames
 
 functionDefinition = do
     name <- identifier <?> fail "Expected function name"
     arguments <- many (identifier <?> fail "Unexpected token in argument list")
     reservedOp "="
     expr <- expression
-    return $ FunctionDefinition name expr
+    return $ FunctionDefinition name (lambdas arguments expr)
 
 file :: FileParser [Decl]
-file = many decl
+file = whiteSpace *> many decl <* whiteSpace
     where
         decl = do
             x <- (functionDefinition >>= return . FunctionDecl) <|> (dataDefinition >>= return . DataDecl)
-            char '\n'
             return x
 
 parseExpr str = parse expression "" str
