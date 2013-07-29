@@ -5,6 +5,8 @@ import Control.Monad.Identity
 import Control.Monad.State
 import Control.Monad.Error
 import Expression
+import System.IO
+import Data.Either (either)
 
 data Interpreter = Interpreter {
     currentClosure :: IClosure
@@ -62,7 +64,7 @@ tryExprApply (Lambda bind expr) rhs = do
     case runExpr (expr) (Interpreter newClosure) of
         Left msg -> throwError msg
         Right expr -> return $ ExprDefault expr
-tryExprApply _ _ = throwError "Not a function"
+tryExprApply lhs _ = throwError $ "Left hand side must be a function when running Apply : " ++ show lhs
 
 toExpr :: String -> IExpr -> InterpreterState Expr
 toExpr msg (Primitive _) = throwError msg
@@ -75,7 +77,7 @@ interpret (Var name) = do
     maybeIdent <- getVariable name
     case maybeIdent of
         Nothing -> do
-            let msg = "Could not find primitive " ++ name 
+            let msg = "Could not find variable " ++ name 
                 tryPrimitive = maybeError msg $ Map.lookup name primitives
             liftM Primitive tryPrimitive
         Just expr -> return expr
@@ -113,7 +115,6 @@ defaultModule = IModule (Map.empty)
 defaultInterpreter = Interpreter $ ITop (IModule Map.empty)
 
 
-testExpr = applyArgs (Var "+") [Literal $ Integer 2, Literal $ Integer 3]
 runExpr :: Expr -> Interpreter -> Either String Expr
 runExpr expr st = runIdentity $ do
     result <- runErrorT $ runStateT (interpret expr) st
@@ -128,3 +129,21 @@ parseAndRun xs = do
         Left err -> Left $ show err
         Right expr -> Right expr
     runExpr expr defaultInterpreter
+
+imoduleFromModule (Module _ declarations) = IModule declMap
+    where
+        declMap = Map.foldl f Map.empty declarations
+        f m (FunctionDecl (FunctionDefinition name expr)) = Map.insert name (ExprDefault expr) m
+        f m _ = m
+
+
+testExpr = applyArgs (Var "add") [Literal $ Integer 2, Literal $ Integer 3]
+parseAndRunFile filename exprString = do
+    eitherModule <- parseFile filename
+
+    let interp = Interpreter . ITop . imoduleFromModule 
+    return $ do
+        let parseErrorToString = either (Left . show) Right
+        expr <- parseErrorToString (parseExpr exprString)
+        mod <- parseErrorToString eitherModule
+        runExpr expr (interp mod)
