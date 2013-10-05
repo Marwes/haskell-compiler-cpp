@@ -139,7 +139,7 @@ expression1 = do
         Nothing -> return expr
         Just arg -> return $ Apply expr arg
     where
-        exprParser = try tuple <|> parens (expression <|> prefixOperator) <|> literal <|> (identifier >>= \n -> return $ Var n)
+        exprParser = try tuple <|> parens (expression <|> prefixOperator) <|> ifExpr <|> caseExpr <|> letExpr <|> literal <|> (identifier >>= \n -> return $ Var n)
 
 
 reserved = T.reserved haskell
@@ -178,7 +178,7 @@ caseExpr = do
     reserved "case"
     onExpr <- expression
     reserved "of"
-    cases <- sepBy aCase (whiteSpace >> newline >> whiteSpace)
+    cases <- sepBy aCase whiteSpace
     return $ Case onExpr cases
     where
         aCase = do

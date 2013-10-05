@@ -44,7 +44,7 @@ public:
         StackObject& obj = environment.stackFrame.top();
         if (obj.intValue != 0)
         {
-            assert(current.arg0 < environment.method->code.size());
+            assert(current.arg0 < (int)environment.method->code.size());
             instructionPointer = current.arg0;
         }
     }
@@ -96,24 +96,22 @@ typedef void (*execute_function_t)(VM& vm, Instruction current);
 MethodEnvironment::~MethodEnvironment()
 {
     const StackLayout& stackLayout = this->method->stackLayout;
-    size_t ii = 0;
     //cleanup the stack
-    for (StackObject* stack = this->stackFrame.data(); stack < this->stackFrame.data() + this->stackFrame.size(); )
+    for (size_t ii = 0; ii < stackFrame.size() && ii < stackLayout.types.size(); ++ii)
     {
         TypeEnum type = stackLayout.types[ii];
         switch (type)
         {
         case TYPE_ARRAY:
         case TYPE_CLASS:
-            stack->pointerValue->removeReference();
+            stackFrame[ii].pointerValue->removeReference();
             break;
         case TYPE_METHOD:
             break;
         default:
             break;
         }
-        stack += sizeofType(type);
-        ii++;
+
     }
 }
 
