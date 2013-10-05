@@ -40,7 +40,7 @@ std::istream& operator>>(std::ifstream& stream, Instruction& instruction)
         OP actual = static_cast<OP>(op);
         if (op2string(actual) == NULL)
         {
-            throw new std::runtime_error(std::string("The value ") + op + " does not represent a valid opcode.");
+            throw std::runtime_error(std::string("The value ") + op + " does not represent a valid opcode.");
         }
         instruction = Instruction(actual, arg0, arg1, arg2);
     }
@@ -81,9 +81,9 @@ Assembly readAssemblyFile(const char* filename)
     if (!stream.is_open() || stream.bad())
         throw new std::runtime_error(std::string("Could not find the file ") + filename);
     Instruction i;
-
     stream.read((char*)&assembly.entrypoint, sizeof(assembly.entrypoint));
-
+    
+    bool st = stream.good();
     FROM_BIGENDIAN(&assembly.entrypoint);
 
     while (stream >> i)
