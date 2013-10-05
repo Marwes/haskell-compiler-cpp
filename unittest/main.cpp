@@ -13,5 +13,10 @@ int main(int argc, char* const argv [])
 	data.shouldDebugBreak = true;
 	Catch::Config config(data);
 	int ret = Catch::Main(argc, argv, config);
+    if (ret != 0)//Wait for input if something has gone wrong
+    {
+        char c;
+        std::cin.getline(&c, 1);
+    }
 	return ret;
 }
