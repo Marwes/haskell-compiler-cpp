@@ -91,3 +91,27 @@ TEST_CASE("parser/3", "3 + 2 + 4")
     REQUIRE (*second->arguments[1] == Number(4));
 }
 
+
+TEST_CASE("parser/3 + (2 + 4)", "3 + 2 + 4")
+{
+    std::stringstream stream("3 + ( 2 + 4 )");
+    Tokenizer tokenizer(stream);
+    Parser parser(tokenizer);
+
+    auto maybeExpression = parser.run();
+    REQUIRE (maybeExpression.get() != NULL);
+
+    FunctionApplication* func = dynamic_cast<FunctionApplication*>(maybeExpression.get());
+    REQUIRE (func != NULL);
+    Name* name = dynamic_cast<Name*>(func->function.get());
+    REQUIRE (name->name == "+");
+    REQUIRE (func->arguments.size() == 2);
+    REQUIRE (*func->arguments[0] == Number(3));
+
+    const FunctionApplication* second = dynamic_cast<const FunctionApplication*>(func->arguments[1].get());
+    REQUIRE (second != NULL);
+    Name* secondName = dynamic_cast<Name*>(second->function.get());
+    REQUIRE (secondName->name == "+");
+    REQUIRE (*second->arguments[0] == Number(2));
+    REQUIRE (*second->arguments[1] == Number(4));
+}

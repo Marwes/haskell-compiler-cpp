@@ -20,15 +20,78 @@ enum class SymbolEnum
 struct Token
 {
     Token();
+    Token(SymbolEnum type, const std::string& name);
     void tokenize();
 
     SymbolEnum type;
     std::string name;
 };
 
+inline bool isTokenSeparator(char c)
+{
+    return isspace(c) || c == '(' || c == ')';
+}
+
+
+inline bool isOperator(char c)
+{
+    static std::string operators("+-*/.");
+    return operators.find(c) != -1;
+}
+
 inline std::istream& operator>>(std::istream& input, Token& token)
 {
-    input >> token.name;
+
+    char c = '\0';
+    while (input.get(c) && isspace(c))
+        ;
+    token.name.clear();
+    token.name.push_back(c);
+    
+    //Decide how to tokenize depending on what the first char is
+    //ie if its an operator then more operators will follow
+    if (isOperator(c))
+    {
+        while (input.get(c) && isOperator(c))
+        {
+            token.name.push_back(c);
+        }
+        token.type = SymbolEnum::OPERATOR;
+    }
+    else if (isdigit(c))
+    {
+        while (input.get(c) && isdigit(c))
+        {
+            token.name.push_back(c);
+        }
+        token.type = SymbolEnum::NUMBER;
+    }
+    else if (isalpha(c))
+    {
+        while (input.get(c) && isalnum(c))
+        {
+            token.name.push_back(c);
+        }
+        token.type = SymbolEnum::NAME;
+    }
+    else if (c == '(')
+    {
+        token.type = SymbolEnum::LPARENS;
+        return input;
+    }
+    else if (c == ')')
+    {
+        token.type = SymbolEnum::RPARENS;
+        return input;
+    }
+
+    if (!isspace(c))
+    {
+        input.unget();
+        input.bad();
+        return input;
+    }
+
     token.tokenize();
     return input;
 }

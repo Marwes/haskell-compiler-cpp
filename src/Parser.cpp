@@ -7,14 +7,14 @@
 namespace MyVMNamespace
 {
 
-bool isOperator(char c)
-{
-    static std::string operators("+-*/.");
-    return operators.find(c) != -1;
-}
-
 Token::Token()
     : type(SymbolEnum::NONE)
+{
+}
+
+Token::Token(SymbolEnum type, const std::string& name)
+    : type(type)
+    , name(name)
 {
 }
 
