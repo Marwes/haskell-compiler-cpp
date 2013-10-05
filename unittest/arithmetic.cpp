@@ -6,23 +6,9 @@
 #include "Util.h"
 #include "Method.h"
 #include "Array.h"
+#include "TestUtility.h"
 
 using namespace MyVMNamespace;
-
-namespace MyVMNamespace
-{
-
-bool operator==(const Instruction& lhs, const Instruction& rhs)
-{
-    return memcmp(&lhs, &rhs, sizeof(lhs)) == 0;
-}
-
-bool operator==(const Assembly& lhs, const Assembly& rhs)
-{
-    return lhs.entrypoint == rhs.entrypoint && lhs.instructions == rhs.instructions;
-}
-
-}
 
 TEST_CASE("arithmetic", "test arithmetic")
 {

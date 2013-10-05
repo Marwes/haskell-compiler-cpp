@@ -90,6 +90,14 @@ public:
     VMInt rhs = environment.stackFrame.at<VMInt>(instruction.arg2);\
     environment.stackFrame.at<VMInt>(instruction.arg0) = lhs op rhs; }
 
+#define DO_TOP_ARITH(op, environment, instruction) {\
+    VMInt lhs = environment.stackFrame.top().intValue;\
+    environment.stackFrame.pop();\
+    VMInt rhs = environment.stackFrame.top().intValue;\
+    StackObject o;\
+    o.intValue = lhs op rhs;\
+    environment.stackFrame.top() = o; }
+
 typedef void (*execute_function_t)(VM& vm, Instruction current); 
 
 
@@ -172,19 +180,19 @@ void VM::execute(MethodEnvironment& environment)
             VMI::op_setfield(environment, instruction);
             break;
         case OP::ADD:
-            DO_ARITH(+, environment, instruction);
+            DO_TOP_ARITH(+, environment, instruction);
             break;
         case OP::SUBTRACT:
-            DO_ARITH(-, environment, instruction);
+            DO_TOP_ARITH(-, environment, instruction);
             break;
         case OP::MULTIPLY:
-            DO_ARITH(*, environment, instruction);
+            DO_TOP_ARITH(*, environment, instruction);
             break;
         case OP::DIVIDE:
-            DO_ARITH(/, environment, instruction);
+            DO_TOP_ARITH(/, environment, instruction);
             break;
         case OP::REMAINDER:
-            DO_ARITH(%, environment, instruction);
+            DO_TOP_ARITH(%, environment, instruction);
             break;
 
         case OP::CALL:

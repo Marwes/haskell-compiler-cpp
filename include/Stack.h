@@ -40,6 +40,12 @@ public:
         o.pointerValue = p;
         push(o);
     }
+    StackObject pop()
+    {
+        StackObject o = top();
+        --currentSize;
+        return o;
+    }
 
     void push(const StackObject& obj)
     {

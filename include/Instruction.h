@@ -8,6 +8,7 @@ namespace MyVMNamespace
     {
         NOP,
         MOVE,
+        LOAD,//Load stackvalue onto the top
         LOAD_INT_CONST,
         LOAD_STRING_CONST,
 
@@ -55,7 +56,6 @@ struct Instruction
     unsigned char arg1;
     unsigned char arg2;
 };
-
 
 class Assembly
 {

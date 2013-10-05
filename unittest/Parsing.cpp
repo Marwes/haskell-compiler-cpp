@@ -63,11 +63,10 @@ TEST_CASE("parser/3+2", "3 + 2")
     std::unique_ptr<Expression> maybeExpression = parser.run();
     REQUIRE (maybeExpression.get() != NULL);
 
-    FunctionApplication* func = dynamic_cast<FunctionApplication*>(maybeExpression.get());
+    PrimOP* func = dynamic_cast<PrimOP*>(maybeExpression.get());
     REQUIRE (func != NULL);
-    REQUIRE (func->arguments.size() == 2);
-    REQUIRE (*func->arguments[0] == Number(3));
-    REQUIRE (*func->arguments[1] == Number(2));
+    REQUIRE (*func->lhs == Number(3));
+    REQUIRE (*func->rhs == Number(2));
     
 }
 
@@ -80,15 +79,14 @@ TEST_CASE("parser/3", "3 + 2 + 4")
     auto maybeExpression = parser.run();
     REQUIRE (maybeExpression.get() != NULL);
 
-    FunctionApplication* func = dynamic_cast<FunctionApplication*>(maybeExpression.get());
+    PrimOP* func = dynamic_cast<PrimOP*>(maybeExpression.get());
     REQUIRE (func != NULL);
-    REQUIRE (func->arguments.size() == 2);
-    REQUIRE (*func->arguments[0] == Number(3));
+    REQUIRE (*func->lhs == Number(3));
 
-    const FunctionApplication* second = dynamic_cast<const FunctionApplication*>(func->arguments[1].get());
+    const PrimOP* second = dynamic_cast<const PrimOP*>(func->rhs.get());
     REQUIRE (second != NULL);
-    REQUIRE (*second->arguments[0] == Number(2));
-    REQUIRE (*second->arguments[1] == Number(4));
+    REQUIRE (*second->lhs == Number(2));
+    REQUIRE (*second->rhs == Number(4));
 }
 
 
@@ -101,17 +99,14 @@ TEST_CASE("parser/3 + (2 + 4)", "3 + 2 + 4")
     auto maybeExpression = parser.run();
     REQUIRE (maybeExpression.get() != NULL);
 
-    FunctionApplication* func = dynamic_cast<FunctionApplication*>(maybeExpression.get());
+    PrimOP* func = dynamic_cast<PrimOP*>(maybeExpression.get());
     REQUIRE (func != NULL);
-    Name* name = dynamic_cast<Name*>(func->function.get());
-    REQUIRE (name->name == "+");
-    REQUIRE (func->arguments.size() == 2);
-    REQUIRE (*func->arguments[0] == Number(3));
+    REQUIRE (func->op == '+');
+    REQUIRE (*func->lhs == Number(3));
 
-    const FunctionApplication* second = dynamic_cast<const FunctionApplication*>(func->arguments[1].get());
+    const PrimOP* second = dynamic_cast<const PrimOP*>(func->rhs.get());
     REQUIRE (second != NULL);
-    Name* secondName = dynamic_cast<Name*>(second->function.get());
-    REQUIRE (secondName->name == "+");
-    REQUIRE (*second->arguments[0] == Number(2));
-    REQUIRE (*second->arguments[1] == Number(4));
+    REQUIRE (second->op == '+');
+    REQUIRE (*second->lhs == Number(2));
+    REQUIRE (*second->rhs == Number(4));
 }
