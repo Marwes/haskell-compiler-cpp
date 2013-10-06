@@ -25,7 +25,11 @@ public:
     {
         environment.stackFrame.at<VMInt>(current.arg0) = environment.stackFrame.at<VMInt>(current.arg1);
     }
-
+    
+    static void op_load(MethodEnvironment& environment, Instruction current)
+    {
+        environment.stackFrame.push(environment.stackFrame[current.arg0]);
+    }
 
     static void op_load_int_constant(MethodEnvironment& environment, Instruction& current)
     {
@@ -91,9 +95,9 @@ public:
     environment.stackFrame.at<VMInt>(instruction.arg0) = lhs op rhs; }
 
 #define DO_TOP_ARITH(op, environment, instruction) {\
-    VMInt lhs = environment.stackFrame.top().intValue;\
-    environment.stackFrame.pop();\
     VMInt rhs = environment.stackFrame.top().intValue;\
+    environment.stackFrame.pop();\
+    VMInt lhs = environment.stackFrame.top().intValue;\
     StackObject o;\
     o.intValue = lhs op rhs;\
     environment.stackFrame.top() = o; }
@@ -160,6 +164,9 @@ void VM::execute(MethodEnvironment& environment)
         {
         case OP::MOVE:
             VMI::op_move(environment, instruction);
+            break;
+        case OP::LOAD:
+            VMI::op_load(environment, instruction);
             break;
         case OP::LOAD_INT_CONST:
             environment.stackFrame.push(instruction.arg0);
