@@ -118,36 +118,101 @@ std::unique_ptr<Expression> Parser::run()
     return expression(&*tokenizer);
 }
 
+
+
+bool isPlusMinusOP(const Token& token)
+{
+    return token.type == SymbolEnum::OPERATOR && (token.name == "+" || token.name == "-");
+}
+
+bool isMultDivOp(const Token& token)
+{
+    return token.type == SymbolEnum::OPERATOR && (token.name == "*" || token.name == "/");
+}
+
 std::unique_ptr<Expression> Parser::expression(const Token* token)
 {
-    bool inParens = false;
+    auto lhs = term(token);
+    if (!lhs)
+        return nullptr;
+
+    while (true)
+    {
+        const Token& op = tokenizer.nextToken();
+        if (isPlusMinusOP(op))
+        {
+            auto rhs = term(&tokenizer.nextToken());
+            if (rhs)
+            {
+                lhs = std::unique_ptr<Expression>(new PrimOP(op.name[0], std::move(lhs), std::move(rhs)));
+            }
+            else
+                return nullptr;
+        }
+        else
+        {
+            --tokenizer;
+            break;
+        }
+    }
+    return lhs;
+}
+
+std::unique_ptr<Expression> Parser::factor(const Token* token)
+{
     if (token->type == SymbolEnum::LPARENS)
     {
         token = &tokenizer.nextToken();
-        inParens = true;
-    }
+        std::unique_ptr<Expression> result = expression(&tokenizer.nextToken());
+    
 
-    std::unique_ptr<Expression> result;
-    switch (token->type)
-    {
-    case SymbolEnum::NAME:
-        result = std::unique_ptr<Expression>(new Name(token->name));
-        break;
-    case SymbolEnum::NUMBER:
-        result = std::unique_ptr<Expression>(new Number(atoi(token->name.c_str())));
-        break;
-    default:
+        if (tokenizer.nextToken().type != SymbolEnum::RPARENS)
+        {
+            --tokenizer;
+            return result;
+        }
         return nullptr;
     }
-
-    result = expressionEx(result, &tokenizer.nextToken());
-
-    if (inParens && tokenizer.nextToken().type != SymbolEnum::RPARENS)
+    else
     {
-        --tokenizer;
-        return result;
+        switch (token->type)
+        {
+        case SymbolEnum::NAME:
+            return std::unique_ptr<Expression>(new Name(token->name));
+        case SymbolEnum::NUMBER:
+            return std::unique_ptr<Expression>(new Number(atoi(token->name.c_str())));
+        default:
+            return nullptr;
+        }
     }
-    return result;
+}
+
+std::unique_ptr<Expression> Parser::term(const Token* token)
+{
+    auto lhs = factor(token);
+    if (!lhs)
+        return nullptr;
+
+    while (true)
+    {
+        const Token& op = tokenizer.nextToken();
+        if (isMultDivOp(op))
+        {
+            auto rhs = factor(&tokenizer.nextToken());
+            if (rhs)
+            {
+                lhs = std::unique_ptr<Expression>(new PrimOP(op.name[0], std::move(lhs), std::move(rhs)));
+            }
+            else
+                return nullptr;
+        }
+        else
+        {
+            --tokenizer;
+            break;
+        }
+    }
+    return lhs;
 }
 
 bool isPrimOP(const std::string& op)

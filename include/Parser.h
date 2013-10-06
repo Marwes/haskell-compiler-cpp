@@ -105,6 +105,8 @@ public:
     std::unique_ptr<Expression> run();
 
     std::unique_ptr<Expression> expression(const Token* token);
+    std::unique_ptr<Expression> factor(const Token* token);
+    std::unique_ptr<Expression> term(const Token* token);
 
     std::unique_ptr<Expression> expressionEx(std::unique_ptr<Expression>& term, const Token* token);
 
