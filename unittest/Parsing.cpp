@@ -81,12 +81,12 @@ TEST_CASE("parser/3", "3 + 2 + 4")
 
     PrimOP* func = dynamic_cast<PrimOP*>(maybeExpression.get());
     REQUIRE (func != NULL);
-    REQUIRE (*func->lhs == Number(3));
+    REQUIRE (*func->rhs == Number(4));
 
-    const PrimOP* second = dynamic_cast<const PrimOP*>(func->rhs.get());
-    REQUIRE (second != NULL);
-    REQUIRE (*second->lhs == Number(2));
-    REQUIRE (*second->rhs == Number(4));
+    const PrimOP* first = dynamic_cast<const PrimOP*>(func->lhs.get());
+    REQUIRE (first != NULL);
+    REQUIRE (*first->lhs == Number(3));
+    REQUIRE (*first->rhs == Number(2));
 }
 
 

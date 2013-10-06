@@ -3,6 +3,7 @@
 #include <vector>
 #include <fstream>
 #include <memory>
+#include <boost/circular_buffer.hpp>
 
 namespace MyVMNamespace
 {
@@ -46,8 +47,8 @@ class Tokenizer
 public:
     Tokenizer(std::istream& stream, size_t backTrack = 10)
         : stream(stream)
-        , tokens(backTrack, Token())
-        , currentToken(0)
+        , tokens(backTrack)
+        , offset(0)
     {
     }
 
@@ -59,24 +60,29 @@ public:
 
     bool tokenize()
     {
-        stream >> tokens[currentToken];
+        tokens.push_back(Token());
+        stream >> tokens.back();
         return *this;
     }
 
     const Token& operator*() const
     {
-        return tokens[currentToken];
+        return tokens[int(tokens.size()) + offset - 1];
     }
 
     Tokenizer& operator++()
     {
-        ++currentToken;
+        if (offset < 0)
+        {
+            offset++;
+            return *this;
+        }
         tokenize();
         return *this;
     }
     Tokenizer& operator--()
     {
-        --currentToken;
+        --offset;
         return *this;
     }
 
@@ -92,8 +98,8 @@ public:
 
 private:
     std::istream& stream;
-    std::vector<Token> tokens;
-    size_t currentToken;
+    boost::circular_buffer<Token> tokens;
+    int offset;
 };
 
 class Parser
