@@ -162,16 +162,19 @@ std::unique_ptr<Expression> Parser::factor(const Token* token)
 {
     if (token->type == SymbolEnum::LPARENS)
     {
-        token = &tokenizer.nextToken();
         std::unique_ptr<Expression> result = expression(&tokenizer.nextToken());
     
 
-        if (tokenizer.nextToken().type != SymbolEnum::RPARENS)
+        const Token& maybeParens = tokenizer.nextToken();
+        if (maybeParens.type == SymbolEnum::RPARENS)
         {
-            --tokenizer;
             return result;
         }
-        return nullptr;
+        else
+        {
+            --tokenizer;
+            return nullptr;
+        }
     }
     else
     {
