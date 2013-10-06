@@ -127,7 +127,7 @@ bool isPlusMinusOP(const Token& token)
 
 bool isMultDivOp(const Token& token)
 {
-    return token.type == SymbolEnum::OPERATOR && (token.name == "*" || token.name == "/");
+    return token.type == SymbolEnum::OPERATOR && (token.name == "*" || token.name == "/" || token.name == "%");
 }
 
 std::unique_ptr<Expression> Parser::expression(const Token* token)
