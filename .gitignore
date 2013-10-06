@@ -10,12 +10,15 @@
 *.idb
 *.opensdf
 *.tlog
-obj/*
+
+obj
+bin
 
 *.o
-*.dll
 *.exe
+
 *.swp
+*.make
 
 .depend
 tags
