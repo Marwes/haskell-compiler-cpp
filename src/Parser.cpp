@@ -230,31 +230,4 @@ bool isPrimOP(const std::string& op)
     return std::find(operators.begin(), operators.end(), op) != operators.end();
 }
 
-std::unique_ptr<Expression> Parser::expressionEx(std::unique_ptr<Expression>& term, const Token* token)
-{
-    std::unique_ptr<Expression> result;
-    switch (token->type)
-    {
-    case SymbolEnum::OPERATOR:
-        {
-            if (isPrimOP(token->name))
-            {
-                result.reset(new PrimOP(token->name[0], std::move(term), expression(&tokenizer.nextToken())));
-            }
-            else
-            {
-                std::vector<std::unique_ptr<Expression>> arguments;
-                arguments.push_back(std::move(term));
-                arguments.push_back(expression(&tokenizer.nextToken()));
-                std::unique_ptr<Expression> op(new Name(token->name));
-                result.reset(new FunctionApplication(std::move(op), std::move(arguments)));
-            }
-        break;
-        }
-    default:
-        result = std::move(term);
-    }
-    return result;
-}
-
 }
