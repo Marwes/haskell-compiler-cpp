@@ -85,11 +85,15 @@ std::unique_ptr<Expression> Parser::factor(const Token& token)
 		}
 	case SymbolEnum::LET:
 		{
-			auto result = bindings(tokenizer.nextToken());
-			if (tokenizer.nextToken().type != SymbolEnum::IN)
-				throw std::runtime_error("Expected 'in' token to end a let exprssion");
 			Let::Bindings binds;
-			binds.push_back(std::move(result));
+			do
+			{
+				auto binding = bindings(tokenizer.nextToken());
+				binds.push_back(std::move(binding));
+			} while (tokenizer.nextToken().type == SymbolEnum::SEMICOLON);
+
+			if ((*tokenizer).type != SymbolEnum::IN)
+				throw std::runtime_error("Expected 'in' token to end a let exprssion");
 			return std::unique_ptr<Expression>(new Let(std::move(binds), expression(tokenizer.nextToken())));
 		}
 		break;

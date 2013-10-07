@@ -60,6 +60,11 @@ std::istream& operator>>(std::istream& input, Token& token)
 		input.get(c);//For consistency, otherwise '=' is put back into the stream
 		token.type = SymbolEnum::EQUALSSIGN;
 	}
+	else if (c == ';')
+	{
+		input.get(c);//For consistency, otherwise '=' is put back into the stream
+		token.type = SymbolEnum::SEMICOLON;
+	}
 	else if (isdigit(c))
 	{
 		while (input.get(c) && isdigit(c))

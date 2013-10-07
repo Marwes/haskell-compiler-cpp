@@ -15,6 +15,7 @@ enum class SymbolEnum
 	LPARENS,
 	RPARENS,
 	EQUALSSIGN,
+	SEMICOLON,
 
 	//Keywords
 	LET,
