@@ -2,6 +2,7 @@
 #include <assert.h>
 #include <vector>
 #include <memory>
+#include <string>
 
 namespace MyVMNamespace
 {

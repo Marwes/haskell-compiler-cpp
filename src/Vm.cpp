@@ -1,4 +1,6 @@
 #include <assert.h>
+#include <cstdlib>
+#include <cstring>
 #include <iostream>
 #include "VM.h"
 #include "Method.h"
@@ -57,7 +59,7 @@ public:
     {
         VMInt size = current.arg0;
         Object* obj = static_cast<Object*>(malloc(size));
-        memset(obj, 0, size);
+        std::memset(obj, 0, size);
 
         environment.stackFrame.push(obj);
     }

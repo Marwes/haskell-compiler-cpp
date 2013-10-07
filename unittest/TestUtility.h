@@ -1,3 +1,4 @@
+#include <cstring>
 #include "Catch/include/catch.hpp"
 #include "VM.h"
 
@@ -8,7 +9,7 @@ namespace MyVMNamespace
 
 inline bool operator==(const Instruction& lhs, const Instruction& rhs)
 {
-    return memcmp(&lhs, &rhs, sizeof(lhs)) == 0;
+    return std::memcmp(&lhs, &rhs, sizeof(lhs)) == 0;
 }
 
 inline bool operator==(const Assembly& lhs, const Assembly& rhs)

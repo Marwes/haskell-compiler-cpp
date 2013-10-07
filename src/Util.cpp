@@ -1,7 +1,8 @@
-#pragma once
-#include <Util.h>
+#include <algorithm>
 #include <fstream>
 #include <string>
+#include <stdexcept>
+#include <Util.h>
 #include <Method.h>
 
 namespace MyVMNamespace

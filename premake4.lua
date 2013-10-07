@@ -13,6 +13,9 @@ solution "VM"
      	flags { "Optimize" } 
      	defines { "NDEBUG" }
 
+    configuration "gmake"
+        buildoptions { "-std=c++0x" }
+
     project "unittest"
 
     project "vm"
