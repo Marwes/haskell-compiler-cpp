@@ -1,5 +1,5 @@
 #include "Catch/include/catch.hpp"
-#include "Parser.h"
+#include "Tokenizer.h"
 
 using namespace MyVMNamespace;
 
@@ -15,7 +15,6 @@ TEST_CASE("tokenizer/3 + (2 * 4)", "3 + (2 * 4)")
 {
     std::stringstream stream("3 + ( 2 * 4 )");
     Tokenizer tokenizer(stream);
-    Parser parser(tokenizer);
 
     Token expected[] = {
         Token(SymbolEnum::NUMBER, "3"),
@@ -38,7 +37,6 @@ TEST_CASE("tokenizer/3 + (2 / 4) * one", "3 + (2 + 4)")
 {
     std::stringstream stream("(3+ 2)/ 4*one");
     Tokenizer tokenizer(stream);
-    Parser parser(tokenizer);
 
     Token expected[] = {
         Token(SymbolEnum::LPARENS, "("),

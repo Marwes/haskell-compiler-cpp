@@ -1,6 +1,7 @@
 #pragma once
 #include <fstream>
 #include "Expression.h"
+#include "Tokenizer.h"
 #include "Parser.h"
 
 namespace MyVMNamespace

@@ -1,4 +1,5 @@
 #include "Catch/include/catch.hpp"
+#include "Tokenizer.h"
 #include "Parser.h"
 
 using namespace MyVMNamespace;
