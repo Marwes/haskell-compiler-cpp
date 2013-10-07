@@ -154,3 +154,28 @@ TEST_CASE("parser/let three = 3 in three + 4", "")
 	REQUIRE(*op->lhs == Name("three"));
 	REQUIRE(*op->rhs == Number(4));
 }
+
+
+TEST_CASE("parser/let six = 3 * 2 in six + 4", "")
+{
+	std::stringstream stream("let three = 3 * 2 in three + 4");
+	Tokenizer tokenizer(stream);
+	Parser parser(tokenizer);
+
+	auto maybeExpression = parser.run();
+	REQUIRE(maybeExpression.get() != NULL);
+
+	Let* let = dynamic_cast<Let*>(maybeExpression.get());
+	REQUIRE(let != NULL);
+	REQUIRE(let->bindings[0].first == "three");
+
+	PrimOP* letPrimOP = dynamic_cast<PrimOP*>(let->bindings[0].second.get());
+	REQUIRE(letPrimOP != NULL);
+	REQUIRE(*letPrimOP->lhs == Number(3));
+	REQUIRE(*letPrimOP->rhs == Number(2));
+
+	PrimOP* op = dynamic_cast<PrimOP*>(let->expression.get());
+	REQUIRE(op->op == '+');
+	REQUIRE(*op->lhs == Name("three"));
+	REQUIRE(*op->rhs == Number(4));
+}
