@@ -66,33 +66,39 @@ std::unique_ptr<Expression> Parser::expression(const Token& token)
 
 std::unique_ptr<Expression> Parser::factor(const Token& token)
 {
-    if (token.type == SymbolEnum::LPARENS)
-    {
-        std::unique_ptr<Expression> result = expression(tokenizer.nextToken());
-    
-
-        const Token& maybeParens = tokenizer.nextToken();
-        if (maybeParens.type == SymbolEnum::RPARENS)
-        {
-            return result;
-        }
-        else
-        {
-            --tokenizer;
-            return nullptr;
-        }
-    }
-    else
-    {
-        switch (token.type)
-        {
-        case SymbolEnum::NAME:
-            return std::unique_ptr<Expression>(new Name(token.name));
-        case SymbolEnum::NUMBER:
-            return std::unique_ptr<Expression>(new Number(atoi(token.name.c_str())));
-        default:
-            return nullptr;
-        }
+	switch (token.type)
+	{
+	case SymbolEnum::LPARENS:
+		{
+			std::unique_ptr<Expression> result = expression(tokenizer.nextToken());
+			const Token& maybeParens = tokenizer.nextToken();
+			if (maybeParens.type == SymbolEnum::RPARENS)
+			{
+				return result;
+			}
+			else
+			{
+				--tokenizer;
+				return nullptr;
+			}
+			break;
+		}
+	case SymbolEnum::LET:
+		{
+			auto result = bindings(tokenizer.nextToken());
+			if (tokenizer.nextToken().type != SymbolEnum::IN)
+				throw std::runtime_error("Expected 'in' token to end a let exprssion");
+			Let::Bindings binds;
+			binds.push_back(std::move(result));
+			return std::unique_ptr<Expression>(new Let(std::move(binds), expression(tokenizer.nextToken())));
+		}
+		break;
+    case SymbolEnum::NAME:
+        return std::unique_ptr<Expression>(new Name(token.name));
+    case SymbolEnum::NUMBER:
+        return std::unique_ptr<Expression>(new Number(atoi(token.name.c_str())));
+    default:
+        return nullptr;
     }
 }
 
@@ -122,6 +128,21 @@ std::unique_ptr<Expression> Parser::term(const Token& token)
         }
     }
     return lhs;
+}
+
+
+
+std::pair<std::string, std::unique_ptr<Expression>> Parser::bindings(const Token& token)
+{
+	if (token.type != SymbolEnum::NAME)
+	{
+		throw std::runtime_error("Expected NAME on left side of binding");
+	}
+	if (tokenizer.nextToken().type != SymbolEnum::EQUALSSIGN)
+	{
+		throw std::runtime_error("Expected '=' in binding");
+	}
+	return std::make_pair(token.name, expression(tokenizer.nextToken()));
 }
 
 bool isPrimOP(const std::string& op)

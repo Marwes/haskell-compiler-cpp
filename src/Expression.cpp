@@ -1,6 +1,6 @@
 #include <algorithm>
 #include "Expression.h"
-#include "Compiler.h""
+#include "Compiler.h"
 
 namespace MyVMNamespace
 {
@@ -72,5 +72,25 @@ void FunctionApplication::evaluate(Environment& env, std::vector<Instruction>& i
     }
     instructions.push_back(Instruction(OP::CALL, arguments.size()));
 }
+
+
+Let::Let(Let::Bindings&& bindings, std::unique_ptr<Expression>&& expression)
+	: bindings(std::move(bindings))
+	, expression(std::move(expression))
+{
+}
+
+void Let::evaluate(Environment& env, std::vector<Instruction>& instructions)
+{
+	//Always causes evaluation of bindings before execution of the rest
+	//bindings must be used in order of definition in order or it will fail
+	for (auto& bind : bindings)
+	{
+		env.newLocal(bind.first);
+		bind.second->evaluate(env, instructions);
+	}
+	expression->evaluate(env, instructions);
+}
+
 
 }

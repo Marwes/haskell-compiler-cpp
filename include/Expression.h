@@ -65,4 +65,18 @@ public:
     std::vector<std::unique_ptr<Expression>> arguments;
 };
 
+
+class Let : public Expression
+{
+public:
+	typedef std::vector<std::pair<std::string, std::unique_ptr<Expression>>> Bindings;
+	Let(Bindings && arguments, std::unique_ptr<Expression>&& expression);
+
+	virtual void evaluate(Environment& env, std::vector<Instruction>& instructions);
+
+	Bindings bindings;
+	std::unique_ptr<Expression> expression;
+};
+
+
 }
