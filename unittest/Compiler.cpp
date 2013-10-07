@@ -42,8 +42,6 @@ TEST_CASE("compiler/arithmetic2", "Test compiling an arithmetic expression")
     }
 }
 
-
-
 TEST_CASE("compiler/bind/arithmetic", "Test compiling an arithmetic expression")
 {
 	std::stringstream input("let three = 3 in 2 * 4 + three");
@@ -56,5 +54,20 @@ TEST_CASE("compiler/bind/arithmetic", "Test compiling an arithmetic expression")
 		MethodEnvironment env(vm.newStackFrame(), &method);
 		vm.execute(env);
 		REQUIRE(vm.getValue(1).intValue == 11);
+	}
+}
+
+TEST_CASE("compiler/bind/arithmetic2", "Test compiling an arithmetic expression")
+{
+	std::stringstream input("let six = 3 * 2 in 2 * 4 + six");
+	Compiler compiler(input);
+	Assembly assembly = compiler.compile();
+
+	{
+		VM vm;
+		Method method = Method::main(assembly);
+		MethodEnvironment env(vm.newStackFrame(), &method);
+		vm.execute(env);
+		REQUIRE(vm.getValue(1).intValue == 14);
 	}
 }
