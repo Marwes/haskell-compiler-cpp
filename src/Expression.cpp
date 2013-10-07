@@ -7,20 +7,20 @@ namespace MyVMNamespace
 class Environment
 {
 public:
-    void add(const std::string& name, int index)
+    int addLocal(const std::string& name)
     {
-
+        stackValues.push_back(name);
+        return stackValues.size() - 1;
     }
 
-    void retriveName(std::vector<Instruction>& instructions, const std::string& name)
+    int getIndexForName(const std::string& name)
     {
         auto found = std::find(stackValues.begin(), stackValues.end(), name);
         if (found != stackValues.end())
         {
-            size_t index = std::distance(stackValues.begin(), found);
-            instructions.push_back(Instruction(OP::LOAD, index));
-            return;
+            return std::distance(stackValues.begin(), found);
         }
+        return -1;
     }
 
 private:
@@ -34,7 +34,7 @@ Name::Name(std::string name)
 
 void Name::evaluate(std::vector<Instruction>& instructions)
 {
-    assert(0);
+    
 }
 
 Number::Number(int value)
