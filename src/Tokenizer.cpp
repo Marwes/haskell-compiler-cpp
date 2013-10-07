@@ -5,6 +5,18 @@
 namespace MyVMNamespace
 {
 
+bool isTokenSeparator(char c)
+{
+	return isspace(c) || c == '(' || c == ')';
+}
+
+
+bool isOperator(char c)
+{
+	static std::string operators("+-*/.");
+	return operators.find(c) != -1;
+}
+
 std::istream& operator>>(std::istream& input, Token& token)
 {
 	char c = '\0';

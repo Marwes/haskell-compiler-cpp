@@ -30,18 +30,6 @@ public:
 
 std::istream& operator>>(std::istream& input, Token& token);
 
-inline bool isTokenSeparator(char c)
-{
-	return isspace(c) || c == '(' || c == ')';
-}
-
-
-inline bool isOperator(char c)
-{
-	static std::string operators("+-*/.");
-	return operators.find(c) != -1;
-}
-
 
 class Tokenizer
 {
