@@ -30,7 +30,8 @@ Compiler::Compiler(std::istream& input)
 Assembly Compiler::compile()
 {
 	Assembly assembly;
-	parser.run()->evaluate(assembly.instructions);
+	Environment env;
+	parser.run()->evaluate(env, assembly.instructions);
 	return std::move(assembly);
 }
 

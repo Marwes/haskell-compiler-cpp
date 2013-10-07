@@ -1,5 +1,6 @@
 #include <algorithm>
 #include "Expression.h"
+#include "Compiler.h""
 
 namespace MyVMNamespace
 {
@@ -9,9 +10,14 @@ Name::Name(std::string name)
 {
 }
 
-void Name::evaluate(std::vector<Instruction>& instructions)
+void Name::evaluate(Environment& env, std::vector<Instruction>& instructions)
 {
-    
+	int stackPos = env.getIndexForName(this->name);
+	if (stackPos == -1)
+	{
+		throw std::runtime_error("Could not find local " + this->name);
+	}
+	instructions.push_back(Instruction(OP::LOAD, stackPos));
 }
 
 Number::Number(int value)
@@ -19,7 +25,7 @@ Number::Number(int value)
 {
 }
 
-void Number::evaluate(std::vector<Instruction>& instructions)
+void Number::evaluate(Environment& env, std::vector<Instruction>& instructions)
 {
     instructions.push_back(Instruction(OP::LOAD_INT_CONST, value));
 }
@@ -31,10 +37,10 @@ PrimOP::PrimOP(char op, std::unique_ptr<Expression>&& lhs, std::unique_ptr<Expre
 {
 }
 
-void PrimOP::evaluate(std::vector<Instruction>& instructions)
+void PrimOP::evaluate(Environment& env, std::vector<Instruction>& instructions)
 {
-    lhs->evaluate(instructions);
-    rhs->evaluate(instructions);
+    lhs->evaluate(env, instructions);
+    rhs->evaluate(env, instructions);
     
     OP iOP = OP::NOP;
     switch (op)
@@ -56,13 +62,13 @@ FunctionApplication::FunctionApplication(std::unique_ptr<Expression>&& function,
 {
 }
 
-void FunctionApplication::evaluate(std::vector<Instruction>& instructions)
+void FunctionApplication::evaluate(Environment& env, std::vector<Instruction>& instructions)
 {
-    function->evaluate(instructions);
+    function->evaluate(env, instructions);
 
     for (auto& arg : arguments)
     {
-        arg->evaluate(instructions);
+        arg->evaluate(env, instructions);
     }
     instructions.push_back(Instruction(OP::CALL, arguments.size()));
 }
