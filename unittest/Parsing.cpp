@@ -91,7 +91,7 @@ TEST_CASE("parser/3", "3 + 2 + 4")
 }
 
 
-TEST_CASE("parser/3 + (2 + 4)", "3 + 2 + 4")
+TEST_CASE("parser/3 + (2 + 4)", "3 + ( 2 + 4 )")
 {
     std::stringstream stream("3 + ( 2 + 4 )");
     Tokenizer tokenizer(stream);
@@ -110,4 +110,27 @@ TEST_CASE("parser/3 + (2 + 4)", "3 + 2 + 4")
     REQUIRE (second->op == '+');
     REQUIRE (*second->lhs == Number(2));
     REQUIRE (*second->rhs == Number(4));
+}
+
+
+
+TEST_CASE("parser/three * 2 + 4", "three * 2 + 4")
+{
+	std::stringstream stream("three * 2 + 4");
+	Tokenizer tokenizer(stream);
+	Parser parser(tokenizer);
+
+	auto maybeExpression = parser.run();
+	REQUIRE(maybeExpression.get() != NULL);
+
+	PrimOP* func = dynamic_cast<PrimOP*>(maybeExpression.get());
+	REQUIRE(func != NULL);
+	REQUIRE(func->op == '+');
+	REQUIRE(*func->rhs == Number(4));
+
+	const PrimOP* second = dynamic_cast<const PrimOP*>(func->lhs.get());
+	REQUIRE(second != NULL);
+	REQUIRE(second->op == '*');
+	REQUIRE(*second->lhs == Name("three"));
+	REQUIRE(*second->rhs == Number(2));
 }
