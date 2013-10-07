@@ -14,28 +14,6 @@ std::unique_ptr<T> make_unique(Args ... args)
 namespace MyVMNamespace
 {
 
-class Environment
-{
-public:
-    void add(const std::string& name, int index)
-    {
-
-    }
-
-    void retriveName(std::vector<Instruction>& instructions, const std::string& name)
-    {
-        auto found = std::find(stackValues.begin(), stackValues.end(), name);
-        if (found != stackValues.end())
-        {
-            size_t index = std::distance(stackValues.begin(), found);
-            instructions.push_back(Instruction(OP::LOAD, index));
-            return;
-        }
-    }
-
-private:
-    std::vector<std::string> stackValues;
-};
 
 class Expression
 {
@@ -48,15 +26,9 @@ public:
 class Name : public Expression
 {
 public:
-    Name(std::string name)
-        : name(std::move(name))
-    {
-    }
+    Name(std::string name);
     
-    virtual void evaluate(std::vector<Instruction>& instructions)
-    {
-        assert(0);
-    }
+    virtual void evaluate(std::vector<Instruction>& instructions);
 
     std::string name;
 };
@@ -64,15 +36,9 @@ public:
 class Number : public Expression
 {
 public:
-    Number(int value)
-        : value(value)
-    {
-    }
+    Number(int value);
 
-    virtual void evaluate(std::vector<Instruction>& instructions)
-    {
-        instructions.push_back(Instruction(OP::LOAD_INT_CONST, value));
-    }
+    virtual void evaluate(std::vector<Instruction>& instructions);
 
     int value;
 };
@@ -80,31 +46,9 @@ public:
 class PrimOP : public Expression
 {
 public:
-    PrimOP(char op, std::unique_ptr<Expression>&& lhs, std::unique_ptr<Expression>&& rhs)
-        : op(op)
-        , lhs(std::move(lhs))
-        , rhs(std::move(rhs))
-    {
-    }
+    PrimOP(char op, std::unique_ptr<Expression>&& lhs, std::unique_ptr<Expression>&& rhs);
 
-    virtual void evaluate(std::vector<Instruction>& instructions)
-    {
-        lhs->evaluate(instructions);
-        rhs->evaluate(instructions);
-        
-        OP iOP = OP::NOP;
-        switch (op)
-        {
-        case '+': iOP = OP::ADD; break;
-        case '-': iOP = OP::SUBTRACT; break;
-        case '*': iOP = OP::MULTIPLY; break;
-        case '/': iOP = OP::DIVIDE; break;
-        case '%': iOP = OP::REMAINDER; break;
-        default:
-            break;
-        }
-        instructions.push_back(Instruction(iOP));
-    }
+    virtual void evaluate(std::vector<Instruction>& instructions);
 
     std::unique_ptr<Expression> lhs, rhs;
     char op;
@@ -113,22 +57,9 @@ public:
 class FunctionApplication : public Expression
 {
 public:
-    FunctionApplication(std::unique_ptr<Expression>&& function, std::vector<std::unique_ptr<Expression>>&& arguments)
-        : function(std::move(function))
-        , arguments(std::move(arguments))
-    {
-    }
+    FunctionApplication(std::unique_ptr<Expression>&& function, std::vector<std::unique_ptr<Expression>>&& arguments);
 
-    virtual void evaluate(std::vector<Instruction>& instructions)
-    {
-        function->evaluate(instructions);
-
-        for (auto& arg : arguments)
-        {
-            arg->evaluate(instructions);
-        }
-        instructions.push_back(Instruction(OP::CALL, arguments.size()));
-    }
+    virtual void evaluate(std::vector<Instruction>& instructions);
     
     std::unique_ptr<Expression> function;
     std::vector<std::unique_ptr<Expression>> arguments;
