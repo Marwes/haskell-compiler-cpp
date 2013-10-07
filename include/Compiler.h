@@ -6,21 +6,23 @@
 namespace MyVMNamespace
 {
 
+class Environment
+{
+public:
+	int newLocal(const std::string& name);
+
+	int getIndexForName(const std::string& name);
+private:
+	std::vector<std::string> stackValues;
+};
+
+
 class Compiler
 {
 public:
-    Compiler(std::istream& input)
-        : tokenizer(input)
-        , parser(tokenizer)
-    {
-    }
+	Compiler(std::istream& input);
 
-    std::vector<Instruction> compile()
-    {
-        std::vector<Instruction> ii;
-        parser.run()->evaluate(ii);
-        return std::move(ii);
-    }
+	Assembly compile();
 
 private:
     Tokenizer tokenizer;

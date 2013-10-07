@@ -4,29 +4,6 @@
 namespace MyVMNamespace
 {
 
-class Environment
-{
-public:
-    int addLocal(const std::string& name)
-    {
-        stackValues.push_back(name);
-        return stackValues.size() - 1;
-    }
-
-    int getIndexForName(const std::string& name)
-    {
-        auto found = std::find(stackValues.begin(), stackValues.end(), name);
-        if (found != stackValues.end())
-        {
-            return std::distance(stackValues.begin(), found);
-        }
-        return -1;
-    }
-
-private:
-    std::vector<std::string> stackValues;
-};
-
 Name::Name(std::string name)
     : name(std::move(name))
 {
