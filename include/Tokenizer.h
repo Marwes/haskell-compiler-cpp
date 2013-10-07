@@ -13,7 +13,12 @@ enum class SymbolEnum
 	OPERATOR,
 	NUMBER,
 	LPARENS,
-	RPARENS
+	RPARENS,
+	EQUALSSIGN,
+
+	//Keywords
+	LET,
+	IN
 };
 
 

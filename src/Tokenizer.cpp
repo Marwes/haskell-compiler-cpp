@@ -1,9 +1,29 @@
 #include <string>
 #include <fstream>
+#include <array>
+#include <map>
 #include "Tokenizer.h"
 
 namespace MyVMNamespace
 {
+
+const std::map<std::string, SymbolEnum> keywords = {
+	std::make_pair("let", SymbolEnum::LET),
+	std::make_pair("in", SymbolEnum::IN)
+};
+
+SymbolEnum nameOrKeyWord(const std::string& name)
+{
+	auto found = keywords.find(name);
+	if (found != keywords.end())
+	{
+		return found->second;
+	}
+	else
+	{
+		return SymbolEnum::NAME;
+	}
+}
 
 bool isTokenSeparator(char c)
 {
@@ -35,6 +55,11 @@ std::istream& operator>>(std::istream& input, Token& token)
 		}
 		token.type = SymbolEnum::OPERATOR;
 	}
+	else if (c == '=')
+	{
+		input.get(c);//For consistency, otherwise '=' is put back into the stream
+		token.type = SymbolEnum::EQUALSSIGN;
+	}
 	else if (isdigit(c))
 	{
 		while (input.get(c) && isdigit(c))
@@ -49,7 +74,7 @@ std::istream& operator>>(std::istream& input, Token& token)
 		{
 			token.name.push_back(c);
 		}
-		token.type = SymbolEnum::NAME;
+		token.type = nameOrKeyWord(token.name);
 	}
 	else if (c == '(')
 	{
@@ -69,7 +94,6 @@ std::istream& operator>>(std::istream& input, Token& token)
 		return input;
 	}
 
-	token.tokenize();
 	return input;
 }
 
