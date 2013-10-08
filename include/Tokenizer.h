@@ -65,6 +65,11 @@ public:
 		return tokens[int(tokens.size()) + offset - 1];
 	}
 
+	const Token* operator->() const
+	{
+		return &**this;
+	}
+
 	Tokenizer& operator++()
 	{
 		if (offset < 0)

@@ -93,4 +93,20 @@ void Let::evaluate(Environment& env, std::vector<Instruction>& instructions)
 }
 
 
+Lambda::Lambda(std::vector<std::string> && arguments, std::unique_ptr<Expression> && expression)
+	: arguments(std::move(arguments))
+	, expression(std::move(expression))
+{
+}
+
+void Lambda::evaluate(Environment& env, std::vector<Instruction>& instructions)
+{
+	for (auto& name : arguments)
+	{
+		env.newLocal(name);
+	}
+	expression->evaluate(env, instructions);
+}
+
+
 }

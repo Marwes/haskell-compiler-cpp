@@ -14,12 +14,14 @@ TEST_CASE("arithmetic", "test arithmetic")
 {
     Assembly assembly;
     assembly.entrypoint = 0;
-    assembly.instructions.push_back(Instruction(OP::LOAD_INT_CONST, 5));
-    assembly.instructions.push_back(Instruction(OP::LOAD_INT_CONST, 10));
-    assembly.instructions.push_back(Instruction(OP::ADD));
-    assembly.instructions.push_back(Instruction(OP::LOAD, 0));
-    assembly.instructions.push_back(Instruction(OP::LOAD_INT_CONST, 20)); 
-    assembly.instructions.push_back(Instruction(OP::ADD));
+	assembly.functionDefinitions.insert(std::make_pair("main", FunctionDefinition()));
+	FunctionDefinition& def = assembly.functionDefinitions["main"];
+    def.instructions.push_back(Instruction(OP::LOAD_INT_CONST, 5));
+    def.instructions.push_back(Instruction(OP::LOAD_INT_CONST, 10));
+    def.instructions.push_back(Instruction(OP::ADD));
+    def.instructions.push_back(Instruction(OP::LOAD, 0));
+    def.instructions.push_back(Instruction(OP::LOAD_INT_CONST, 20)); 
+    def.instructions.push_back(Instruction(OP::ADD));
 
     {
         VM vm;
@@ -32,7 +34,7 @@ TEST_CASE("arithmetic", "test arithmetic")
 
     // 15 10 5
     // [0] = 5 - 10
-    assembly.instructions.push_back(Instruction(OP::SUBTRACT));
+    def.instructions.push_back(Instruction(OP::SUBTRACT));
     {
         VM vm;
         Method method = Method::main(assembly);
@@ -42,9 +44,9 @@ TEST_CASE("arithmetic", "test arithmetic")
     }
 
     // -20
-    assembly.instructions.push_back(Instruction(OP::LOAD, 0));
+    def.instructions.push_back(Instruction(OP::LOAD, 0));
     // -20 -20
-    assembly.instructions.push_back(Instruction(OP::MULTIPLY));
+    def.instructions.push_back(Instruction(OP::MULTIPLY));
     // 400
     {
         VM vm;
@@ -54,9 +56,9 @@ TEST_CASE("arithmetic", "test arithmetic")
         REQUIRE(vm.getValue(0).intValue == 400);
     }
 
-    assembly.instructions.push_back(Instruction(OP::LOAD_INT_CONST, 5));
+    def.instructions.push_back(Instruction(OP::LOAD_INT_CONST, 5));
     // 400 5
-    assembly.instructions.push_back(Instruction(OP::DIVIDE));
+    def.instructions.push_back(Instruction(OP::DIVIDE));
     // 80
     {
         VM vm;
@@ -66,9 +68,9 @@ TEST_CASE("arithmetic", "test arithmetic")
         REQUIRE(vm.getValue(0).intValue == 80);
     }
     // 80
-    assembly.instructions.push_back(Instruction(OP::LOAD_INT_CONST, 7));
+    def.instructions.push_back(Instruction(OP::LOAD_INT_CONST, 7));
     // 80 7
-    assembly.instructions.push_back(Instruction(OP::REMAINDER));
+    def.instructions.push_back(Instruction(OP::REMAINDER));
     // 3
     {
         VM vm;

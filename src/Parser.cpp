@@ -142,7 +142,25 @@ std::pair<std::string, std::unique_ptr<Expression>> Parser::binding(const Token&
 	{
 		throw std::runtime_error("Expected NAME on left side of binding");
 	}
-	if (tokenizer.nextToken().type != SymbolEnum::EQUALSSIGN)
+	std::vector<std::string> arguments;
+	while (true)
+	{
+		const Token& token = tokenizer.nextToken();
+		if (token.type == SymbolEnum::NAME)
+		{
+			arguments.push_back(token.name);
+		}
+		else
+		{
+			break;
+		}
+	}
+	if (arguments.size() > 0)
+	{
+
+	}
+
+	if (tokenizer->type != SymbolEnum::EQUALSSIGN)
 	{
 		throw std::runtime_error("Expected '=' in binding");
 	}

@@ -57,8 +57,9 @@ public:
 
     static Method main(Assembly& assembly)
     {
-        Instruction* begin = assembly.instructions.data() + assembly.entrypoint;
-        size_t size = assembly.instructions.size() - assembly.entrypoint;
+		std::vector<Instruction>& instructions = assembly.functionDefinitions["main"].instructions;
+        Instruction* begin = instructions.data() + assembly.entrypoint;
+        size_t size = instructions.size() - assembly.entrypoint;
         return Method(Slice<Instruction>(begin, size), std::vector<Type>());
     }
 

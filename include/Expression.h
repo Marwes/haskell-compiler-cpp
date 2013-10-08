@@ -78,5 +78,15 @@ public:
 	std::unique_ptr<Expression> expression;
 };
 
+class Lambda : public Expression
+{
+public:
+	Lambda(std::vector<std::string> && arguments, std::unique_ptr<Expression> && expression);
+
+	virtual void evaluate(Environment& env, std::vector<Instruction>& instructions);
+
+	std::vector<std::string> arguments;
+	std::unique_ptr<Expression> expression;
+};
 
 }

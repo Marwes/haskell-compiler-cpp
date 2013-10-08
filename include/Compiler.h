@@ -1,5 +1,6 @@
 #pragma once
 #include <fstream>
+#include <map>
 #include "Expression.h"
 #include "Tokenizer.h"
 #include "Parser.h"
@@ -14,6 +15,7 @@ public:
 
 	int getIndexForName(const std::string& name);
 private:
+	std::map<std::string, std::vector<Instruction>> functions;
 	std::vector<std::string> stackValues;
 };
 

@@ -31,7 +31,7 @@ Assembly Compiler::compile()
 {
 	Assembly assembly;
 	Environment env;
-	parser.run()->evaluate(env, assembly.instructions);
+	parser.run()->evaluate(env, assembly.functionDefinitions["main"].instructions);
 	return std::move(assembly);
 }
 

@@ -1,5 +1,6 @@
 #pragma once
 #include <stdint.h>
+#include <map>
 #include "Types.h"
 
 namespace MyVMNamespace
@@ -57,18 +58,28 @@ struct Instruction
     unsigned char arg2;
 };
 
+class FunctionDefinition
+{
+public:
+	FunctionDefinition()
+		: numArguments(0)
+	{}
+	int numArguments;
+	std::vector<Instruction> instructions;
+};
+
 class Assembly
 {
 public:
     Assembly() : entrypoint(0) { }
     Assembly(Assembly&& other)
         : entrypoint(other.entrypoint)
-        , instructions(std::move(other.instructions))
+		, functionDefinitions(std::move(other.functionDefinitions))
     {
     }
 
     int32_t entrypoint;
-    std::vector<Instruction> instructions;
+	std::map<std::string, FunctionDefinition> functionDefinitions;
 };
 
 }
