@@ -88,8 +88,8 @@ std::unique_ptr<Expression> Parser::factor(const Token& token)
 			Let::Bindings binds;
 			do
 			{
-				auto binding = bindings(tokenizer.nextToken());
-				binds.push_back(std::move(binding));
+				auto bind = binding(tokenizer.nextToken());
+				binds.push_back(std::move(bind));
 			} while (tokenizer.nextToken().type == SymbolEnum::SEMICOLON);
 
 			if ((*tokenizer).type != SymbolEnum::IN)
@@ -136,7 +136,7 @@ std::unique_ptr<Expression> Parser::term(const Token& token)
 
 
 
-std::pair<std::string, std::unique_ptr<Expression>> Parser::bindings(const Token& token)
+std::pair<std::string, std::unique_ptr<Expression>> Parser::binding(const Token& token)
 {
 	if (token.type != SymbolEnum::NAME)
 	{

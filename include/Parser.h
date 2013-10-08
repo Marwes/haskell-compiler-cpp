@@ -20,8 +20,9 @@ public:
     std::unique_ptr<Expression> expression(const Token& token);
     std::unique_ptr<Expression> factor(const Token& token);
 	std::unique_ptr<Expression> term(const Token& token);
-	std::pair<std::string, std::unique_ptr<Expression>> bindings(const Token& token);
+	std::pair<std::string, std::unique_ptr<Expression>> binding(const Token& token);
 
+private:
     Tokenizer& tokenizer;
 };
 
