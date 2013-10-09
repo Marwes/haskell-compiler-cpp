@@ -38,6 +38,7 @@ public:
     {
         StackObject o;
         o.pointerValue = p;
+		p->addReference();
         push(o);
     }
     StackObject pop()

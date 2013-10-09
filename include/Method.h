@@ -26,8 +26,8 @@ namespace MyVMNamespace
         Object* get() { return value; }
         const Object* get() const { return value; }
 
-        Object& operator->() { return *value; }
-        const Object& operator->() const { return *value; }
+        Object* operator->() { return value; }
+        const Object* operator->() const { return value; }
 
         Object& operator*() { return *value; }
         const Object& operator*() const { return *value; }

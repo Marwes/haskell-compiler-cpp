@@ -7,9 +7,10 @@ namespace MyVMNamespace
 {
     enum class OP : unsigned char
     {
-        NOP,
-        MOVE,
-        LOAD,//Load stackvalue onto the top
+		NOP,
+		MOVE,
+		LOAD,//Load stackvalue onto the top
+		LOAD_FUNCTION,
         LOAD_INT_CONST,
         LOAD_STRING_CONST,
 

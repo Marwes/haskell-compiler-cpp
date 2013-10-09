@@ -33,6 +33,12 @@ public:
         environment.stackFrame.push(environment.stackFrame[current.arg0]);
     }
 
+	static void op_load_function(MethodEnvironment& environment, Instruction current)
+	{
+		RefCountedPointer& o = environment.method->data[current.arg0];
+		environment.stackFrame.push(o.get());
+	}
+
     static void op_load_int_constant(MethodEnvironment& environment, Instruction& current)
     {
         environment.stackFrame.push(current.arg0);
@@ -170,6 +176,9 @@ void VM::execute(MethodEnvironment& environment)
         case OP::LOAD:
             VMI::op_load(environment, instruction);
             break;
+		case OP::LOAD_FUNCTION:
+			VMI::op_load_function(environment, instruction);
+			break;
         case OP::LOAD_INT_CONST:
             environment.stackFrame.push(instruction.arg0);
             break;

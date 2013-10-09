@@ -101,11 +101,8 @@ Lambda::Lambda(std::vector<std::string> && arguments, std::unique_ptr<Expression
 
 void Lambda::evaluate(Environment& env, std::vector<Instruction>& instructions)
 {
-	for (auto& name : arguments)
-	{
-		env.newLocal(name);
-	}
-	expression->evaluate(env, instructions);
+	int index = env.addLambda(*expression);
+	instructions.push_back(Instruction(OP::LOAD_FUNCTION, index));//TODO, dont get stack index
 }
 
 
