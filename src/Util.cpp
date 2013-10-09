@@ -87,8 +87,8 @@ Assembly readAssemblyFile(const char* filename)
     bool st = stream.good();
     FROM_BIGENDIAN(&assembly.entrypoint);
 
-	assembly.functionDefinitions.insert(std::make_pair("main", FunctionDefinition()));
-	FunctionDefinition& def = assembly.functionDefinitions["main"];
+	assembly.addFunction("main", FunctionDefinition());
+	FunctionDefinition& def = *assembly.getFunction("main");
 
     while (stream >> i)
     {

@@ -11,12 +11,20 @@ namespace MyVMNamespace
 class Environment
 {
 public:
+	Environment(Assembly& assembly);
+
+	Assembly& getCurrentAssembly() { return assembly; }
+
 	int newLocal(const std::string& name);
 
 	int getIndexForName(const std::string& name);
+
+
+	int addLambda(Expression& expr);
 private:
-	std::map<std::string, std::vector<Instruction>> functions;
+	Assembly& assembly;
 	std::vector<std::string> stackValues;
+	int lambdaIndex;
 };
 
 

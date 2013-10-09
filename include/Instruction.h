@@ -73,13 +73,34 @@ class Assembly
 public:
     Assembly() : entrypoint(0) { }
     Assembly(Assembly&& other)
-        : entrypoint(other.entrypoint)
+		: functionDefinitionsIndexes(std::move(other.functionDefinitionsIndexes))
 		, functionDefinitions(std::move(other.functionDefinitions))
+		, entrypoint(other.entrypoint)
     {
     }
 
-    int32_t entrypoint;
-	std::map<std::string, FunctionDefinition> functionDefinitions;
+
+	int addFunction(const std::string& name, const FunctionDefinition& def)
+	{
+		int index = functionDefinitionsIndexes.size();
+		functionDefinitionsIndexes.insert(std::make_pair(name, index));
+		functionDefinitions.push_back(def);
+		return index;
+	}
+
+	FunctionDefinition* getFunction(const std::string& name)
+	{
+		auto& found = functionDefinitionsIndexes.find(name);
+		if (found == functionDefinitionsIndexes.end())
+		{
+			return nullptr;
+		}
+		return &functionDefinitions[found->second];
+	}
+
+	std::map<std::string, int> functionDefinitionsIndexes;
+	std::vector<FunctionDefinition> functionDefinitions;
+	int32_t entrypoint;
 };
 
 }

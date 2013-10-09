@@ -1,7 +1,13 @@
+#include <sstream>
 #include "Compiler.h"
 
 namespace MyVMNamespace
 {
+
+Environment::Environment(Assembly& assembly)
+	: assembly(assembly)
+	, lambdaIndex(0)
+{ }
 
 int Environment::newLocal(const std::string& name)
 {
@@ -21,6 +27,16 @@ int Environment::getIndexForName(const std::string& name)
 
 
 
+int Environment::addLambda(Expression& expr)
+{
+	FunctionDefinition def;
+	expr.evaluate(*this, def.instructions);
+	std::stringstream name;
+	name << "lambda" << lambdaIndex++;
+	return assembly.addFunction(name.str(), def);
+}
+
+
 Compiler::Compiler(std::istream& input)
 	: tokenizer(input)
 	, parser(tokenizer)
@@ -30,8 +46,9 @@ Compiler::Compiler(std::istream& input)
 Assembly Compiler::compile()
 {
 	Assembly assembly;
-	Environment env;
-	parser.run()->evaluate(env, assembly.functionDefinitions["main"].instructions);
+	Environment env(assembly);
+	assembly.addFunction("main", FunctionDefinition());
+	parser.run()->evaluate(env, assembly.getFunction("main")->instructions);
 	return std::move(assembly);
 }
 

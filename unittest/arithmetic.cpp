@@ -14,8 +14,8 @@ TEST_CASE("arithmetic", "test arithmetic")
 {
     Assembly assembly;
     assembly.entrypoint = 0;
-	assembly.functionDefinitions.insert(std::make_pair("main", FunctionDefinition()));
-	FunctionDefinition& def = assembly.functionDefinitions["main"];
+	assembly.addFunction("main", FunctionDefinition());
+	FunctionDefinition& def = *assembly.getFunction("main");
     def.instructions.push_back(Instruction(OP::LOAD_INT_CONST, 5));
     def.instructions.push_back(Instruction(OP::LOAD_INT_CONST, 10));
     def.instructions.push_back(Instruction(OP::ADD));
