@@ -36,7 +36,7 @@ private:
 	const Environment* parent;
 	Assembly& assembly;
 	std::vector<std::string> stackValues;
-	int lambdaIndex;
+	static int lambdaIndex;
 };
 
 

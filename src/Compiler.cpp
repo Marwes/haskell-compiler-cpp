@@ -4,10 +4,11 @@
 namespace MyVMNamespace
 {
 
+int Environment::lambdaIndex;
+
 Environment::Environment(Assembly& assembly)
 	: parent(nullptr)
 	, assembly(assembly)
-	, lambdaIndex(0)
 { }
 
 Environment Environment::childEnvironment() const
