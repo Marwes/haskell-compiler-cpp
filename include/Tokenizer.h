@@ -2,25 +2,25 @@
 #include <fstream>
 #include <string>
 #include <boost/circular_buffer.hpp>
+#include "Util.h"
 
 namespace MyVMNamespace
 {
+#define SYMBOLENUM(XX) \
+	XX(NONE) \
+	XX(NAME) \
+	XX(OPERATOR) \
+	XX(NUMBER) \
+	XX(LPARENS) \
+	XX(RPARENS) \
+	XX(EQUALSSIGN) \
+	XX(SEMICOLON) \
+	XX(LET) \
+	XX(IN) \
+	XX(CASE) \
+	XX(OF) \
 
-enum class SymbolEnum
-{
-	NONE,
-	NAME,
-	OPERATOR,
-	NUMBER,
-	LPARENS,
-	RPARENS,
-	EQUALSSIGN,
-	SEMICOLON,
-
-	//Keywords
-	LET,
-	IN
-};
+DECLARE_ENUM(SymbolEnum, SYMBOLENUM);
 
 
 class Token

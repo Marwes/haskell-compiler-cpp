@@ -5,33 +5,6 @@ using namespace MyVMNamespace;
 
 namespace MyVMNamespace
 {
-std::ostream& operator<<(std::ostream& out, SymbolEnum symbol)
-{
-	switch (symbol)
-	{
-	case SymbolEnum::NONE:
-		return out << "NONE";
-	case SymbolEnum::NAME:
-		return out << "NAME";
-	case SymbolEnum::OPERATOR:
-		return out << "OPERATOR";
-	case SymbolEnum::NUMBER:
-		return out << "NUMBER";
-	case SymbolEnum::LPARENS:
-		return out << "LPARENS";
-	case SymbolEnum::RPARENS:
-		return out << "RPARENS";
-	case SymbolEnum::EQUALSSIGN:
-		return out << "EQUALSIGN";
-	case SymbolEnum::LET:
-		return out << "LET";
-	case SymbolEnum::IN:
-		return out << "IN";
-	default:
-		throw std::runtime_error("Unkown SymbolEnum");
-		break;
-	}
-}
 
 std::ostream& operator<<(std::ostream& out, const Token& token)
 {

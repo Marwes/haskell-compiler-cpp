@@ -7,9 +7,13 @@
 namespace MyVMNamespace
 {
 
+	DEFINE_ENUM(SymbolEnum, SYMBOLENUM);
+
 const std::map<std::string, SymbolEnum> keywords = {
 	std::make_pair("let", SymbolEnum::LET),
-	std::make_pair("in", SymbolEnum::IN)
+	std::make_pair("in", SymbolEnum::IN),
+	std::make_pair("case", SymbolEnum::CASE),
+	std::make_pair("of", SymbolEnum::OF)
 };
 
 SymbolEnum nameOrKeyWord(const std::string& name)
