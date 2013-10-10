@@ -13,6 +13,7 @@ namespace MyVMNamespace
 		LOAD_FUNCTION,
         LOAD_INT_CONST,
         LOAD_STRING_CONST,
+		POP,
 
         BRANCH_TRUE,
         
@@ -28,6 +29,7 @@ namespace MyVMNamespace
         DIVIDE,
         REMAINDER,
 
+		COMPARE_EQ,
 
         CALL,
 		CALLI,

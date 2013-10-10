@@ -30,7 +30,7 @@ void Number::evaluate(Environment& env, std::vector<Instruction>& instructions)
     instructions.push_back(Instruction(OP::LOAD_INT_CONST, value));
 }
 
-PrimOP::PrimOP(char op, std::unique_ptr<Expression>&& lhs, std::unique_ptr<Expression>&& rhs)
+PrimOP::PrimOP(OP op, std::unique_ptr<Expression>&& lhs, std::unique_ptr<Expression>&& rhs)
     : op(op)
     , lhs(std::move(lhs))
     , rhs(std::move(rhs))
@@ -42,18 +42,7 @@ void PrimOP::evaluate(Environment& env, std::vector<Instruction>& instructions)
     lhs->evaluate(env, instructions);
     rhs->evaluate(env, instructions);
     
-    OP iOP = OP::NOP;
-    switch (op)
-    {
-    case '+': iOP = OP::ADD; break;
-    case '-': iOP = OP::SUBTRACT; break;
-    case '*': iOP = OP::MULTIPLY; break;
-    case '/': iOP = OP::DIVIDE; break;
-    case '%': iOP = OP::REMAINDER; break;
-    default:
-        break;
-    }
-    instructions.push_back(Instruction(iOP));
+    instructions.push_back(Instruction(op));
 }
 
 FunctionApplication::FunctionApplication(std::unique_ptr<Expression>&& function, std::vector<std::unique_ptr<Expression>>&& arguments)
@@ -135,6 +124,30 @@ void Apply::evaluate(Environment& env, std::vector<Instruction>& instructions)
 	else
 	{
 		assert(0 && "Can only handle 'static' functions.");
+	}
+}
+
+Case::Case(std::unique_ptr<Expression> && expr, std::vector<Alternative> && alternatives)
+	: expression(std::move(expr))
+	, alternatives(std::move(alternatives))
+{}
+
+void Case::evaluate(Environment& env, std::vector<Instruction>& instructions)
+{
+	assert(0);
+	expression->evaluate(env, instructions);
+	size_t beginSize = instructions.size();
+	for (Alternative& alt : alternatives)
+	{
+		alt.expression->evaluate(env, instructions);
+		size_t jumpDistance = instructions.size() - beginSize;
+		//Load the topmost value since it will be reduced by the comparison
+		instructions.push_back(Instruction(OP::LOAD, env.getStackTop()));
+		//alt.pattern->match();
+		instructions.push_back(Instruction(OP::COMPARE_EQ));
+		instructions.push_back(Instruction(OP::BRANCH_TRUE, jumpDistance));//TODO
+		instructions.push_back(Instruction(OP::POP));//TODO
+
 	}
 }
 

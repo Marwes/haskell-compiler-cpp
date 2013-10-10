@@ -41,12 +41,12 @@ public:
 class PrimOP : public Expression
 {
 public:
-    PrimOP(char op, std::unique_ptr<Expression>&& lhs, std::unique_ptr<Expression>&& rhs);
+    PrimOP(OP op, std::unique_ptr<Expression>&& lhs, std::unique_ptr<Expression>&& rhs);
 
 	virtual void evaluate(Environment& env, std::vector<Instruction>& instructions);
 
     std::unique_ptr<Expression> lhs, rhs;
-    char op;
+    OP op;
 };
 
 class FunctionApplication : public Expression
@@ -93,6 +93,42 @@ public:
 
 	std::unique_ptr<Expression> function;
 	std::vector<std::unique_ptr<Expression>> arguments;
+};
+
+class Pattern
+{
+public:
+	virtual ~Pattern() {}
+};
+
+class PatternName : public Pattern
+{
+public:
+	std::string name;
+};
+
+class NumberLiteral : public Pattern
+{
+public:
+	int value;
+};
+
+class Alternative
+{
+public:
+	std::unique_ptr<Pattern> pattern;
+	std::unique_ptr<Expression> expression;
+};
+
+class Case : public Expression
+{
+public:
+	Case(std::unique_ptr<Expression> && expr, std::vector<Alternative> && alternatives);
+
+	virtual void evaluate(Environment& env, std::vector<Instruction>& instructions);
+
+	std::unique_ptr<Expression> expression;
+	std::vector<Alternative> alternatives;
 };
 
 }

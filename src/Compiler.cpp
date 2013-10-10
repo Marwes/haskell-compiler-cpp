@@ -24,7 +24,7 @@ int Environment::newLocal(const std::string& name)
 	return stackValues.size() - 1;
 }
 
-int Environment::getIndexForName(const std::string& name)
+int Environment::getIndexForName(const std::string& name) const
 {
 	auto found = std::find(stackValues.begin(), stackValues.end(), name);
 	if (found != stackValues.end())

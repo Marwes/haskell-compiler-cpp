@@ -102,12 +102,12 @@ TEST_CASE("parser/3 + (2 + 4)", "3 + ( 2 + 4 )")
 
     PrimOP* func = dynamic_cast<PrimOP*>(maybeExpression.get());
     REQUIRE (func != NULL);
-    REQUIRE (func->op == '+');
+    REQUIRE (func->op == OP::ADD);
     REQUIRE (*func->lhs == Number(3));
 
     const PrimOP* second = dynamic_cast<const PrimOP*>(func->rhs.get());
     REQUIRE (second != NULL);
-    REQUIRE (second->op == '+');
+    REQUIRE (second->op == OP::ADD);
     REQUIRE (*second->lhs == Number(2));
     REQUIRE (*second->rhs == Number(4));
 }
@@ -125,12 +125,12 @@ TEST_CASE("parser/three * 2 + 4", "three * 2 + 4")
 
 	PrimOP* func = dynamic_cast<PrimOP*>(maybeExpression.get());
 	REQUIRE(func != NULL);
-	REQUIRE(func->op == '+');
+	REQUIRE(func->op == OP::ADD);
 	REQUIRE(*func->rhs == Number(4));
 
 	const PrimOP* second = dynamic_cast<const PrimOP*>(func->lhs.get());
 	REQUIRE(second != NULL);
-	REQUIRE(second->op == '*');
+	REQUIRE(second->op == OP::MULTIPLY);
 	REQUIRE(*second->lhs == Name("three"));
 	REQUIRE(*second->rhs == Number(2));
 }
@@ -150,7 +150,7 @@ TEST_CASE("parser/let three = 3 in three + 4", "")
 	REQUIRE(let->bindings[0].first == "three");
 	REQUIRE(*let->bindings[0].second == Number(3));
 	PrimOP* op = dynamic_cast<PrimOP*>(let->expression.get());
-	REQUIRE(op->op == '+');
+	REQUIRE(op->op == OP::ADD);
 	REQUIRE(*op->lhs == Name("three"));
 	REQUIRE(*op->rhs == Number(4));
 }
@@ -175,7 +175,7 @@ TEST_CASE("parser/let six = 3 * 2 in six + 4", "")
 	REQUIRE(*letPrimOP->rhs == Number(2));
 
 	PrimOP* op = dynamic_cast<PrimOP*>(let->expression.get());
-	REQUIRE(op->op == '+');
+	REQUIRE(op->op == OP::ADD);
 	REQUIRE(*op->lhs == Name("three"));
 	REQUIRE(*op->rhs == Number(4));
 }

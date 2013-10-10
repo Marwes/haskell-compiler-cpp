@@ -36,6 +36,20 @@ bool isMultDivOp(const Token& token)
     return token.type == SymbolEnum::OPERATOR && (token.name == "*" || token.name == "/" || token.name == "%");
 }
 
+OP getOperand(const std::string& name)
+{
+	static const std::map<std::string, OP> operators = {
+		std::make_pair("+", OP::ADD),
+		std::make_pair("-", OP::SUBTRACT),
+		std::make_pair("*", OP::MULTIPLY),
+		std::make_pair("/", OP::DIVIDE),
+		std::make_pair("%", OP::REMAINDER),
+		std::make_pair("==", OP::COMPARE_EQ),
+	};
+	return operators.at(name);
+}
+
+
 std::unique_ptr<Expression> Parser::expression(const Token& token)
 {
 	const Token* tok = &token;
@@ -54,7 +68,7 @@ std::unique_ptr<Expression> Parser::expression(const Token& token)
 				auto rhs = term(tokenizer.nextToken());
 				if (rhs)
 				{
-					lhs = std::unique_ptr<Expression>(new PrimOP(op.name[0], std::move(lhs), std::move(rhs)));
+					lhs = std::unique_ptr<Expression>(new PrimOP(getOperand(op.name), std::move(lhs), std::move(rhs)));
 				}
 				else
 					return nullptr;
@@ -142,7 +156,7 @@ std::unique_ptr<Expression> Parser::term(const Token& token)
             auto rhs = factor(tokenizer.nextToken());
             if (rhs)
             {
-                lhs = std::unique_ptr<Expression>(new PrimOP(op.name[0], std::move(lhs), std::move(rhs)));
+                lhs = std::unique_ptr<Expression>(new PrimOP(getOperand(op.name), std::move(lhs), std::move(rhs)));
             }
             else
                 return nullptr;

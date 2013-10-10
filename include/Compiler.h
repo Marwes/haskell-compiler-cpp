@@ -18,7 +18,11 @@ public:
 
 	int newLocal(const std::string& name);
 
-	int getIndexForName(const std::string& name);
+	size_t getStackTop()
+	{
+		return stackValues.size();
+	}
+	int getIndexForName(const std::string& name) const;
 
 	int getFunction(const std::string& name)
 	{
@@ -28,7 +32,6 @@ public:
 		else
 			return found->second;
 	}
-
 
 	int addLambda(Lambda& expr);
 	int addFunction(const std::string& name, Lambda& lambda);
