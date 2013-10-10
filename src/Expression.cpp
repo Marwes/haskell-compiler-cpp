@@ -108,11 +108,7 @@ Lambda::Lambda(std::vector<std::string> && arguments, std::unique_ptr<Expression
 
 void Lambda::evaluate(Environment& env, std::vector<Instruction>& instructions)
 {
-	for (auto& arg : arguments)
-	{
-		env.newLocal(arg);
-	}
-	int index = env.addLambda(*expression);
+	int index = env.addLambda(*this);
 	instructions.push_back(Instruction(OP::LOAD_FUNCTION, index));//TODO, dont get stack index
 }
 
@@ -130,7 +126,16 @@ void Apply::evaluate(Environment& env, std::vector<Instruction>& instructions)
 	{
 		arg->evaluate(env, instructions);
 	}
-	instructions.push_back(Instruction(OP::CALL, this->arguments.size()));
+	if (Name* name = dynamic_cast<Name*>(function.get()))
+	{
+		int index = env.getFunction(name->name);
+		assert(index != -1);
+		instructions.push_back(Instruction(OP::CALLI, index));
+	}
+	else
+	{
+		assert(0 && "Can only handle 'static' functions.");
+	}
 }
 
 

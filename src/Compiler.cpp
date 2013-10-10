@@ -5,9 +5,17 @@ namespace MyVMNamespace
 {
 
 Environment::Environment(Assembly& assembly)
-	: assembly(assembly)
+	: parent(nullptr)
+	, assembly(assembly)
 	, lambdaIndex(0)
 { }
+
+Environment Environment::childEnvironment() const
+{
+	Environment child(assembly);
+	child.parent = this;
+	return std::move(child);
+}
 
 int Environment::newLocal(const std::string& name)
 {
@@ -30,18 +38,25 @@ int Environment::addFunction(const std::string& name, Lambda& lambda)
 {
 	std::unique_ptr<FunctionDefinition> def(new FunctionDefinition());
 	def->numArguments = lambda.arguments.size();
+	Environment child = childEnvironment();
 	for (auto& arg : lambda.arguments)
 	{
-		newLocal(arg);
+		child.newLocal(arg);
 	}
-	lambda.expression->evaluate(*this, def->instructions);
+	lambda.expression->evaluate(child, def->instructions);
 	return assembly.addFunction(name, std::move(def));
 }
 
-int Environment::addLambda(Expression& expr)
+int Environment::addLambda(Lambda& lambda)
 {
 	std::unique_ptr<FunctionDefinition> def(new FunctionDefinition());
-	expr.evaluate(*this, def->instructions);
+
+	Environment child = childEnvironment();
+	for (auto& arg : lambda.arguments)
+	{
+		child.newLocal(arg);
+	}
+	lambda.expression->evaluate(child, def->instructions);
 	std::stringstream name;
 	name << "lambda" << lambdaIndex++;
 	return assembly.addFunction(name.str(), std::move(def));

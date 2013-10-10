@@ -30,6 +30,7 @@ namespace MyVMNamespace
 
 
         CALL,
+		CALLI,
 
         NUM_INSTRUCTIONS,
     };

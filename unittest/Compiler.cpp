@@ -103,3 +103,19 @@ TEST_CASE("compiler/bind/arithmetic4", "Test compiling an arithmetic expression"
 		REQUIRE(vm.getValue(0).intValue == 9);
 	}
 }
+
+TEST_CASE("compiler/bind/arithmetic5", "Test compiling an arithmetic expression")
+{
+	std::stringstream input("let f x y = x * x + y; five = 5 in f 3 five");
+	Compiler compiler(input);
+	Assembly assembly = compiler.compile();
+
+	{
+		VM vm;
+		Method method = Method::main(assembly);
+		vm.assembly = std::move(assembly);
+		MethodEnvironment env(vm.newStackFrame(), &method);
+		vm.execute(env);
+		REQUIRE(vm.getValue(1).intValue == 14);
+	}
+}

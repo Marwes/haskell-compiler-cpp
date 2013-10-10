@@ -30,7 +30,8 @@ public:
     
     static void op_load(MethodEnvironment& environment, Instruction current)
     {
-        environment.stackFrame.push(environment.stackFrame[current.arg0]);
+		StackObject& o = environment.stackFrame[current.arg0];
+        environment.stackFrame.push(o);
     }
 
 	static void op_load_function(MethodEnvironment& environment, Instruction current)
@@ -80,14 +81,21 @@ public:
 
     static void op_call(VM& vm, MethodEnvironment& environment, Instruction current)
     {
-        FunctionDefinition* func = vm.assembly.getFunction(current.arg0);
+		assert(0);//TODO
+	}
+
+	static void op_calli(VM& vm, MethodEnvironment& environment, Instruction current)
+	{
+		FunctionDefinition* func = vm.assembly.getFunction(current.arg0);
 		assert(func);
 		Method method(Slice<Instruction>(func->instructions.data(), func->instructions.size()), std::vector<Type>());
 
-        MethodEnvironment newEnvironment(environment.stackFrame.makeChildFrame(func->numArguments), &method);
-        
-        vm.execute(newEnvironment);
-    }
+		MethodEnvironment newEnvironment(environment.stackFrame.makeChildFrame(func->numArguments), &method);
+
+		vm.execute(newEnvironment);
+		size_t i = environment.stackFrame.size() - func->numArguments;
+		environment.stackFrame[i] = newEnvironment.stackFrame.top();
+	}
     
     static void op_setfield(MethodEnvironment& environment, Instruction current)
     {
@@ -97,6 +105,27 @@ public:
         *(obj + field.offset) = environment.stackFrame[current.arg1];
     }
 
+
+
+	template<VMInt (*op)(VMInt, VMInt)>
+	static void op_arith(MethodEnvironment& environment, Instruction current)
+	{
+		VMInt rhs = environment.stackFrame.top().intValue;
+		environment.stackFrame.pop();
+		VMInt lhs = environment.stackFrame.top().intValue;
+		StackObject o;
+		o.intValue = op(lhs, rhs);
+		environment.stackFrame.top() = o;
+	}
+
+	static VMInt op_add(VMInt l, VMInt r)
+	{
+		return l + r;
+	}
+	static VMInt op_multiply(VMInt l, VMInt r)
+	{
+		return l * r;
+	}
 };
 
 #define DO_ARITH(op, environment, instruction) {\
@@ -200,13 +229,13 @@ void VM::execute(MethodEnvironment& environment)
             VMI::op_setfield(environment, instruction);
             break;
         case OP::ADD:
-            DO_TOP_ARITH(+, environment, instruction);
+			VMI::op_arith<VMI::op_add>(environment, instruction);
             break;
         case OP::SUBTRACT:
             DO_TOP_ARITH(-, environment, instruction);
             break;
-        case OP::MULTIPLY:
-            DO_TOP_ARITH(*, environment, instruction);
+		case OP::MULTIPLY:
+			VMI::op_arith<VMI::op_multiply>(environment, instruction);
             break;
         case OP::DIVIDE:
             DO_TOP_ARITH(/, environment, instruction);
@@ -217,7 +246,10 @@ void VM::execute(MethodEnvironment& environment)
 
         case OP::CALL:
             VMI::op_call(*this, environment, instruction);
-            break;
+			break;
+		case OP::CALLI:
+			VMI::op_calli(*this, environment, instruction);
+			break;
 
         default:
             std::cout << "No implementation for instruction : " << op2string(instruction.op) << std::endl;

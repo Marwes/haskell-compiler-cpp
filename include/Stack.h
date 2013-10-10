@@ -15,12 +15,12 @@ struct StackLayout
 class StackFrame
 {
 public:
-    StackFrame(StackObject* stackBase, size_t maxSize)
-        : stackBase(stackBase)
-        , maxSize(maxSize)
-        , currentSize(0)
-    {
-    }
+	StackFrame(StackObject* stackBase, size_t maxSize, size_t currentSize = 0)
+		: stackBase(stackBase)
+		, maxSize(maxSize)
+		, currentSize(currentSize)
+	{
+	}
     
     void push(VMInt p)
     {
@@ -104,7 +104,8 @@ public:
 
     StackFrame makeChildFrame(size_t numParameters)
     {
-        return StackFrame(stackBase + currentSize - numParameters, maxSize - currentSize);
+		StackObject* newBase = stackBase + currentSize - numParameters;
+		return StackFrame(newBase, maxSize - (currentSize - numParameters), numParameters);
     }
 
     size_t size()
