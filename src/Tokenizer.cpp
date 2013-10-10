@@ -37,7 +37,7 @@ bool isTokenSeparator(char c)
 
 bool isOperator(char c)
 {
-	static std::string operators("+-*/.");
+	static std::string operators("+-*/.$=<>");
 	return operators.find(c) != -1;
 }
 
@@ -57,12 +57,14 @@ std::istream& operator>>(std::istream& input, Token& token)
 		{
 			token.name.push_back(c);
 		}
-		token.type = SymbolEnum::OPERATOR;
-	}
-	else if (c == '=')
-	{
-		input.get(c);//For consistency, otherwise '=' is put back into the stream
-		token.type = SymbolEnum::EQUALSSIGN;
+		if (token.name == "=")
+		{
+			token.type = SymbolEnum::EQUALSSIGN;
+		}
+		else
+		{
+			token.type = SymbolEnum::OPERATOR;
+		}
 	}
 	else if (c == ';')
 	{
