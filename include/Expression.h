@@ -5,11 +5,6 @@
 #include <map>
 #include "Instruction.h"
 
-template<typename T, typename... Args>
-std::unique_ptr<T> make_unique(Args ... args)
-{
-    return std::unique_ptr<T>(new T(args...));
-}
 
 namespace MyVMNamespace
 {
@@ -87,6 +82,17 @@ public:
 
 	std::vector<std::string> arguments;
 	std::unique_ptr<Expression> expression;
+};
+
+class Apply : public Expression
+{
+public:
+	Apply(std::unique_ptr<Expression> && function, std::vector<std::unique_ptr<Expression>> && arguments);
+
+	virtual void evaluate(Environment& env, std::vector<Instruction>& instructions);
+
+	std::unique_ptr<Expression> function;
+	std::vector<std::unique_ptr<Expression>> arguments;
 };
 
 }

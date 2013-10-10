@@ -112,3 +112,41 @@ TEST_CASE("tokenizer/let, in", "")
 	}
 }
 
+TEST_CASE("tokenizer/apply", "FUnction application")
+{
+	std::stringstream stream("f 3");
+	Tokenizer tokenizer(stream);
+
+	Token expected [] = {
+		Token(SymbolEnum::NAME, "f"),
+		Token(SymbolEnum::NUMBER, "3"),
+	};
+	tokenizer.tokenize();
+	for (int ii = 0; tokenizer; ++tokenizer, ++ii)
+	{
+		REQUIRE(*tokenizer == expected[ii]);
+	}
+}
+
+
+TEST_CASE("tokenizer/apply2", "FUnction application")
+{
+	std::stringstream stream("f 3 (2+two)");
+	Tokenizer tokenizer(stream);
+
+	Token expected [] = {
+		Token(SymbolEnum::NAME, "f"),
+		Token(SymbolEnum::NUMBER, "3"),
+		Token(SymbolEnum::LPARENS, "("),
+		Token(SymbolEnum::NUMBER, "2"),
+		Token(SymbolEnum::OPERATOR, "+"),
+		Token(SymbolEnum::NAME, "two"),
+		Token(SymbolEnum::RPARENS, ")"),
+	};
+	tokenizer.tokenize();
+	for (int ii = 0; tokenizer; ++tokenizer, ++ii)
+	{
+		REQUIRE(*tokenizer == expected[ii]);
+	}
+}
+

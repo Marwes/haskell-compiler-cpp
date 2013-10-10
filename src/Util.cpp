@@ -87,7 +87,7 @@ Assembly readAssemblyFile(const char* filename)
     bool st = stream.good();
     FROM_BIGENDIAN(&assembly.entrypoint);
 
-	assembly.addFunction("main", FunctionDefinition());
+	assembly.addFunction("main", make_unique<FunctionDefinition>());
 	FunctionDefinition& def = *assembly.getFunction("main");
 
     while (stream >> i)

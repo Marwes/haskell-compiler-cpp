@@ -86,8 +86,15 @@ void Let::evaluate(Environment& env, std::vector<Instruction>& instructions)
 	//bindings must be used in order of definition in order or it will fail
 	for (auto& bind : bindings)
 	{
-		env.newLocal(bind.first);
-		bind.second->evaluate(env, instructions);
+		if (Lambda* lambda = dynamic_cast<Lambda*>(bind.second.get()))
+		{
+			env.addFunction(bind.first, *lambda);
+		}
+		else
+		{
+			env.newLocal(bind.first);
+			bind.second->evaluate(env, instructions);
+		}
 	}
 	expression->evaluate(env, instructions);
 }
@@ -101,8 +108,29 @@ Lambda::Lambda(std::vector<std::string> && arguments, std::unique_ptr<Expression
 
 void Lambda::evaluate(Environment& env, std::vector<Instruction>& instructions)
 {
+	for (auto& arg : arguments)
+	{
+		env.newLocal(arg);
+	}
 	int index = env.addLambda(*expression);
 	instructions.push_back(Instruction(OP::LOAD_FUNCTION, index));//TODO, dont get stack index
+}
+
+
+Apply::Apply(std::unique_ptr<Expression> && function, std::vector<std::unique_ptr<Expression>> && arguments)
+	: function(std::move(function))
+	, arguments(std::move(arguments))
+{
+}
+
+
+void Apply::evaluate(Environment& env, std::vector<Instruction>& instructions)
+{
+	for (auto& arg : arguments)
+	{
+		arg->evaluate(env, instructions);
+	}
+	instructions.push_back(Instruction(OP::CALL, this->arguments.size()));
 }
 
 

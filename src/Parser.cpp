@@ -38,30 +38,52 @@ bool isMultDivOp(const Token& token)
 
 std::unique_ptr<Expression> Parser::expression(const Token& token)
 {
-    auto lhs = term(token);
-    if (!lhs)
-        return nullptr;
+	const Token* tok = &token;
+	std::vector<std::unique_ptr<Expression>> expressions;
+	do
+	{
+		auto lhs = term(*tok);
+		if (!lhs)
+			break;
 
-    while (true)
-    {
-        const Token& op = tokenizer.nextToken();
-        if (isPlusMinusOP(op))
-        {
-            auto rhs = term(tokenizer.nextToken());
-            if (rhs)
-            {
-                lhs = std::unique_ptr<Expression>(new PrimOP(op.name[0], std::move(lhs), std::move(rhs)));
-            }
-            else
-                return nullptr;
-        }
-        else
-        {
-            --tokenizer;
-            break;
-        }
-    }
-    return lhs;
+		while (true)
+		{
+			const Token& op = tokenizer.nextToken();
+			if (isPlusMinusOP(op))
+			{
+				auto rhs = term(tokenizer.nextToken());
+				if (rhs)
+				{
+					lhs = std::unique_ptr<Expression>(new PrimOP(op.name[0], std::move(lhs), std::move(rhs)));
+				}
+				else
+					return nullptr;
+			}
+			else
+			{
+				--tokenizer;
+				break;
+			}
+		}
+		expressions.push_back(std::move(lhs));
+		tok = &tokenizer.nextToken();
+	} while (true);
+	--tokenizer;
+
+	if (expressions.size() == 1)
+	{
+		return std::move(expressions[0]);
+	}
+	else if (expressions.size() > 1)
+	{
+		std::unique_ptr<Expression> function = std::move(expressions[0]);
+		expressions.erase(expressions.begin());
+		return std::unique_ptr<Expression>(new Apply(std::move(function), std::move(expressions)));
+	}
+	else
+	{
+		return nullptr;
+	}
 }
 
 std::unique_ptr<Expression> Parser::factor(const Token& token)
@@ -155,16 +177,19 @@ std::pair<std::string, std::unique_ptr<Expression>> Parser::binding(const Token&
 			break;
 		}
 	}
-	if (arguments.size() > 0)
-	{
-
-	}
-
 	if (tokenizer->type != SymbolEnum::EQUALSSIGN)
 	{
 		throw std::runtime_error("Expected '=' in binding");
 	}
-	return std::make_pair(token.name, expression(tokenizer.nextToken()));
+	if (arguments.size() > 0)
+	{
+		std::unique_ptr<Expression> lambda(new Lambda(std::move(arguments), expression(tokenizer.nextToken())));
+		return std::make_pair(token.name, std::move(lambda));
+	}
+	else
+	{
+		return std::make_pair(token.name, expression(tokenizer.nextToken()));
+	}
 }
 
 bool isPrimOP(const std::string& op)

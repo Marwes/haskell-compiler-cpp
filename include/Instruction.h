@@ -80,13 +80,26 @@ public:
     {
     }
 
+	Assembly& operator=(Assembly && other)
+	{
+		functionDefinitionsIndexes = std::move(other.functionDefinitionsIndexes);
+		functionDefinitions = std::move(other.functionDefinitions);
+		entrypoint = other.entrypoint;
+		return *this;
+	}
 
-	int addFunction(const std::string& name, const FunctionDefinition& def)
+
+	int addFunction(const std::string& name, std::unique_ptr<FunctionDefinition>&& def)
 	{
 		int index = functionDefinitionsIndexes.size();
 		functionDefinitionsIndexes.insert(std::make_pair(name, index));
-		functionDefinitions.push_back(def);
+		functionDefinitions.push_back(std::move(def));
 		return index;
+	}
+
+	FunctionDefinition* getFunction(size_t index)
+	{
+		return functionDefinitions[index].get();
 	}
 
 	FunctionDefinition* getFunction(const std::string& name)
@@ -96,11 +109,11 @@ public:
 		{
 			return nullptr;
 		}
-		return &functionDefinitions[found->second];
+		return functionDefinitions[found->second].get();
 	}
 
 	std::map<std::string, int> functionDefinitionsIndexes;
-	std::vector<FunctionDefinition> functionDefinitions;
+	std::vector<std::unique_ptr<FunctionDefinition>> functionDefinitions;
 	int32_t entrypoint;
 };
 

@@ -14,7 +14,7 @@ TEST_CASE("arithmetic", "test arithmetic")
 {
     Assembly assembly;
     assembly.entrypoint = 0;
-	assembly.addFunction("main", FunctionDefinition());
+	assembly.addFunction("main", make_unique<FunctionDefinition>());
 	FunctionDefinition& def = *assembly.getFunction("main");
     def.instructions.push_back(Instruction(OP::LOAD_INT_CONST, 5));
     def.instructions.push_back(Instruction(OP::LOAD_INT_CONST, 10));

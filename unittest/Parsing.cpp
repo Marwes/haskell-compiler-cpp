@@ -179,3 +179,57 @@ TEST_CASE("parser/let six = 3 * 2 in six + 4", "")
 	REQUIRE(*op->lhs == Name("three"));
 	REQUIRE(*op->rhs == Number(4));
 }
+
+TEST_CASE("parser/apply", "Function application")
+{
+	std::stringstream stream("f 3");
+	Tokenizer tokenizer(stream);
+	Parser parser(tokenizer);
+
+	auto maybeExpression = parser.run();
+	REQUIRE(maybeExpression.get() != NULL);
+
+	Apply& apply = dynamic_cast<Apply&>(*maybeExpression);
+	REQUIRE(*apply.function == Name("f"));
+	REQUIRE(*apply.arguments[0] == Number(3));
+}
+
+TEST_CASE("parser/apply2", "Function application")
+{
+	std::stringstream stream("f 3 (3+two)");
+	Tokenizer tokenizer(stream);
+	Parser parser(tokenizer);
+
+	auto maybeExpression = parser.run();
+	REQUIRE(maybeExpression.get() != NULL);
+
+	Apply& apply = dynamic_cast<Apply&>(*maybeExpression);
+	REQUIRE(*apply.function == Name("f"));
+	REQUIRE(*apply.arguments[0] == Number(3));
+
+	PrimOP& op = dynamic_cast<PrimOP&>(*apply.arguments[1]);
+	REQUIRE(*op.lhs == Number(3));
+	REQUIRE(*op.rhs == Name("two"));
+}
+
+#if 0
+TEST_CASE("parser/applyOperator", "Function application")
+{
+	std::stringstream stream("f 3 one * two");
+	Tokenizer tokenizer(stream);
+	Parser parser(tokenizer);
+
+	auto maybeExpression = parser.run();
+	REQUIRE(maybeExpression.get() != NULL);
+
+
+	PrimOP& op = dynamic_cast<PrimOP&>(*maybeExpression);
+
+	Apply& apply = dynamic_cast<Apply&>(*op.lhs);
+	REQUIRE(*apply.function == Name("f"));
+	REQUIRE(*apply.arguments[0] == Number(3));
+	REQUIRE(*apply.arguments[1] == Name("one"));
+
+	REQUIRE(*op.rhs == Name("two"));
+}
+#endif

@@ -102,9 +102,9 @@ public:
         return stackBase;
     }
 
-    StackFrame makeChildFrame()
+    StackFrame makeChildFrame(size_t numParameters)
     {
-        return StackFrame(stackBase + currentSize, maxSize - currentSize);
+        return StackFrame(stackBase + currentSize - numParameters, maxSize - currentSize);
     }
 
     size_t size()

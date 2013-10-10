@@ -41,6 +41,8 @@ struct VM
     void endFrame(MethodEnvironment& environment);
 
     void printstack();
+
+	Assembly assembly;
 private:
     
     Array<StackObject> stack;

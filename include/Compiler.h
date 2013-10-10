@@ -21,6 +21,7 @@ public:
 
 
 	int addLambda(Expression& expr);
+	int addFunction(const std::string& name, Lambda& lambda);
 private:
 	Assembly& assembly;
 	std::vector<std::string> stackValues;

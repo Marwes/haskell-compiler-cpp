@@ -26,14 +26,25 @@ int Environment::getIndexForName(const std::string& name)
 }
 
 
+int Environment::addFunction(const std::string& name, Lambda& lambda)
+{
+	std::unique_ptr<FunctionDefinition> def(new FunctionDefinition());
+	def->numArguments = lambda.arguments.size();
+	for (auto& arg : lambda.arguments)
+	{
+		newLocal(arg);
+	}
+	lambda.expression->evaluate(*this, def->instructions);
+	return assembly.addFunction(name, std::move(def));
+}
 
 int Environment::addLambda(Expression& expr)
 {
-	FunctionDefinition def;
-	expr.evaluate(*this, def.instructions);
+	std::unique_ptr<FunctionDefinition> def(new FunctionDefinition());
+	expr.evaluate(*this, def->instructions);
 	std::stringstream name;
 	name << "lambda" << lambdaIndex++;
-	return assembly.addFunction(name.str(), def);
+	return assembly.addFunction(name.str(), std::move(def));
 }
 
 
@@ -47,8 +58,11 @@ Assembly Compiler::compile()
 {
 	Assembly assembly;
 	Environment env(assembly);
-	assembly.addFunction("main", FunctionDefinition());
-	parser.run()->evaluate(env, assembly.getFunction("main")->instructions);
+	assembly.addFunction("main", make_unique<FunctionDefinition>());
+	std::unique_ptr<Expression> expr = parser.run();
+	FunctionDefinition* def = assembly.getFunction("main");
+	assert(def);
+	expr->evaluate(env, def->instructions);
 	return std::move(assembly);
 }
 

@@ -7,7 +7,7 @@ using namespace MyVMNamespace;
 TEST_CASE("field", "test field access")
 {
     Assembly assembly;
-	assembly.addFunction("main", FunctionDefinition());
+	assembly.addFunction("main", make_unique<FunctionDefinition>());
 	std::vector<Instruction>& instructions = assembly.getFunction("main")->instructions;
     instructions.push_back(Instruction(OP::LOAD_INT_CONST, 10));
     VMInt size = sizeof(StackObject) * 2;

@@ -80,9 +80,11 @@ public:
 
     static void op_call(VM& vm, MethodEnvironment& environment, Instruction current)
     {
-        Method& method = data_cast<Method&>(*environment.method->data[current.arg0]);
+        FunctionDefinition* func = vm.assembly.getFunction(current.arg0);
+		assert(func);
+		Method method(Slice<Instruction>(func->instructions.data(), func->instructions.size()), std::vector<Type>());
 
-        MethodEnvironment newEnvironment(environment.stackFrame.makeChildFrame(), &method);
+        MethodEnvironment newEnvironment(environment.stackFrame.makeChildFrame(func->numArguments), &method);
         
         vm.execute(newEnvironment);
     }

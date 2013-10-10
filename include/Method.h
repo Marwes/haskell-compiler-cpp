@@ -57,10 +57,12 @@ public:
 
     static Method main(Assembly& assembly)
     {
-		std::vector<Instruction>& instructions = assembly.getFunction("main")->instructions;
-        Instruction* begin = instructions.data() + assembly.entrypoint;
-        size_t size = instructions.size() - assembly.entrypoint;
-        return Method(Slice<Instruction>(begin, size), std::vector<Type>());
+		FunctionDefinition* funcDef = assembly.getFunction("main");
+		assert(funcDef);
+        Instruction* begin = funcDef->instructions.data() + assembly.entrypoint;
+        size_t size = funcDef->instructions.size() - assembly.entrypoint;
+		ObjectVector data;
+        return Method(Slice<Instruction>(begin, size), std::vector<Type>(), std::move(data));
     }
 
     const Slice<Instruction> code;
