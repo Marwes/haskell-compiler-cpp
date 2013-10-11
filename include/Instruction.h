@@ -26,6 +26,11 @@ namespace MyVMNamespace
 	XX(t, DIVIDE) \
 	XX(t, REMAINDER) \
 	XX(t, COMPARE_EQ) \
+	XX(t, COMPARE_NEQ) \
+	XX(t, COMPARE_LT) \
+	XX(t, COMPARE_GT) \
+	XX(t, COMPARE_LE) \
+	XX(t, COMPARE_GE) \
 	XX(t, CALL) \
 	XX(t, CALLI) \
 	XX(t, NUM_INSTRUCTIONS) \

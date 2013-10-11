@@ -36,27 +36,34 @@ bool isMultDivOp(const Token& token)
     return token.type == SymbolEnum::OPERATOR && (token.name == "*" || token.name == "/" || token.name == "%");
 }
 
+struct Operator
+{
+	OP op;
+	int precedence;
+};
 
-const std::map<std::string, int> precedence = {
-	std::make_pair("+", 1),
-	std::make_pair("-", 1),
-	std::make_pair("*", 3),
-	std::make_pair("/", 3),
-	std::make_pair("%", 3),
-	std::make_pair("==", 1),
+static const std::map<std::string, Operator> operators = {
+	std::make_pair("+", Operator { OP::ADD, 1 }),
+	std::make_pair("-", Operator { OP::SUBTRACT, 1 }),
+	std::make_pair("*", Operator { OP::MULTIPLY, 3 }),
+	std::make_pair("/", Operator { OP::DIVIDE, 3 }),
+	std::make_pair("%", Operator { OP::REMAINDER, 3 }),
+	std::make_pair("==", Operator { OP::COMPARE_EQ, 1 }),
+	std::make_pair("/=", Operator { OP::COMPARE_NEQ, 1 }),
+	std::make_pair("<", Operator { OP::COMPARE_LT, 1 }),
+	std::make_pair(">", Operator { OP::COMPARE_GT, 1 }),
+	std::make_pair("<=", Operator { OP::COMPARE_LE, 1 }),
+	std::make_pair(">=", Operator { OP::COMPARE_GE, 1 }),
 };
 
 OP getOperand(const std::string& name)
 {
-	static const std::map<std::string, OP> operators = {
-		std::make_pair("+", OP::ADD),
-		std::make_pair("-", OP::SUBTRACT),
-		std::make_pair("*", OP::MULTIPLY),
-		std::make_pair("/", OP::DIVIDE),
-		std::make_pair("%", OP::REMAINDER),
-		std::make_pair("==", OP::COMPARE_EQ),
-	};
-	return operators.at(name);
+	return operators.at(name).op;
+}
+
+int getPrecedence(const std::string& name)
+{
+	return operators.at(name).precedence;
 }
 
 
@@ -114,17 +121,17 @@ std::unique_ptr<Expression> Parser::parseOperatorExpression(std::unique_ptr<Expr
 {
 	++tokenizer;
 	while (tokenizer->type == SymbolEnum::OPERATOR
-		&& precedence.at(tokenizer->name) >= minPrecedence)
+		&& getPrecedence(tokenizer->name) >= minPrecedence)
 	{
 		const Token& op = *tokenizer;
 		std::unique_ptr<Expression> rhs = application(tokenizer.nextToken());
 		const Token& nextOP = tokenizer.nextToken();
 		while (tokenizer && nextOP.type == SymbolEnum::OPERATOR
-			&& precedence.at(nextOP.name) > precedence.at(op.name))
+			&& getPrecedence(nextOP.name) > getPrecedence(op.name))
 		{
 			const Token& lookahead = *tokenizer;
 			--tokenizer;
-			rhs = parseOperatorExpression(std::move(rhs), precedence.at(lookahead.name));
+			rhs = parseOperatorExpression(std::move(rhs), getPrecedence(lookahead.name));
 		}
 		lhs = std::unique_ptr<Expression>(new PrimOP(getOperand(op.name), std::move(lhs), std::move(rhs)));
 	}
