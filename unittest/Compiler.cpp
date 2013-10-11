@@ -11,128 +11,33 @@
 
 using namespace MyVMNamespace;
 
+std::unique_ptr<VM> evaluateInt(const char* expr)
+{
+	std::stringstream input(expr);
+	Compiler compiler(input);
+	Assembly assembly = compiler.compile();
+
+	std::unique_ptr<VM> vm = make_unique<VM>();
+	Method method = Method::main(assembly);
+	vm->assembly = std::move(assembly);
+	MethodEnvironment env(vm->newStackFrame(), &method);
+	vm->execute(env);
+	return std::move(vm);
+}
+
 TEST_CASE("compiler/arithmetic", "Test compiling an arithmetic expression")
 {
-    std::stringstream input("3+2");
-    Compiler compiler(input);
-    Assembly assembly = compiler.compile();
-
-    {
-        VM vm;
-        Method method = Method::main(assembly);
-        MethodEnvironment env(vm.newStackFrame(), &method);
-        vm.execute(env);
-        REQUIRE(vm.getValue(0).intValue == 5);
-    }
+	REQUIRE(evaluateInt("3+2")->getValue(0).intValue == 5);
+	REQUIRE(evaluateInt("2 * 4 + 3")->getValue(0).intValue == 11);
+	REQUIRE(evaluateInt("let three = 3 in 2 * 4 + three")->getValue(1).intValue == 11);
+	REQUIRE(evaluateInt("let six = 3 * 2 in 2 * 4 + six")->getValue(1).intValue == 14);
+	REQUIRE(evaluateInt("let six = 3 * 2; four = six - 2 in 2 * four + six")->getValue(2).intValue == 14);
+	REQUIRE(evaluateInt("let f x = x * x in f 3")->getValue(0).intValue == 9);
+	REQUIRE(evaluateInt("let f x y = x * x + y; five = 5 in f 3 five")->getValue(1).intValue == 14);
+	REQUIRE(evaluateInt("let f x = x * x in f 3 + f 2")->getValue(0).intValue == 13);
 }
 
-
-TEST_CASE("compiler/arithmetic2", "Test compiling an arithmetic expression")
+TEST_CASE("compiler/compare/equality", "Test compiling an arithmetic expression")
 {
-    std::stringstream input("2 * 4 + 3");
-    Compiler compiler(input);
-    Assembly assembly = compiler.compile();
-
-    {
-        VM vm;
-        Method method = Method::main(assembly);
-        MethodEnvironment env(vm.newStackFrame(), &method);
-        vm.execute(env);
-        REQUIRE(vm.getValue(0).intValue == 11);
-    }
-}
-
-TEST_CASE("compiler/bind/arithmetic", "Test compiling an arithmetic expression")
-{
-	std::stringstream input("let three = 3 in 2 * 4 + three");
-	Compiler compiler(input);
-	Assembly assembly = compiler.compile();
-
-	{
-		VM vm;
-		Method method = Method::main(assembly);
-		MethodEnvironment env(vm.newStackFrame(), &method);
-		vm.execute(env);
-		REQUIRE(vm.getValue(1).intValue == 11);
-	}
-}
-
-TEST_CASE("compiler/bind/arithmetic2", "Test compiling an arithmetic expression")
-{
-	std::stringstream input("let six = 3 * 2 in 2 * 4 + six");
-	Compiler compiler(input);
-	Assembly assembly = compiler.compile();
-
-	{
-		VM vm;
-		Method method = Method::main(assembly);
-		MethodEnvironment env(vm.newStackFrame(), &method);
-		vm.execute(env);
-		REQUIRE(vm.getValue(1).intValue == 14);
-	}
-}
-
-
-TEST_CASE("compiler/bind/arithmetic3", "Test compiling an arithmetic expression")
-{
-	std::stringstream input("let six = 3 * 2; four = six - 2 in 2 * four + six");
-	Compiler compiler(input);
-	Assembly assembly = compiler.compile();
-
-	{
-		VM vm;
-		Method method = Method::main(assembly);
-		MethodEnvironment env(vm.newStackFrame(), &method);
-		vm.execute(env);
-		REQUIRE(vm.getValue(2).intValue == 14);
-	}
-}
-
-TEST_CASE("compiler/bind/arithmetic4", "Test compiling an arithmetic expression")
-{
-	std::stringstream input("let f x = x * x in f 3");
-	Compiler compiler(input);
-	Assembly assembly = compiler.compile();
-
-	{
-		VM vm;
-		Method method = Method::main(assembly);
-		vm.assembly = std::move(assembly);
-		MethodEnvironment env(vm.newStackFrame(), &method);
-		vm.execute(env);
-		REQUIRE(vm.getValue(0).intValue == 9);
-	}
-}
-
-TEST_CASE("compiler/bind/arithmetic5", "Test compiling an arithmetic expression")
-{
-	std::stringstream input("let f x y = x * x + y; five = 5 in f 3 five");
-	Compiler compiler(input);
-	Assembly assembly = compiler.compile();
-
-	{
-		VM vm;
-		Method method = Method::main(assembly);
-		vm.assembly = std::move(assembly);
-		MethodEnvironment env(vm.newStackFrame(), &method);
-		vm.execute(env);
-		REQUIRE(vm.getValue(1).intValue == 14);
-	}
-}
-
-
-TEST_CASE("compiler/bind/arithmetic6", "Test compiling an arithmetic expression")
-{
-	std::stringstream input("let f x = x * x in f 3 + f 2");
-	Compiler compiler(input);
-	Assembly assembly = compiler.compile();
-
-	{
-		VM vm;
-		Method method = Method::main(assembly);
-		vm.assembly = std::move(assembly);
-		MethodEnvironment env(vm.newStackFrame(), &method);
-		vm.execute(env);
-		REQUIRE(vm.getValue(0).intValue == 13);
-	}
+	REQUIRE(evaluateInt("3==2")->getValue(0).intValue == 0);
 }
