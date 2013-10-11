@@ -63,11 +63,11 @@ OP getOperand(const std::string& name)
 std::unique_ptr<Expression> Parser::expression(const Token& token)
 {
 	{
-		return parseOperatorExpression(apply(token), 0);
+		return parseOperatorExpression(application(token), 0);
 	}
 }
 
-std::unique_ptr<Expression> Parser::factor(const Token& token)
+std::unique_ptr<Expression> Parser::subExpression(const Token& token)
 {
 	switch (token.type)
 	{
@@ -117,7 +117,7 @@ std::unique_ptr<Expression> Parser::parseOperatorExpression(std::unique_ptr<Expr
 		&& precedence.at(tokenizer->name) >= minPrecedence)
 	{
 		const Token& op = *tokenizer;
-		std::unique_ptr<Expression> rhs = apply(tokenizer.nextToken());
+		std::unique_ptr<Expression> rhs = application(tokenizer.nextToken());
 		const Token& nextOP = tokenizer.nextToken();
 		while (tokenizer && nextOP.type == SymbolEnum::OPERATOR
 			&& precedence.at(nextOP.name) > precedence.at(op.name))
@@ -132,14 +132,14 @@ std::unique_ptr<Expression> Parser::parseOperatorExpression(std::unique_ptr<Expr
 	return lhs;
 }
 
-std::unique_ptr<Expression> Parser::apply(const Token& token)
+std::unique_ptr<Expression> Parser::application(const Token& token)
 {
-	std::unique_ptr<Expression> lhs = factor(token);
+	std::unique_ptr<Expression> lhs = subExpression(token);
 	if (!lhs)
 		return nullptr;
 
 	std::vector<std::unique_ptr<Expression>> expressions;
-	while (auto expr = factor(tokenizer.nextToken()))
+	while (auto expr = subExpression(tokenizer.nextToken()))
 	{
 		expressions.push_back(std::move(expr));
 	}
@@ -185,18 +185,6 @@ std::pair<std::string, std::unique_ptr<Expression>> Parser::binding(const Token&
 	{
 		return std::make_pair(token.name, expression(tokenizer.nextToken()));
 	}
-}
-
-bool isPrimOP(const std::string& op)
-{
-    static std::array<std::string, 5> operators = {
-        "+",
-        "-",
-        "*",
-        "/",
-        "%"
-    };
-    return std::find(operators.begin(), operators.end(), op) != operators.end();
 }
 
 }
