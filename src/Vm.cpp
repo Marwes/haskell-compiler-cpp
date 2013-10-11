@@ -108,7 +108,7 @@ public:
 
 
 	template<VMInt (*op)(VMInt, VMInt)>
-	static void op_arith(MethodEnvironment& environment, Instruction current)
+	static void op_binop(MethodEnvironment& environment, Instruction current)
 	{
 		VMInt rhs = environment.stackFrame.top().intValue;
 		environment.stackFrame.pop();
@@ -126,6 +126,10 @@ public:
 	{
 		return l * r;
 	}
+	static VMInt op_equal(VMInt l, VMInt r)
+	{
+		return l == r;
+	}
 };
 
 #define DO_ARITH(op, environment, instruction) {\
@@ -133,7 +137,7 @@ public:
     VMInt rhs = environment.stackFrame.at<VMInt>(instruction.arg2);\
     environment.stackFrame.at<VMInt>(instruction.arg0) = lhs op rhs; }
 
-#define DO_TOP_ARITH(op, environment, instruction) {\
+#define DO_TOP_BINOP(op, environment, instruction) {\
     VMInt rhs = environment.stackFrame.top().intValue;\
     environment.stackFrame.pop();\
     VMInt lhs = environment.stackFrame.top().intValue;\
@@ -229,20 +233,24 @@ void VM::execute(MethodEnvironment& environment)
             VMI::op_setfield(environment, instruction);
             break;
         case OP::ADD:
-			VMI::op_arith<VMI::op_add>(environment, instruction);
+			VMI::op_binop<VMI::op_add>(environment, instruction);
             break;
         case OP::SUBTRACT:
-            DO_TOP_ARITH(-, environment, instruction);
+			DO_TOP_BINOP(-, environment, instruction);
             break;
 		case OP::MULTIPLY:
-			VMI::op_arith<VMI::op_multiply>(environment, instruction);
+			VMI::op_binop<VMI::op_multiply>(environment, instruction);
             break;
         case OP::DIVIDE:
-            DO_TOP_ARITH(/, environment, instruction);
+			DO_TOP_BINOP(/ , environment, instruction);
             break;
         case OP::REMAINDER:
-            DO_TOP_ARITH(%, environment, instruction);
+			DO_TOP_BINOP(%, environment, instruction);
             break;
+
+		case OP::COMPARE_EQ:
+			DO_TOP_BINOP(==, environment, instruction);
+			break;
 
         case OP::CALL:
             VMI::op_call(*this, environment, instruction);
