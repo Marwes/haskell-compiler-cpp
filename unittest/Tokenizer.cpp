@@ -8,7 +8,7 @@ namespace MyVMNamespace
 
 std::ostream& operator<<(std::ostream& out, const Token& token)
 {
-	return out << "{" << token.type << ", " << token.name << "}";
+	return out << "{" << enumToString(token.type) << ", " << token.name << "}";
 }
 
 bool operator==(const Token& lhs, const Token& rhs)

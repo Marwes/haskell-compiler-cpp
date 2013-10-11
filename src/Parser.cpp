@@ -36,6 +36,16 @@ bool isMultDivOp(const Token& token)
     return token.type == SymbolEnum::OPERATOR && (token.name == "*" || token.name == "/" || token.name == "%");
 }
 
+
+const std::map<std::string, int> precedence = {
+	std::make_pair("+", 1),
+	std::make_pair("-", 1),
+	std::make_pair("*", 3),
+	std::make_pair("/", 3),
+	std::make_pair("%", 3),
+	std::make_pair("==", 1),
+};
+
 OP getOperand(const std::string& name)
 {
 	static const std::map<std::string, OP> operators = {
@@ -52,51 +62,8 @@ OP getOperand(const std::string& name)
 
 std::unique_ptr<Expression> Parser::expression(const Token& token)
 {
-	const Token* tok = &token;
-	std::vector<std::unique_ptr<Expression>> expressions;
-	do
 	{
-		auto lhs = term(*tok);
-		if (!lhs)
-			break;
-
-		while (true)
-		{
-			const Token& op = tokenizer.nextToken();
-			if (isPlusMinusOP(op))
-			{
-				auto rhs = term(tokenizer.nextToken());
-				if (rhs)
-				{
-					lhs = std::unique_ptr<Expression>(new PrimOP(getOperand(op.name), std::move(lhs), std::move(rhs)));
-				}
-				else
-					return nullptr;
-			}
-			else
-			{
-				--tokenizer;
-				break;
-			}
-		}
-		expressions.push_back(std::move(lhs));
-		tok = &tokenizer.nextToken();
-	} while (true);
-	--tokenizer;
-
-	if (expressions.size() == 1)
-	{
-		return std::move(expressions[0]);
-	}
-	else if (expressions.size() > 1)
-	{
-		std::unique_ptr<Expression> function = std::move(expressions[0]);
-		expressions.erase(expressions.begin());
-		return std::unique_ptr<Expression>(new Apply(std::move(function), std::move(expressions)));
-	}
-	else
-	{
-		return nullptr;
+		return parseOperatorExpression(apply(token), 0);
 	}
 }
 
@@ -128,8 +95,8 @@ std::unique_ptr<Expression> Parser::factor(const Token& token)
 				binds.push_back(std::move(bind));
 			} while (tokenizer.nextToken().type == SymbolEnum::SEMICOLON);
 
-			if ((*tokenizer).type != SymbolEnum::IN)
-				throw std::runtime_error("Expected 'in' token to end a let exprssion");
+			if (tokenizer->type != SymbolEnum::IN)
+				throw std::runtime_error(std::string("Expected 'in' token to end a let exprssion, got ") + enumToString(tokenizer->type));
 			return std::unique_ptr<Expression>(new Let(std::move(binds), expression(tokenizer.nextToken())));
 		}
 		break;
@@ -142,31 +109,45 @@ std::unique_ptr<Expression> Parser::factor(const Token& token)
     }
 }
 
-std::unique_ptr<Expression> Parser::term(const Token& token)
-{
-    auto lhs = factor(token);
-    if (!lhs)
-        return nullptr;
 
-    while (true)
-    {
-        const Token& op = tokenizer.nextToken();
-        if (isMultDivOp(op))
-        {
-            auto rhs = factor(tokenizer.nextToken());
-            if (rhs)
-            {
-                lhs = std::unique_ptr<Expression>(new PrimOP(getOperand(op.name), std::move(lhs), std::move(rhs)));
-            }
-            else
-                return nullptr;
-        }
-        else
-        {
-            --tokenizer;
-            break;
-        }
-    }
+std::unique_ptr<Expression> Parser::parseOperatorExpression(std::unique_ptr<Expression> lhs, int minPrecedence)
+{
+	++tokenizer;
+	while (tokenizer->type == SymbolEnum::OPERATOR
+		&& precedence.at(tokenizer->name) >= minPrecedence)
+	{
+		const Token& op = *tokenizer;
+		std::unique_ptr<Expression> rhs = apply(tokenizer.nextToken());
+		const Token& nextOP = tokenizer.nextToken();
+		while (tokenizer && nextOP.type == SymbolEnum::OPERATOR
+			&& precedence.at(nextOP.name) > precedence.at(op.name))
+		{
+			const Token& lookahead = *tokenizer;
+			--tokenizer;
+			rhs = parseOperatorExpression(std::move(rhs), precedence.at(lookahead.name));
+		}
+		lhs = std::unique_ptr<Expression>(new PrimOP(getOperand(op.name), std::move(lhs), std::move(rhs)));
+	}
+	--tokenizer;
+	return lhs;
+}
+
+std::unique_ptr<Expression> Parser::apply(const Token& token)
+{
+	std::unique_ptr<Expression> lhs = factor(token);
+	if (!lhs)
+		return nullptr;
+
+	std::vector<std::unique_ptr<Expression>> expressions;
+	while (auto expr = factor(tokenizer.nextToken()))
+	{
+		expressions.push_back(std::move(expr));
+	}
+	if (expressions.size() > 0)
+	{
+		lhs = std::unique_ptr<Expression>(new Apply(std::move(lhs), std::move(expressions)));
+	}
+	--tokenizer;
     return lhs;
 }
 

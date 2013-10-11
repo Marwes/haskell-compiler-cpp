@@ -1,33 +1,30 @@
 #pragma once
-#include <vector>
-#include <Instruction.h>
 
 namespace MyVMNamespace
 {
 
-Assembly readAssemblyFile(const char* filename);
 
 }
 
 
 // expansion macro for enum value definition
-#define ENUM_VALUE(name) name,
+#define ENUM_VALUE(type, name) name,
 
 // expansion macro for enum to string conversion
-#define ENUM_CASE(name) case name: return #name;
+#define ENUM_CASE(type, name) case type::name: return #name;
 
 // expansion macro for string to enum conversion
-#define ENUM_STRCMP(name) if (!strcmp(str,#name)) return name;
+#define ENUM_STRCMP(type, name) if (!strcmp(str,#name)) return type::name;
 
 /// declare the access function and define enum values
 #define DECLARE_ENUM(EnumType,ENUM_DEF) \
-enum EnumType { \
+enum class EnumType { \
 \
 	\
-	ENUM_DEF(ENUM_VALUE) \
+	ENUM_DEF(EnumType,ENUM_VALUE) \
 }; \
 	const char *enumToString(EnumType e); \
-	EnumType GetEnumValue(const char *string); \
+	EnumType EnumType##fromString(const char *string); \
 
 	/// define the access function names
 #define DEFINE_ENUM(EnumType,ENUM_DEF) \
@@ -35,12 +32,12 @@ enum EnumType { \
 { \
 	switch (value) \
 { \
-	ENUM_DEF(ENUM_CASE) \
+	ENUM_DEF(EnumType,ENUM_CASE) \
 	default: return ""; /* handle input error */ \
 } \
 } \
-	EnumType GetEnumValue(const char *str) \
+	EnumType EnumType##fromString(const char *str) \
 { \
-	ENUM_DEF(ENUM_STRCMP) \
+	ENUM_DEF(EnumType,ENUM_STRCMP) \
 	return (EnumType) 0; /* handle input error */ \
 }

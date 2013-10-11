@@ -252,7 +252,7 @@ void VM::execute(MethodEnvironment& environment)
 			break;
 
         default:
-            std::cout << "No implementation for instruction : " << op2string(instruction.op) << std::endl;
+            std::cout << "No implementation for instruction : " << enumToString(instruction.op) << std::endl;
             break;
         }
         currentInstruction++;

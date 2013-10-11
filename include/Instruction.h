@@ -2,42 +2,35 @@
 #include <stdint.h>
 #include <map>
 #include "Types.h"
+#include "Util.h"
+
 
 namespace MyVMNamespace
 {
-    enum class OP : unsigned char
-    {
-		NOP,
-		MOVE,
-		LOAD,//Load stackvalue onto the top
-		LOAD_FUNCTION,
-        LOAD_INT_CONST,
-        LOAD_STRING_CONST,
-		POP,
 
-        BRANCH_TRUE,
-        
-        NEWOBJECT,
+#define OP_ENUM(t,XX) \
+	XX(t, NOP) \
+	XX(t, MOVE) \
+	XX(t, LOAD) \
+	XX(t, LOAD_FUNCTION) \
+	XX(t, LOAD_INT_CONST) \
+	XX(t, LOAD_STRING_CONST) \
+	XX(t, POP) \
+	XX(t, BRANCH_TRUE) \
+	XX(t, NEWOBJECT) \
+	XX(t, GETFIELD) \
+	XX(t, SETFIELD) \
+	XX(t, ADD) \
+	XX(t, SUBTRACT) \
+	XX(t, MULTIPLY) \
+	XX(t, DIVIDE) \
+	XX(t, REMAINDER) \
+	XX(t, COMPARE_EQ) \
+	XX(t, CALL) \
+	XX(t, CALLI) \
+	XX(t, NUM_INSTRUCTIONS) \
 
-        GETFIELD,
-        
-        SETFIELD,
-
-        ADD,
-        SUBTRACT,
-        MULTIPLY,
-        DIVIDE,
-        REMAINDER,
-
-		COMPARE_EQ,
-
-        CALL,
-		CALLI,
-
-        NUM_INSTRUCTIONS,
-    };
-
-    const char* op2string(OP op);
+DECLARE_ENUM(OP, OP_ENUM);
 
 struct Instruction
 {

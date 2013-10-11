@@ -19,9 +19,10 @@ public:
 
     std::unique_ptr<Expression> expression(const Token& token);
     std::unique_ptr<Expression> factor(const Token& token);
-	std::unique_ptr<Expression> term(const Token& token);
+	std::unique_ptr<Expression> apply(const Token& token);
 	std::pair<std::string, std::unique_ptr<Expression>> binding(const Token& token);
 
+	std::unique_ptr<Expression> parseOperatorExpression(std::unique_ptr<Expression> lhs, int minPrecedence);
 private:
     Tokenizer& tokenizer;
 };

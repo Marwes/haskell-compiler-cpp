@@ -39,7 +39,7 @@ std::istream& operator>>(std::ifstream& stream, Instruction& instruction)
     {
         FROM_BIGENDIAN(&arg0);
         OP actual = static_cast<OP>(op);
-        if (op2string(actual) == NULL)
+		if (enumToString(actual) == NULL)
         {
             throw std::runtime_error(std::string("The value ") + op + " does not represent a valid opcode.");
         }

@@ -6,19 +6,19 @@
 
 namespace MyVMNamespace
 {
-#define SYMBOLENUM(XX) \
-	XX(NONE) \
-	XX(NAME) \
-	XX(OPERATOR) \
-	XX(NUMBER) \
-	XX(LPARENS) \
-	XX(RPARENS) \
-	XX(EQUALSSIGN) \
-	XX(SEMICOLON) \
-	XX(LET) \
-	XX(IN) \
-	XX(CASE) \
-	XX(OF) \
+#define SYMBOLENUM(t, XX) \
+	XX(t,NONE) \
+	XX(t,NAME) \
+	XX(t,OPERATOR) \
+	XX(t,NUMBER) \
+	XX(t,LPARENS) \
+	XX(t,RPARENS) \
+	XX(t,EQUALSSIGN) \
+	XX(t,SEMICOLON) \
+	XX(t,LET) \
+	XX(t,IN) \
+	XX(t,CASE) \
+	XX(t,OF) \
 
 DECLARE_ENUM(SymbolEnum, SYMBOLENUM);
 
