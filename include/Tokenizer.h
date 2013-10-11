@@ -13,6 +13,9 @@ namespace MyVMNamespace
 	XX(t,NUMBER) \
 	XX(t,LPARENS) \
 	XX(t,RPARENS) \
+	XX(t,LBRACKET) \
+	XX(t,RBRACKET) \
+	XX(t,COMMA) \
 	XX(t,EQUALSSIGN) \
 	XX(t,SEMICOLON) \
 	XX(t,LET) \

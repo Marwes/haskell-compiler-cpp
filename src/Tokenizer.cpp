@@ -31,7 +31,7 @@ SymbolEnum nameOrKeyWord(const std::string& name)
 
 bool isTokenSeparator(char c)
 {
-	return isspace(c) || c == '(' || c == ')';
+	return isspace(c) || c == '(' || c == ')' || c == '[' || c == ']' || c == ',';
 }
 
 
@@ -95,6 +95,21 @@ std::istream& operator>>(std::istream& input, Token& token)
 	else if (c == ')')
 	{
 		token.type = SymbolEnum::RPARENS;
+		return input;
+	}
+	else if (c == '[')
+	{
+		token.type = SymbolEnum::LBRACKET;
+		return input;
+	}
+	else if (c == ']')
+	{
+		token.type = SymbolEnum::RBRACKET;
+		return input;
+	}
+	else if (c == ',')
+	{
+		token.type = SymbolEnum::COMMA;
 		return input;
 	}
 
