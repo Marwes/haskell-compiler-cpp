@@ -93,14 +93,27 @@ std::unique_ptr<Expression> Parser::subExpression(const Token& token)
 		}
 	case SymbolEnum::LET:
 		{
+			const Token& lbracket = tokenizer.nextToken();
+			if (lbracket.type != SymbolEnum::LBRACKET)
+			{
+				throw std::runtime_error("Expected bracket after 'let' keyword");
+			}
 			Let::Bindings binds;
+			const Token* semicolon;
 			do
 			{
 				auto bind = binding(tokenizer.nextToken());
 				binds.push_back(std::move(bind));
-			} while (tokenizer.nextToken().type == SymbolEnum::SEMICOLON);
+				semicolon = &tokenizer.nextToken();
+			} while (semicolon->type == SymbolEnum::SEMICOLON);
 
-			if (tokenizer->type != SymbolEnum::IN)
+			const Token& rBracket = *tokenizer;
+			if (rBracket.type != SymbolEnum::RBRACKET)
+			{
+				throw std::runtime_error("Expected bracket after 'let' bindings");
+			}
+			const Token& inToken = tokenizer.nextToken();
+			if (inToken.type != SymbolEnum::IN)
 				throw std::runtime_error(std::string("Expected 'in' token to end a let exprssion, got ") + enumToString(tokenizer->type));
 			return std::unique_ptr<Expression>(new Let(std::move(binds), expression(tokenizer.nextToken())));
 		}
@@ -179,7 +192,7 @@ std::pair<std::string, std::unique_ptr<Expression>> Parser::binding(const Token&
 	}
 	if (tokenizer->type != SymbolEnum::EQUALSSIGN)
 	{
-		throw std::runtime_error("Expected '=' in binding");
+		throw std::runtime_error("Expected '=' in binding, got " + std::string(enumToString(tokenizer->type)));
 	}
 	if (arguments.size() > 0)
 	{

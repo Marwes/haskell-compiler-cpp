@@ -1,6 +1,7 @@
 #pragma once
 #include <fstream>
 #include <string>
+#include <vector>
 #include <boost/circular_buffer.hpp>
 #include "Util.h"
 
@@ -15,6 +16,8 @@ namespace MyVMNamespace
 	XX(t,RPARENS) \
 	XX(t,LBRACKET) \
 	XX(t,RBRACKET) \
+	XX(t,INDENTSTART) \
+	XX(t,INDENTLEVEL) \
 	XX(t,COMMA) \
 	XX(t,EQUALSSIGN) \
 	XX(t,SEMICOLON) \
@@ -30,11 +33,12 @@ class Token
 {
 public:
 	Token();
-	Token(SymbolEnum type, const std::string& name);
+	Token(SymbolEnum type, const std::string& name, int indent = 0);
 	void tokenize();
 
 	SymbolEnum type;
 	std::string name;
+	int indent;
 };
 
 
@@ -45,6 +49,7 @@ public:
 		: input(input)
 		, tokens(backTrack)
 		, offset(0)
+		, indentLevel(0)
 	{
 	}
 
@@ -58,7 +63,8 @@ public:
 
 	const Token& operator*() const
 	{
-		return tokens[int(tokens.size()) + offset - 1];
+		const Token& t = tokens[int(tokens.size()) + offset - 1];
+		return t;
 	}
 
 	const Token* operator->() const
@@ -66,16 +72,8 @@ public:
 		return &**this;
 	}
 
-	Tokenizer& operator++()
-	{
-		if (offset < 0)
-		{
-			offset++;
-			return *this;
-		}
-		tokenize();
-		return *this;
-	}
+	Tokenizer& operator++();
+
 	Tokenizer& operator--()
 	{
 		--offset;
@@ -94,10 +92,15 @@ public:
 
 private:
 	std::istream& readToken(Token& token);
+	bool getChar(char& c);
+	bool previousTokenWasKeyword();
+	bool tokenize2(const Token& tok);
 
 	std::istream& input;
 	boost::circular_buffer<Token> tokens;
+	std::vector<int> indentLevels;
 	int offset;
+	int indentLevel;
 };
 
 }

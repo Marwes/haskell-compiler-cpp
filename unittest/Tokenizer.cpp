@@ -63,20 +63,25 @@ TEST_CASE("tokenizer/3 + (2 / 4) * one", "3 + (2 + 4)")
 }
 
 
-TEST_CASE("tokenizer/let, in", "")
+
+TEST_CASE("tokenizer/let", "Let expression")
 {
-	std::stringstream stream("let two = 1 in 4*two");
+	std::stringstream stream("let x = 3 in (2+x)");
 	Tokenizer tokenizer(stream);
 
 	Token expected [] = {
 		Token(SymbolEnum::LET, "let"),
-		Token(SymbolEnum::NAME, "two"),
+		Token(SymbolEnum::LBRACKET, "{"),
+		Token(SymbolEnum::NAME, "x"),
 		Token(SymbolEnum::EQUALSSIGN, "="),
-		Token(SymbolEnum::NUMBER, "1"),
+		Token(SymbolEnum::NUMBER, "3"),
+		Token(SymbolEnum::RBRACKET, "}"),
 		Token(SymbolEnum::IN, "in"),
-		Token(SymbolEnum::NUMBER, "4"),
-		Token(SymbolEnum::OPERATOR, "*"),
-		Token(SymbolEnum::NAME, "two")
+		Token(SymbolEnum::LPARENS, "("),
+		Token(SymbolEnum::NUMBER, "2"),
+		Token(SymbolEnum::OPERATOR, "+"),
+		Token(SymbolEnum::NAME, "x"),
+		Token(SymbolEnum::RPARENS, ")"),
 	};
 	tokenizer.tokenize();
 	for (int ii = 0; tokenizer; ++tokenizer, ++ii)
@@ -84,6 +89,8 @@ TEST_CASE("tokenizer/let, in", "")
 		REQUIRE(*tokenizer == expected[ii]);
 	}
 }
+
+
 
 TEST_CASE("tokenizer/apply", "FUnction application")
 {
