@@ -37,7 +37,12 @@ TEST_CASE("compiler/arithmetic", "Test compiling an arithmetic expression")
 	REQUIRE(evaluateInt("let f x = x * x in f 3 + f 2")->getValue(0).intValue == 13);
 }
 
-TEST_CASE("compiler/compare/equality", "Test compiling an arithmetic expression")
+TEST_CASE("compiler/compare", "Test compiling an arithmetic expression")
 {
 	REQUIRE(evaluateInt("3==2")->getValue(0).intValue == 0);
+	REQUIRE(evaluateInt("3<=2")->getValue(0).intValue == 0);
+	REQUIRE(evaluateInt("3 > 2")->getValue(0).intValue == 1);
+	REQUIRE(evaluateInt("3>=2")->getValue(0).intValue == 1);
+	REQUIRE(evaluateInt("3 < 2")->getValue(0).intValue == 0);
+	REQUIRE(evaluateInt("let one = 1 in one /= 2")->getValue(0).intValue == 1);
 }

@@ -251,6 +251,21 @@ void VM::execute(MethodEnvironment& environment)
 		case OP::COMPARE_EQ:
 			DO_TOP_BINOP(==, environment, instruction);
 			break;
+		case OP::COMPARE_NEQ:
+			DO_TOP_BINOP(!= , environment, instruction);
+			break;
+		case OP::COMPARE_LT:
+			DO_TOP_BINOP(< , environment, instruction);
+			break;
+		case OP::COMPARE_GT:
+			DO_TOP_BINOP(> , environment, instruction);
+			break;
+		case OP::COMPARE_LE:
+			DO_TOP_BINOP(<= , environment, instruction);
+			break;
+		case OP::COMPARE_GE:
+			DO_TOP_BINOP(>= , environment, instruction);
+			break;
 
         case OP::CALL:
             VMI::op_call(*this, environment, instruction);
