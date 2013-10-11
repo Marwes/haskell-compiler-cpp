@@ -37,14 +37,12 @@ public:
 	std::string name;
 };
 
-std::istream& operator>>(std::istream& input, Token& token);
-
 
 class Tokenizer
 {
 public:
-	Tokenizer(std::istream& stream, size_t backTrack = 10)
-		: stream(stream)
+	Tokenizer(std::istream& input, size_t backTrack = 10)
+		: input(input)
 		, tokens(backTrack)
 		, offset(0)
 	{
@@ -56,12 +54,7 @@ public:
 		return **this;
 	}
 
-	bool tokenize()
-	{
-		tokens.push_back(Token());
-		stream >> tokens.back();
-		return *this;
-	}
+	bool tokenize();
 
 	const Token& operator*() const
 	{
@@ -91,16 +84,18 @@ public:
 
 	operator bool()
 	{
-		return stream.good();
+		return input.good();
 	}
 
 	bool operator!()
 	{
-		return !stream;
+		return !input;
 	}
 
 private:
-	std::istream& stream;
+	std::istream& readToken(Token& token);
+
+	std::istream& input;
 	boost::circular_buffer<Token> tokens;
 	int offset;
 };

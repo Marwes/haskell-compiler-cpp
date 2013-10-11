@@ -41,11 +41,20 @@ bool isOperator(char c)
 	return operators.find(c) != -1;
 }
 
-std::istream& operator>>(std::istream& input, Token& token)
+std::istream& Tokenizer::readToken(Token& token)
 {
+	bool newLine = false;
+	int indentLevel = 0;
 	char c = '\0';
-	while (input.get(c) && isspace(c))
-		;
+	while (input.get(c))
+	{
+		if (c == '\n' || c == '\r')
+		{
+			newLine = true;
+		}
+		if (!isspace(c))
+			break;
+	}
 	token.name.clear();
 	token.name.push_back(c);
 
@@ -121,6 +130,12 @@ std::istream& operator>>(std::istream& input, Token& token)
 	}
 
 	return input;
+}
+
+bool Tokenizer::tokenize()
+{
+	tokens.push_back(Token());
+	return (bool)readToken(tokens.back());
 }
 
 Token::Token()

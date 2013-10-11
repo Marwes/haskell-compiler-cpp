@@ -9,13 +9,21 @@ namespace MyVMNamespace
 class Token;
 class Tokenizer;
 
+
+struct Binding
+{
+	std::string name;
+	std::unique_ptr<Expression> expression;
+};
+
+
 class Parser
 {
 public:
     Parser(Tokenizer& tokenizer);
 
     
-    std::unique_ptr<Expression> run();
+	std::unique_ptr<Expression> run();
 
     std::unique_ptr<Expression> expression(const Token& token);
 	std::unique_ptr<Expression> subExpression(const Token& token);

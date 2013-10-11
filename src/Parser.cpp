@@ -24,8 +24,6 @@ std::unique_ptr<Expression> Parser::run()
     return expression(*tokenizer);
 }
 
-
-
 bool isPlusMinusOP(const Token& token)
 {
     return token.type == SymbolEnum::OPERATOR && (token.name == "+" || token.name == "-");
