@@ -82,22 +82,23 @@ public:
 
 	operator bool()
 	{
-		return input.good();
+		return offset < 0 || input.good();
 	}
 
 	bool operator!()
 	{
-		return !input;
+		return !*this;
 	}
 
 private:
-	std::istream& readToken(Token& token);
+	bool readToken(Token& token);
 	bool getChar(char& c);
 	bool previousTokenWasKeyword();
-	bool tokenize2(const Token& tok);
+	bool tokenize2();
 
 	std::istream& input;
 	boost::circular_buffer<Token> tokens;
+	std::vector<Token> unprocessedTokens;
 	std::vector<int> indentLevels;
 	int offset;
 	int indentLevel;

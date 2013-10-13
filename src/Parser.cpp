@@ -131,7 +131,7 @@ std::unique_ptr<Expression> Parser::subExpression(const Token& token)
 std::unique_ptr<Expression> Parser::parseOperatorExpression(std::unique_ptr<Expression> lhs, int minPrecedence)
 {
 	++tokenizer;
-	while (tokenizer->type == SymbolEnum::OPERATOR
+	while (tokenizer && tokenizer->type == SymbolEnum::OPERATOR
 		&& getPrecedence(tokenizer->name) >= minPrecedence)
 	{
 		const Token& op = *tokenizer;
@@ -143,6 +143,10 @@ std::unique_ptr<Expression> Parser::parseOperatorExpression(std::unique_ptr<Expr
 			const Token& lookahead = *tokenizer;
 			--tokenizer;
 			rhs = parseOperatorExpression(std::move(rhs), getPrecedence(lookahead.name));
+		}
+		if (rhs == nullptr)
+		{
+			return nullptr;
 		}
 		lhs = std::unique_ptr<Expression>(new PrimOP(getOperand(op.name), std::move(lhs), std::move(rhs)));
 	}

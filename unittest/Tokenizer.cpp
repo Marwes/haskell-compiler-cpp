@@ -92,6 +92,38 @@ TEST_CASE("tokenizer/let", "Let expression")
 
 
 
+TEST_CASE("tokenizer/let2", "Let expression")
+{
+const char* expr =
+"let x = 3\n\
+    y = 2\n\
+in y*x";
+	std::stringstream stream(expr);
+	Tokenizer tokenizer(stream);
+
+	Token expected [] = {
+		Token(SymbolEnum::LET, "let"),
+		Token(SymbolEnum::LBRACKET, "{"),
+		Token(SymbolEnum::NAME, "x"),
+		Token(SymbolEnum::EQUALSSIGN, "="),
+		Token(SymbolEnum::NUMBER, "3"),
+		Token(SymbolEnum::SEMICOLON, ";"),
+		Token(SymbolEnum::NAME, "y"),
+		Token(SymbolEnum::EQUALSSIGN, "="),
+		Token(SymbolEnum::NUMBER, "2"),
+		Token(SymbolEnum::RBRACKET, "}"),
+		Token(SymbolEnum::IN, "in"),
+		Token(SymbolEnum::NAME, "y"),
+		Token(SymbolEnum::OPERATOR, "*"),
+		Token(SymbolEnum::NAME, "x"),
+	};
+	tokenizer.tokenize();
+	for (int ii = 0; tokenizer; ++tokenizer, ++ii)
+	{
+		REQUIRE(*tokenizer == expected[ii]);
+	}
+}
+
 TEST_CASE("tokenizer/apply", "FUnction application")
 {
 	std::stringstream stream("f 3");
