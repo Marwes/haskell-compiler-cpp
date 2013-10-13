@@ -63,7 +63,7 @@ void FunctionApplication::evaluate(Environment& env, std::vector<Instruction>& i
 }
 
 
-Let::Let(Let::Bindings&& bindings, std::unique_ptr<Expression>&& expression)
+Let::Let(std::vector<Binding>&& bindings, std::unique_ptr<Expression>&& expression)
 	: bindings(std::move(bindings))
 	, expression(std::move(expression))
 {
@@ -75,14 +75,14 @@ void Let::evaluate(Environment& env, std::vector<Instruction>& instructions)
 	//bindings must be used in order of definition in order or it will fail
 	for (auto& bind : bindings)
 	{
-		if (Lambda* lambda = dynamic_cast<Lambda*>(bind.second.get()))
+		if (Lambda* lambda = dynamic_cast<Lambda*>(bind.expression.get()))
 		{
-			env.addFunction(bind.first, *lambda);
+			env.addFunction(bind.name, *lambda);
 		}
 		else
 		{
-			env.newLocal(bind.first);
-			bind.second->evaluate(env, instructions);
+			env.newLocal(bind.name);
+			bind.expression->evaluate(env, instructions);
 		}
 	}
 	expression->evaluate(env, instructions);

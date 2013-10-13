@@ -9,6 +9,7 @@
 namespace MyVMNamespace
 {
 class Environment;
+class Binding;
 
 class Expression
 {
@@ -64,12 +65,11 @@ public:
 class Let : public Expression
 {
 public:
-	typedef std::vector<std::pair<std::string, std::unique_ptr<Expression>>> Bindings;
-	Let(Bindings && arguments, std::unique_ptr<Expression>&& expression);
+	Let(std::vector<Binding> && arguments, std::unique_ptr<Expression>&& expression);
 
 	virtual void evaluate(Environment& env, std::vector<Instruction>& instructions);
 
-	Bindings bindings;
+	std::vector<Binding> bindings;
 	std::unique_ptr<Expression> expression;
 };
 

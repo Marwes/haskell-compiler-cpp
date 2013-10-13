@@ -147,8 +147,8 @@ TEST_CASE("parser/let three = 3 in three + 4", "")
 
 	Let* let = dynamic_cast<Let*>(maybeExpression.get());
 	REQUIRE(let != NULL);
-	REQUIRE(let->bindings[0].first == "three");
-	REQUIRE(*let->bindings[0].second == Number(3));
+	REQUIRE(let->bindings[0].name == "three");
+	REQUIRE(*let->bindings[0].expression == Number(3));
 	PrimOP* op = dynamic_cast<PrimOP*>(let->expression.get());
 	REQUIRE(op->op == OP::ADD);
 	REQUIRE(*op->lhs == Name("three"));
@@ -167,9 +167,9 @@ TEST_CASE("parser/let six = 3 * 2 in six + 4", "")
 
 	Let* let = dynamic_cast<Let*>(maybeExpression.get());
 	REQUIRE(let != NULL);
-	REQUIRE(let->bindings[0].first == "three");
+	REQUIRE(let->bindings[0].name == "three");
 
-	PrimOP* letPrimOP = dynamic_cast<PrimOP*>(let->bindings[0].second.get());
+	PrimOP* letPrimOP = dynamic_cast<PrimOP*>(let->bindings[0].expression.get());
 	REQUIRE(letPrimOP != NULL);
 	REQUIRE(*letPrimOP->lhs == Number(3));
 	REQUIRE(*letPrimOP->rhs == Number(2));

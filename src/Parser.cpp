@@ -9,6 +9,17 @@
 namespace MyVMNamespace
 {
 
+Binding::Binding(std::string name, std::unique_ptr<Expression> expression)
+	: name(std::move(name))
+	, expression(std::move(expression))
+{
+}
+Binding::Binding(Binding&& other)
+	: name(std::move(other.name))
+	, expression(std::move(other.expression))
+{
+}
+
 Parser::Parser(Tokenizer& tokenizer)
     : tokenizer(tokenizer)
 {
@@ -65,6 +76,18 @@ int getPrecedence(const std::string& name)
 }
 
 
+std::vector<Binding> Parser::toplevel(const Token& token)
+{
+	std::vector<Binding> binds;
+
+	while (true)
+	{
+		binding(token);
+	}
+
+	return std::move(binds);
+}
+
 std::unique_ptr<Expression> Parser::expression(const Token& token)
 {
 	{
@@ -98,7 +121,7 @@ std::unique_ptr<Expression> Parser::subExpression(const Token& token)
 			{
 				throw std::runtime_error("Expected bracket after 'let' keyword");
 			}
-			Let::Bindings binds;
+			std::vector<Binding> binds;
 			const Token* semicolon;
 			do
 			{
@@ -175,7 +198,7 @@ std::unique_ptr<Expression> Parser::application(const Token& token)
 
 
 
-std::pair<std::string, std::unique_ptr<Expression>> Parser::binding(const Token& token)
+Binding Parser::binding(const Token& token)
 {
 	if (token.type != SymbolEnum::NAME)
 	{
@@ -201,11 +224,11 @@ std::pair<std::string, std::unique_ptr<Expression>> Parser::binding(const Token&
 	if (arguments.size() > 0)
 	{
 		std::unique_ptr<Expression> lambda(new Lambda(std::move(arguments), expression(tokenizer.nextToken())));
-		return std::make_pair(token.name, std::move(lambda));
+		return Binding(token.name, std::move(lambda));
 	}
 	else
 	{
-		return std::make_pair(token.name, expression(tokenizer.nextToken()));
+		return Binding(token.name, expression(tokenizer.nextToken()));
 	}
 }
 
