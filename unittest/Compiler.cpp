@@ -46,3 +46,13 @@ TEST_CASE("compiler/compare", "Test compiling an arithmetic expression")
 	REQUIRE(evaluateInt("3 < 2")->getValue(0).intValue == 0);
 	REQUIRE(evaluateInt("let one = 1 in one /= 2")->getValue(0).intValue == 1);
 }
+
+
+TEST_CASE("compiler/let", "")
+{
+	const char* expr =
+"let one = 1\n\
+    double x = 2*x\n\
+in double 3 + 1";
+	REQUIRE(evaluateInt(expr)->getValue(1).intValue == 7);
+}
