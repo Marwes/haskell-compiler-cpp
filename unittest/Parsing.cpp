@@ -212,7 +212,6 @@ TEST_CASE("parser/apply2", "Function application")
 	REQUIRE(*op.rhs == Name("two"));
 }
 
-#if 0
 TEST_CASE("parser/applyOperator", "Function application")
 {
 	std::stringstream stream("f 3 one * two");
@@ -232,4 +231,3 @@ TEST_CASE("parser/applyOperator", "Function application")
 
 	REQUIRE(*op.rhs == Name("two"));
 }
-#endif
