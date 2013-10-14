@@ -76,13 +76,36 @@ int getPrecedence(const std::string& name)
 }
 
 
-std::vector<Binding> Parser::toplevel(const Token& token)
+std::vector<Binding> Parser::toplevel()
 {
+	const Token& lBracket = tokenizer.tokenizeModule();
+	if (lBracket.type != SymbolEnum::LBRACKET)
+	{
+		throw std::runtime_error("Expected '{' in beginning of module, got " + std::string(enumToString(lBracket.type)));
+	}
+
 	std::vector<Binding> binds;
 
-	while (true)
+	const Token* semicolon;
+	do
 	{
-		binding(token);
+		const Token& token = tokenizer.nextToken();
+		if (token.type == SymbolEnum::NAME)
+		{
+			auto bind = binding(token);
+			binds.push_back(std::move(bind));
+		}
+		else
+		{
+			break;
+		}
+		semicolon = &tokenizer.nextToken();
+	} while (semicolon->type == SymbolEnum::SEMICOLON);
+
+	const Token& rBracket = *tokenizer;
+	if (rBracket.type != SymbolEnum::RBRACKET)
+	{
+		throw std::runtime_error("Expected '}' to end module, got " + std::string(enumToString(rBracket.type)));
 	}
 
 	return std::move(binds);

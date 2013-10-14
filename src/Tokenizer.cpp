@@ -10,6 +10,8 @@ namespace MyVMNamespace
 	DEFINE_ENUM(SymbolEnum, SYMBOLENUM);
 
 const std::map<std::string, SymbolEnum> keywords = {
+	std::make_pair("module", SymbolEnum::MODULE),
+	std::make_pair("where", SymbolEnum::WHERE),
 	std::make_pair("let", SymbolEnum::LET),
 	std::make_pair("in", SymbolEnum::IN),
 	std::make_pair("case", SymbolEnum::CASE),
@@ -175,6 +177,24 @@ Tokenizer& Tokenizer::operator++()
 	tokenize();
 
 	return *this;
+}
+
+const Token& Tokenizer::tokenizeModule()
+{
+	unprocessedTokens.reserve(unprocessedTokens.size() + 4);
+	unprocessedTokens.push_back(Token());
+	Token& tok = unprocessedTokens.back();
+	bool success = false;
+	if (readToken(tok))
+	{
+		if (tok.type != SymbolEnum::LBRACKET || tok.type != SymbolEnum::MODULE)
+		{
+			unprocessedTokens.push_back(Token(SymbolEnum::INDENTSTART, "{n}", tok.indent));
+		}
+		success = true;
+	}
+	tokenize2();
+	return **this;
 }
 
 bool Tokenizer::tokenize()

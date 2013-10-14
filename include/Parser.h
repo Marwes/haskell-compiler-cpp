@@ -29,7 +29,7 @@ public:
     
 	std::unique_ptr<Expression> run();
 
-	std::vector<Binding> toplevel(const Token& token);
+	std::vector<Binding> toplevel();
     std::unique_ptr<Expression> expression(const Token& token);
 	std::unique_ptr<Expression> subExpression(const Token& token);
 	std::unique_ptr<Expression> application(const Token& token);

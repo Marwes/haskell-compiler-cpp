@@ -21,6 +21,8 @@ namespace MyVMNamespace
 	XX(t,COMMA) \
 	XX(t,EQUALSSIGN) \
 	XX(t,SEMICOLON) \
+	XX(t,MODULE) \
+	XX(t,WHERE) \
 	XX(t,LET) \
 	XX(t,IN) \
 	XX(t,CASE) \
@@ -52,6 +54,8 @@ public:
 		, indentLevel(0)
 	{
 	}
+
+	const Token& tokenizeModule();
 
 	const Token& nextToken()
 	{
