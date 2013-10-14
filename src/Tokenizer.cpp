@@ -179,6 +179,7 @@ Tokenizer& Tokenizer::operator++()
 
 bool Tokenizer::tokenize()
 {
+	unprocessedTokens.reserve(unprocessedTokens.size() + 4);
 	unprocessedTokens.push_back(Token());
 	Token& tok = unprocessedTokens.back();
 	bool success = false;
