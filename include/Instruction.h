@@ -75,45 +75,15 @@ public:
 class Assembly
 {
 public:
-    Assembly() : entrypoint(0) { }
-    Assembly(Assembly&& other)
-		: functionDefinitionsIndexes(std::move(other.functionDefinitionsIndexes))
-		, functionDefinitions(std::move(other.functionDefinitions))
-		, entrypoint(other.entrypoint)
-    {
-    }
+	Assembly();
+	Assembly(Assembly && other);
 
-	Assembly& operator=(Assembly && other)
-	{
-		functionDefinitionsIndexes = std::move(other.functionDefinitionsIndexes);
-		functionDefinitions = std::move(other.functionDefinitions);
-		entrypoint = other.entrypoint;
-		return *this;
-	}
+	Assembly& operator=(Assembly && other);
 
+	int addFunction(const std::string& name, std::unique_ptr<FunctionDefinition> && def);
 
-	int addFunction(const std::string& name, std::unique_ptr<FunctionDefinition>&& def)
-	{
-		int index = functionDefinitionsIndexes.size();
-		functionDefinitionsIndexes.insert(std::make_pair(name, index));
-		functionDefinitions.push_back(std::move(def));
-		return index;
-	}
-
-	FunctionDefinition* getFunction(size_t index)
-	{
-		return functionDefinitions[index].get();
-	}
-
-	FunctionDefinition* getFunction(const std::string& name)
-	{
-		auto& found = functionDefinitionsIndexes.find(name);
-		if (found == functionDefinitionsIndexes.end())
-		{
-			return nullptr;
-		}
-		return functionDefinitions[found->second].get();
-	}
+	FunctionDefinition* getFunction(size_t index);
+	FunctionDefinition* getFunction(const std::string& name);
 
 	std::map<std::string, int> functionDefinitionsIndexes;
 	std::vector<std::unique_ptr<FunctionDefinition>> functionDefinitions;

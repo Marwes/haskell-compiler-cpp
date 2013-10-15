@@ -106,7 +106,12 @@ public:
 	{
 		environment.stackFrame[0] = environment.stackFrame.top();
 	}
-    
+
+	static void op_pop(VM& vm, MethodEnvironment& environment, Instruction current)
+	{
+		environment.stackFrame.pop();
+	}
+
     static void op_setfield(MethodEnvironment& environment, Instruction current)
     {
         StackObject* obj = &environment.stackFrame.top();
@@ -290,6 +295,9 @@ void VM::execute(MethodEnvironment& environment)
 		case OP::RETURN:
 			VMI::op_return(*this, environment, instruction);
 			return;
+			break;
+		case OP::POP:
+			VMI::op_pop(*this, environment, instruction);
 			break;
 
         default:

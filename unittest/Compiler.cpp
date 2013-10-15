@@ -101,3 +101,17 @@ TEST_CASE("compiler/case5", "")
     _ -> 1000\n";
 	REQUIRE(evaluateInt(expr)->getValue(0).intValue == 1000);
 }
+
+TEST_CASE("compiler/tuple", "")
+{
+	const char* expr = "(1,2)";
+	std::stringstream input(expr);
+	Compiler compiler(input);
+	Assembly assembly = compiler.compile();
+
+	std::unique_ptr<VM> vm = make_unique<VM>();
+	Method method = Method::main(assembly);
+	vm->assembly = std::move(assembly);
+	MethodEnvironment env(vm->newStackFrame(), &method);
+	vm->execute(env);
+}
