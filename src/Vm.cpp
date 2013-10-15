@@ -299,6 +299,14 @@ void VM::endFrame(MethodEnvironment& environment)
     }
 }
 
+int allocatePair(VM& vm, StackFrame& stack)
+{
+	void* ptr = malloc(sizeof(Object) + sizeof(StackObject) * 2);
+	Object* o = new (ptr) Object();
+	stack.push(o);
+	return 0;
+}
+
 };
 
 

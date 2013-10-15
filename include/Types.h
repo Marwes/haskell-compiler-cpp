@@ -64,7 +64,10 @@ struct Type
 class Object
 {
 public:
-    Object() : refCount(0) { }
+    Object(int type = 0)
+		: refCount(0)
+		, type(type)
+	{ }
     virtual ~Object() { }
 
     void addReference()
@@ -80,7 +83,14 @@ public:
         }
         return false;
     }
+
+	int getType()
+	{
+		return type;
+	}
+
 private:
+	int type;
     int refCount;
 };
 

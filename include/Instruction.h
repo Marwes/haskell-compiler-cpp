@@ -7,6 +7,7 @@
 
 namespace MyVMNamespace
 {
+struct VM;
 
 #define OP_ENUM(t,XX) \
 	XX(t, NOP) \
@@ -33,6 +34,7 @@ namespace MyVMNamespace
 	XX(t, COMPARE_GE) \
 	XX(t, CALL) \
 	XX(t, CALLI) \
+	XX(t, CALLNATIVE) \
 	XX(t, NUM_INSTRUCTIONS) \
 
 DECLARE_ENUM(OP, OP_ENUM);
@@ -70,16 +72,13 @@ public:
 	std::vector<Instruction> instructions;
 };
 
+typedef int (*VM_Function)(VM&);
+
 class Assembly
 {
 public:
-    Assembly() : entrypoint(0) { }
-    Assembly(Assembly&& other)
-		: functionDefinitionsIndexes(std::move(other.functionDefinitionsIndexes))
-		, functionDefinitions(std::move(other.functionDefinitions))
-		, entrypoint(other.entrypoint)
-    {
-    }
+	Assembly();
+	Assembly(Assembly && other);
 
 	Assembly& operator=(Assembly && other)
 	{
@@ -113,8 +112,21 @@ public:
 		return functionDefinitions[found->second].get();
 	}
 
+
+	VM_Function getNativeFunction(const std::string& name)
+	{
+		auto& found = nativeFunctionIndexes.find(name);
+		if (found == nativeFunctionIndexes.end())
+		{
+			return nullptr;
+		}
+		return nativeFunctions[found->second];
+	}
+
 	std::map<std::string, int> functionDefinitionsIndexes;
 	std::vector<std::unique_ptr<FunctionDefinition>> functionDefinitions;
+	std::map<std::string, int> nativeFunctionIndexes;
+	std::vector<VM_Function> nativeFunctions;
 	int32_t entrypoint;
 };
 
