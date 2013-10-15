@@ -64,7 +64,7 @@ struct Type
 class Object
 {
 public:
-    Object() : refCount(1) { }
+    Object() : refCount(0) { }
     virtual ~Object() { }
 
     void addReference()
@@ -81,7 +81,7 @@ public:
         return false;
     }
 private:
-    size_t refCount;
+    int refCount;
 };
 
 union StackObject

@@ -11,7 +11,7 @@ namespace MyVMNamespace
     class RefCountedPointer
     {
     public:
-        RefCountedPointer(Object* o = nullptr)
+        RefCountedPointer(Object* o)
             : value(o)
         {
             value->addReference();
@@ -22,6 +22,12 @@ namespace MyVMNamespace
             if (value)
                 value->removeReference();
         }
+
+		RefCountedPointer(RefCountedPointer && other)
+			: value(other.value)
+		{
+			other.value = nullptr;
+		}
 
         Object* get() { return value; }
         const Object* get() const { return value; }
