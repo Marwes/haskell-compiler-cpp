@@ -47,10 +47,36 @@ bool operator==(const Expression& lhs, const Expression& rhs)
     return false;
 }
 
-
 bool operator!=(const Expression& lhs, const Expression& rhs)
 {
     return !(lhs == rhs);
+}
+
+bool operator==(const PatternName& lhs, const PatternName& rhs)
+{
+	return lhs.name == rhs.name;
+}
+bool operator==(const NumberLiteral& lhs, const NumberLiteral& rhs)
+{
+	return lhs.value == rhs.value;
+}
+
+bool operator==(const Pattern& lhs, const Pattern& rhs)
+{
+	{
+		auto r = dynamic_cast<const PatternName*>(&rhs);
+		auto l = dynamic_cast<const PatternName*>(&lhs);
+		if (r && l)
+			return *r == *l;
+	}
+
+	{
+		auto r = dynamic_cast<const NumberLiteral*>(&rhs);
+		auto l = dynamic_cast<const NumberLiteral*>(&lhs);
+		if (r && l)
+			return *r == *l;
+	}
+	return false;
 }
 
 }
@@ -266,4 +292,24 @@ TEST_CASE("parser/tuple2", "Function application")
 	REQUIRE(*applyTuple.arguments[0] == Name("one"));
 	REQUIRE(*applyTuple.arguments[1] == Number(2));
 	REQUIRE(*applyTuple.arguments[2] == Number(3));
+}
+
+
+TEST_CASE("parser/case", "case expr of")
+{
+	std::stringstream stream("case 1 of { 1 -> True ; _ -> False }");
+	Tokenizer tokenizer(stream);
+	Parser parser(tokenizer);
+
+	auto maybeExpression = parser.run();
+	REQUIRE(maybeExpression.get() != NULL);
+
+
+	Case& caseExpr = dynamic_cast<Case&>(*maybeExpression);
+	REQUIRE(*caseExpr.expression == Number(1));
+
+	REQUIRE(*caseExpr.alternatives[0].pattern == NumberLiteral(1));
+	REQUIRE(*caseExpr.alternatives[0].expression == Name("True"));
+	REQUIRE(*caseExpr.alternatives[1].pattern == PatternName("_"));
+	REQUIRE(*caseExpr.alternatives[1].expression == Name("False"));
 }

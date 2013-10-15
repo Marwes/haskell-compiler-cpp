@@ -104,18 +104,34 @@ public:
 class PatternName : public Pattern
 {
 public:
+	PatternName(std::string name)
+		: name(std::move(name))
+	{}
+
 	std::string name;
 };
 
 class NumberLiteral : public Pattern
 {
 public:
+	NumberLiteral(int value)
+		: value(value)
+	{}
 	int value;
 };
 
 class Alternative
 {
 public:
+	Alternative(std::unique_ptr<Pattern> pattern, std::unique_ptr<Expression> expression)
+		: pattern(std::move(pattern))
+		, expression(std::move(expression))
+	{}
+	Alternative(Alternative&& other)
+		: pattern(std::move(other.pattern))
+		, expression(std::move(other.expression))
+	{}
+
 	std::unique_ptr<Pattern> pattern;
 	std::unique_ptr<Expression> expression;
 };

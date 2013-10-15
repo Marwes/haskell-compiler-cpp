@@ -213,6 +213,30 @@ std::unique_ptr<Expression> Parser::subExpression(bool (*parseError)(const Token
 			return std::unique_ptr<Expression>(new Let(std::move(binds), expression()));
 		}
 		break;
+	case SymbolEnum::CASE:
+		{
+			std::unique_ptr<Expression> expr = expression();
+
+			const Token& maybeOF = tokenizer.nextToken();
+			if (maybeOF.type != SymbolEnum::OF)
+			{
+				throw std::runtime_error("Expected 'of' keyword, got " + std::string(enumToString(maybeOF.type)));
+			}
+			const Token& lBrace = tokenizer.nextToken();
+			if (lBrace.type != SymbolEnum::LBRACE)
+			{
+				throw std::runtime_error("Expected bracket after 'of' keyword");
+			}
+
+			auto alts = many1(&Parser::alternative, SymbolEnum::SEMICOLON);
+			const Token& rBrace = *tokenizer;
+			if (rBrace.type != SymbolEnum::RBRACE)
+			{
+				throw std::runtime_error("Expected RBRACE after case expression");
+			}
+			return std::unique_ptr<Expression>(new Case(std::move(expr), std::move(alts)));
+		}
+		break;
     case SymbolEnum::NAME:
         return std::unique_ptr<Expression>(new Name(token.name));
     case SymbolEnum::NUMBER:
@@ -222,6 +246,27 @@ std::unique_ptr<Expression> Parser::subExpression(bool (*parseError)(const Token
     }
 }
 
+Alternative Parser::alternative()
+{
+	const Token& patternToken = tokenizer.nextToken();
+	std::unique_ptr<Pattern> pattern;
+	if (patternToken.type == SymbolEnum::NUMBER)
+	{
+		pattern = make_unique<NumberLiteral>(atoi(patternToken.name.c_str()));
+	}
+	else if (patternToken.type == SymbolEnum::NAME)
+	{
+		pattern = std::unique_ptr<Pattern>(new PatternName(patternToken.name));
+	}
+
+	const Token& arrow = tokenizer.nextToken();
+	if (arrow.type != SymbolEnum::ARROW)
+	{
+		throw std::runtime_error("Expected '->' in alternative");
+	}
+
+	return Alternative(std::move(pattern), expression());
+}
 
 std::unique_ptr<Expression> Parser::parseOperatorExpression(std::unique_ptr<Expression> lhs, int minPrecedence)
 {
