@@ -15,7 +15,8 @@ const std::map<std::string, SymbolEnum> keywords = {
 	std::make_pair("let", SymbolEnum::LET),
 	std::make_pair("in", SymbolEnum::IN),
 	std::make_pair("case", SymbolEnum::CASE),
-	std::make_pair("of", SymbolEnum::OF)
+	std::make_pair("of", SymbolEnum::OF),
+	std::make_pair("->", SymbolEnum::ARROW)
 };
 
 SymbolEnum nameOrKeyWord(const std::string& name)
@@ -99,6 +100,10 @@ bool Tokenizer::readToken(Token& token)
 		{
 			token.type = SymbolEnum::EQUALSSIGN;
 		}
+		else if (token.name == "->")
+		{
+			token.type = SymbolEnum::ARROW;
+		}
 		else
 		{
 			token.type = SymbolEnum::OPERATOR;
@@ -118,9 +123,9 @@ bool Tokenizer::readToken(Token& token)
 		--this->indentLevel;
 		return true;
 	}
-	else if (isalpha(c))
+	else if (isalpha(c) || c == '_')
 	{
-		while (getChar(c) && isalnum(c))
+		while (getChar(c) && (isalnum(c) || c == '_'))
 		{
 			token.name.push_back(c);
 		}
@@ -346,6 +351,7 @@ bool Tokenizer::tokenize2(bool (*parseError)(const Token&))
 			return true;
 		}
 	}
+	return false;
 }
 
 Token::Token()
