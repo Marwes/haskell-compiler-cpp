@@ -83,3 +83,21 @@ TEST_CASE("compiler/case3", "")
     _ -> f 2\n";
 	REQUIRE(evaluateInt(expr)->getValue(0).intValue == 4);
 }
+
+TEST_CASE("compiler/case4", "")
+{
+	const char* expr =
+"let f x = 2 * x in case f 2 of\n\
+    4 -> 7\n\
+    _ -> f 2\n";
+	REQUIRE(evaluateInt(expr)->getValue(0).intValue == 7);
+}
+
+TEST_CASE("compiler/case5", "")
+{
+	const char* expr =
+"case 2 + 3 of\n\
+    4 -> 7\n\
+    _ -> 1000\n";
+	REQUIRE(evaluateInt(expr)->getValue(0).intValue == 1000);
+}
