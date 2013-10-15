@@ -231,3 +231,39 @@ TEST_CASE("parser/applyOperator", "Function application")
 
 	REQUIRE(*op.rhs == Name("two"));
 }
+
+TEST_CASE("parser/tuple", "Function application")
+{
+	std::stringstream stream("(1,2)");
+	Tokenizer tokenizer(stream);
+	Parser parser(tokenizer);
+
+	auto maybeExpression = parser.run();
+	REQUIRE(maybeExpression.get() != NULL);
+
+
+	Apply& apply = dynamic_cast<Apply&>(*maybeExpression);
+
+	REQUIRE(*apply.function == Name("(,)"));
+	REQUIRE(*apply.arguments[0] == Number(1));
+	REQUIRE(*apply.arguments[1] == Number(2));
+}
+
+TEST_CASE("parser/tuple2", "Function application")
+{
+	std::stringstream stream("f (one,2, 3)");
+	Tokenizer tokenizer(stream);
+	Parser parser(tokenizer);
+
+	auto maybeExpression = parser.run();
+	REQUIRE(maybeExpression.get() != NULL);
+
+
+	Apply& applyF = dynamic_cast<Apply&>(*maybeExpression);
+	REQUIRE(*applyF.function == Name("f"));
+
+	Apply& applyTuple = dynamic_cast<Apply&>(*applyF.arguments[0]);
+	REQUIRE(*applyTuple.arguments[0] == Name("one"));
+	REQUIRE(*applyTuple.arguments[1] == Number(2));
+	REQUIRE(*applyTuple.arguments[2] == Number(3));
+}

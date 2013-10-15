@@ -128,6 +128,14 @@ std::unique_ptr<Expression> Parser::expression()
 	}
 }
 
+std::unique_ptr<Expression> newTuple(std::vector<std::unique_ptr<Expression>>&& arguments)
+{
+	std::string name(arguments.size() + 1, ',');
+	name.front() = '(';
+	name.back() = ')';
+	return std::unique_ptr<Expression>(new Apply(std::unique_ptr<Expression>(new Name(name)), std::move(arguments)));
+}
+
 bool subExpressionError(const Token& t)
 {
 	return t.type != SymbolEnum::LPARENS
@@ -150,11 +158,26 @@ std::unique_ptr<Expression> Parser::subExpression(bool (*parseError)(const Token
 	{
 	case SymbolEnum::LPARENS:
 		{
-			std::unique_ptr<Expression> result = expression();
-			const Token& maybeParens = tokenizer.nextToken();
+			std::vector<std::unique_ptr<Expression>> expressions;
+			const Token* comma;
+			do
+			{
+				auto expr = expression();
+				expressions.push_back(std::move(expr));
+				comma = &tokenizer.nextToken();
+			} while (comma->type == SymbolEnum::COMMA);
+
+			const Token& maybeParens = *tokenizer;
 			if (maybeParens.type == SymbolEnum::RPARENS)
 			{
-				return result;
+				if (expressions.size() == 1)
+				{
+					return std::move(expressions[0]);
+				}
+				else
+				{
+					return newTuple(std::move(expressions));
+				}
 			}
 			else
 			{
