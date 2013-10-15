@@ -17,6 +17,7 @@ namespace MyVMNamespace
 	XX(t, LOAD_STRING_CONST) \
 	XX(t, POP) \
 	XX(t, BRANCH_TRUE) \
+	XX(t, JUMP) \
 	XX(t, NEWOBJECT) \
 	XX(t, GETFIELD) \
 	XX(t, SETFIELD) \

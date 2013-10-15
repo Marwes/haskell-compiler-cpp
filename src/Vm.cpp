@@ -60,7 +60,12 @@ public:
             assert(current.arg0 < (int)environment.method->code.size());
             instructionPointer = current.arg0;
         }
-    }
+	}
+	static void op_jump(MethodEnvironment& environment, Instruction& current, size_t& instructionPointer)
+	{
+		assert(current.arg0 < (int) environment.method->code.size());
+		instructionPointer = current.arg0;
+	}
 
     static void op_newobject(MethodEnvironment& environment, Instruction current)
     {
@@ -207,6 +212,7 @@ void VM::execute(MethodEnvironment& environment)
     while (currentInstruction < code.size())
     {
         Instruction instruction = code[currentInstruction];
+		currentInstruction++;
     
         switch (instruction.op)
         {
@@ -227,8 +233,10 @@ void VM::execute(MethodEnvironment& environment)
             break;
         case OP::BRANCH_TRUE:
             VMI::op_branch_true(environment, instruction, currentInstruction);
-			continue;
-            break;
+			break;
+		case OP::JUMP:
+			VMI::op_jump(environment, instruction, currentInstruction);
+			break;
         case OP::NEWOBJECT:
             VMI::op_newobject(environment, instruction);
             break;
@@ -255,7 +263,7 @@ void VM::execute(MethodEnvironment& environment)
             break;
 
 		case OP::COMPARE_EQ:
-			DO_TOP_BINOP(==, environment, instruction);
+			VMI::op_binop<VMI::op_equal>(environment, instruction);
 			break;
 		case OP::COMPARE_NEQ:
 			DO_TOP_BINOP(!= , environment, instruction);
@@ -288,7 +296,6 @@ void VM::execute(MethodEnvironment& environment)
             std::cout << "No implementation for instruction : " << enumToString(instruction.op) << std::endl;
             break;
         }
-        currentInstruction++;
     }
 }
 

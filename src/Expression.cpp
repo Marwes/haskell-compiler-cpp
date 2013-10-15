@@ -139,21 +139,37 @@ void Case::evaluate(Environment& env, std::vector<Instruction>& instructions)
 	size_t beginSize = instructions.size();
 	for (Alternative& alt : alternatives)
 	{
-		const size_t numInstructions = 4;
-		size_t jumpDistance = instructions.size() + numInstructions - 1;
-		//Load the topmost value since it will be reduced by the comparison
-		instructions.push_back(Instruction(OP::LOAD, env.getStackTop()));
-		//alt.pattern->match();
-		instructions.push_back(Instruction(OP::COMPARE_EQ));
-		branches.push_back(instructions.size());
-		instructions.push_back(Instruction(OP::BRANCH_TRUE, jumpDistance));//TODO
-		instructions.push_back(Instruction(OP::POP));//TODO
+		if (PatternName* pattern = dynamic_cast<PatternName*>(alt.pattern.get()))
+		{
+			instructions.push_back(Instruction(OP::JUMP));
+			branches.push_back(instructions.size() - 1);
+		}
+		else if (NumberLiteral* pattern = dynamic_cast<NumberLiteral*>(alt.pattern.get()))
+		{
+			//Load the topmost value since it will be reduced by the comparison
+			instructions.push_back(Instruction(OP::LOAD, env.getStackTop()));
+			instructions.push_back(Instruction(OP::LOAD_INT_CONST, pattern->value));
+			instructions.push_back(Instruction(OP::COMPARE_EQ));
+			instructions.push_back(Instruction(OP::BRANCH_TRUE));
+			branches.push_back(instructions.size() - 1);
+			instructions.push_back(Instruction(OP::POP));
+		}
 	}
 	for (size_t ii = 0; ii < alternatives.size(); ++ii)
 	{
+		const Alternative& alt = alternatives[ii];
 		size_t jumpIndex = branches[ii];
 		instructions[jumpIndex].arg0 = instructions.size();
-		alternatives[ii].expression->evaluate(env, instructions);
+		if (PatternName* pattern = dynamic_cast<PatternName*>(alt.pattern.get()))
+		{
+			Environment caseEnv = env.childEnvironment();
+			caseEnv.newLocal(pattern->name);
+			alt.expression->evaluate(caseEnv, instructions);
+		}
+		else if (NumberLiteral* pattern = dynamic_cast<NumberLiteral*>(alt.pattern.get()))
+		{
+			alt.expression->evaluate(env, instructions);
+		}
 		instructions.push_back(Instruction(OP::RETURN));
 	}
 }
