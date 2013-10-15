@@ -134,20 +134,27 @@ Case::Case(std::unique_ptr<Expression> && expr, std::vector<Alternative> && alte
 
 void Case::evaluate(Environment& env, std::vector<Instruction>& instructions)
 {
-	assert(0);
 	expression->evaluate(env, instructions);
+	std::vector<size_t> branches;
 	size_t beginSize = instructions.size();
 	for (Alternative& alt : alternatives)
 	{
-		alt.expression->evaluate(env, instructions);
-		size_t jumpDistance = instructions.size() - beginSize;
+		const size_t numInstructions = 4;
+		size_t jumpDistance = instructions.size() + numInstructions - 1;
 		//Load the topmost value since it will be reduced by the comparison
 		instructions.push_back(Instruction(OP::LOAD, env.getStackTop()));
 		//alt.pattern->match();
 		instructions.push_back(Instruction(OP::COMPARE_EQ));
+		branches.push_back(instructions.size());
 		instructions.push_back(Instruction(OP::BRANCH_TRUE, jumpDistance));//TODO
 		instructions.push_back(Instruction(OP::POP));//TODO
-
+	}
+	for (size_t ii = 0; ii < alternatives.size(); ++ii)
+	{
+		size_t jumpIndex = branches[ii];
+		instructions[jumpIndex].arg0 = instructions.size();
+		alternatives[ii].expression->evaluate(env, instructions);
+		instructions.push_back(Instruction(OP::RETURN));
 	}
 }
 

@@ -56,3 +56,23 @@ TEST_CASE("compiler/let", "")
 in double 3 + 1";
 	REQUIRE(evaluateInt(expr)->getValue(1).intValue == 7);
 }
+
+
+TEST_CASE("compiler/case", "")
+{
+	const char* expr =
+"case 1 of\n\
+    1 -> 10\n\
+    _ -> 2\n";
+	REQUIRE(evaluateInt(expr)->getValue(0).intValue == 10);
+}
+
+
+TEST_CASE("compiler/case2", "")
+{
+	const char* expr =
+"let f x = 2 * x in case 1 of\n\
+    1 -> f 10\n\
+    _ -> 2\n";
+	REQUIRE(evaluateInt(expr)->getValue(0).intValue == 20);
+}

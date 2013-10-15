@@ -52,7 +52,7 @@ public:
         environment.stackFrame.push(string);
     }
 
-    static void op_branch_true(MethodEnvironment& environment, Instruction& current, size_t instructionPointer)
+    static void op_branch_true(MethodEnvironment& environment, Instruction& current, size_t& instructionPointer)
     {
         StackObject& obj = environment.stackFrame.top();
         if (obj.intValue != 0)
@@ -95,6 +95,11 @@ public:
 		vm.execute(newEnvironment);
 		size_t i = environment.stackFrame.size() - func->numArguments;
 		environment.stackFrame[i] = newEnvironment.stackFrame.top();
+	}
+
+	static void op_return(VM& vm, MethodEnvironment& environment, Instruction current)
+	{
+		environment.stackFrame[0] = environment.stackFrame.top();
 	}
     
     static void op_setfield(MethodEnvironment& environment, Instruction current)
@@ -222,6 +227,7 @@ void VM::execute(MethodEnvironment& environment)
             break;
         case OP::BRANCH_TRUE:
             VMI::op_branch_true(environment, instruction, currentInstruction);
+			continue;
             break;
         case OP::NEWOBJECT:
             VMI::op_newobject(environment, instruction);
@@ -272,6 +278,10 @@ void VM::execute(MethodEnvironment& environment)
 			break;
 		case OP::CALLI:
 			VMI::op_calli(*this, environment, instruction);
+			break;
+		case OP::RETURN:
+			VMI::op_return(*this, environment, instruction);
+			return;
 			break;
 
         default:

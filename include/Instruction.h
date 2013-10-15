@@ -33,6 +33,7 @@ namespace MyVMNamespace
 	XX(t, COMPARE_GE) \
 	XX(t, CALL) \
 	XX(t, CALLI) \
+	XX(t, RETURN) \
 	XX(t, NUM_INSTRUCTIONS) \
 
 DECLARE_ENUM(OP, OP_ENUM);
