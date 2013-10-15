@@ -94,7 +94,7 @@ public:
 	}
 
 private:
-	bool readToken(Token& token);
+	bool readToken(Token& token, bool& newline);
 	bool getChar(char& c);
 	bool previousTokenWasKeyword();
 	bool tokenize2(bool (*parseError)(const Token&) = nullptr);

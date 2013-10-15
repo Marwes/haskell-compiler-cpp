@@ -69,22 +69,17 @@ bool Tokenizer::previousTokenWasKeyword()
 	return false;
 }
 
-bool Tokenizer::readToken(Token& token)
+bool Tokenizer::readToken(Token& token, bool& newline)
 {
-	bool newLine = false;
 	char c = '\0';
 	while (getChar(c) && isspace(c))
 	{
 		if (indentLevel == 0)//newline detected
 		{
-			newLine = true;
+			newline = true;
 		}
 	}
 	token.indent = indentLevel;
-	if (newLine)
-	{
-		unprocessedTokens.push_back(Token(SymbolEnum::INDENTLEVEL, "<n>", indentLevel));
-	}
 	token.name.clear();
 	token.name.push_back(c);
 
@@ -205,11 +200,16 @@ const Token& Tokenizer::tokenizeModule()
 	unprocessedTokens.push_back(Token());
 	Token& tok = unprocessedTokens.back();
 	bool success = false;
-	if (readToken(tok))
+	bool newline = false;
+	if (readToken(tok, newline))
 	{
 		if (tok.type != SymbolEnum::LBRACKET || tok.type != SymbolEnum::MODULE)
 		{
 			unprocessedTokens.push_back(Token(SymbolEnum::INDENTSTART, "{n}", tok.indent));
+		}
+		if (newline)
+		{
+			unprocessedTokens.push_back(Token(SymbolEnum::INDENTLEVEL, "<n>", indentLevel - tok.name.size() + 1));
 		}
 		success = true;
 	}
@@ -223,7 +223,8 @@ bool Tokenizer::tokenize(bool (*parseError)(const Token&))
 	unprocessedTokens.push_back(Token());
 	Token& tok = unprocessedTokens.back();
 	bool success = false;
-	if (readToken(tok))
+	bool newline = false;
+	if (readToken(tok, newline))
 	{
 		if (tok.type != SymbolEnum::LBRACE)
 		{
@@ -231,6 +232,10 @@ bool Tokenizer::tokenize(bool (*parseError)(const Token&))
 			{
 				unprocessedTokens.push_back(Token(SymbolEnum::INDENTSTART, "{n}", tok.indent));
 			}
+		}
+		if (newline)
+		{
+			unprocessedTokens.push_back(Token(SymbolEnum::INDENTLEVEL, "<n>", indentLevel - tok.name.size() + 1));
 		}
 		success = true;
 	}

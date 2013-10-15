@@ -209,7 +209,7 @@ std::unique_ptr<Expression> Parser::subExpression(bool (*parseError)(const Token
 			}
 			const Token& inToken = tokenizer.nextToken(letExpressionEndError);
 			if (inToken.type != SymbolEnum::IN)
-				throw std::runtime_error(std::string("Expected 'in' token to end a let exprssion, got ") + enumToString(tokenizer->type));
+				throw std::runtime_error(std::string("Expected 'in' token to end a let expression, got ") + enumToString(tokenizer->type));
 			return std::unique_ptr<Expression>(new Let(std::move(binds), expression()));
 		}
 		break;

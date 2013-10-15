@@ -313,3 +313,28 @@ TEST_CASE("parser/case", "case expr of")
 	REQUIRE(*caseExpr.alternatives[1].pattern == PatternName("_"));
 	REQUIRE(*caseExpr.alternatives[1].expression == Name("False"));
 }
+
+
+
+TEST_CASE("parser/case2", "case expr of")
+{
+	const char* expr =
+"case 1 of\n\
+    1 -> True\n\
+    _ -> False\n";
+	std::stringstream stream(expr);
+	Tokenizer tokenizer(stream);
+	Parser parser(tokenizer);
+
+	auto maybeExpression = parser.run();
+	REQUIRE(maybeExpression.get() != NULL);
+
+
+	Case& caseExpr = dynamic_cast<Case&>(*maybeExpression);
+	REQUIRE(*caseExpr.expression == Number(1));
+
+	REQUIRE(*caseExpr.alternatives[0].pattern == NumberLiteral(1));
+	REQUIRE(*caseExpr.alternatives[0].expression == Name("True"));
+	REQUIRE(*caseExpr.alternatives[1].pattern == PatternName("_"));
+	REQUIRE(*caseExpr.alternatives[1].expression == Name("False"));
+}
