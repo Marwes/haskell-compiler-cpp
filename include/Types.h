@@ -60,6 +60,14 @@ struct Type
     TypeEnum type;
 };
 
+class Object;
+
+union StackObject
+{
+	VMInt intValue;
+	VMFloat floatValue;
+	Object* pointerValue;
+};
 
 class Object
 {
@@ -89,17 +97,17 @@ public:
 		return type;
 	}
 
+	StackObject& getField(int index)
+	{
+		StackObject* first = reinterpret_cast<StackObject*>(this + 1);
+		return *(first + index);
+	}
+
 private:
 	int type;
     int refCount;
 };
 
-union StackObject
-{
-    VMInt intValue;
-    VMFloat floatValue;
-    Object* pointerValue;
-};
 
 
 template<class T, class U>

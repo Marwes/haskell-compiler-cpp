@@ -32,6 +32,14 @@ public:
 		else
 			return found->second;
 	}
+	int getNativeFunction(const std::string& name)
+	{
+		auto found = assembly.nativeFunctionIndexes.find(name);
+		if (found == assembly.nativeFunctionIndexes.end())
+			return -1;
+		else
+			return found->second;
+	}
 
 	int addLambda(Lambda& expr);
 	int addFunction(const std::string& name, Lambda& lambda);

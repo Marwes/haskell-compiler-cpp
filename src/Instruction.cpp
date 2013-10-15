@@ -1,13 +1,30 @@
 #include <Instruction.h>
+#include "VM.h"
 
 namespace MyVMNamespace
 {
 
 DEFINE_ENUM(OP, OP_ENUM);
 
+
+int allocatePair(VM& vm, StackFrame& stack)
+{
+	void* ptr = malloc(sizeof(Object) + sizeof(StackObject) * 2);
+	Object* o = new (ptr) Object();
+	for (int ii = 0; ii < 2; ++ii)
+	{
+		StackObject& obj = stack[stack.size() - 2 + ii];
+		o->getField(ii) = obj;
+	}
+	stack.push(o);
+	return 0;
+}
+
 Assembly::Assembly()
 	: entrypoint(0)
 {
+	nativeFunctionIndexes.insert(std::make_pair("(,)", 0));
+	nativeFunctions.push_back(allocatePair);
 }
 
 Assembly::Assembly(Assembly && other)

@@ -102,6 +102,13 @@ public:
 		environment.stackFrame[i] = newEnvironment.stackFrame.top();
 	}
 
+	static void op_callnative(VM& vm, MethodEnvironment& environment, Instruction current)
+	{
+		VM_Function func = vm.assembly.getNativeFunction(current.arg0);
+		assert(func);
+		func(vm, environment.stackFrame);
+	}
+
 	static void op_return(VM& vm, MethodEnvironment& environment, Instruction current)
 	{
 		environment.stackFrame[0] = environment.stackFrame.top();
@@ -292,6 +299,9 @@ void VM::execute(MethodEnvironment& environment)
 		case OP::CALLI:
 			VMI::op_calli(*this, environment, instruction);
 			break;
+		case OP::CALLNATIVE:
+			VMI::op_callnative(*this, environment, instruction);
+			break;
 		case OP::RETURN:
 			VMI::op_return(*this, environment, instruction);
 			return;
@@ -322,14 +332,6 @@ void VM::endFrame(MethodEnvironment& environment)
         }
         stackLevel += sizeofType(type);
     }
-}
-
-int allocatePair(VM& vm, StackFrame& stack)
-{
-	void* ptr = malloc(sizeof(Object) + sizeof(StackObject) * 2);
-	Object* o = new (ptr) Object();
-	stack.push(o);
-	return 0;
 }
 
 };

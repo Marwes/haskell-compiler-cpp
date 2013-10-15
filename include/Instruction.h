@@ -8,6 +8,7 @@
 namespace MyVMNamespace
 {
 struct VM;
+class StackFrame;
 
 #define OP_ENUM(t,XX) \
 	XX(t, NOP) \
@@ -74,7 +75,7 @@ public:
 	std::vector<Instruction> instructions;
 };
 
-typedef int (*VM_Function)(VM&);
+typedef int (*VM_Function)(VM& vm, StackFrame& stack);
 
 class Assembly
 {
@@ -97,7 +98,12 @@ public:
 		{
 			return nullptr;
 		}
-		return nativeFunctions[found->second];
+		return getNativeFunction(found->second);
+	}
+
+	VM_Function getNativeFunction(int ii)
+	{
+		return nativeFunctions[ii];
 	}
 
 	std::map<std::string, int> functionDefinitionsIndexes;

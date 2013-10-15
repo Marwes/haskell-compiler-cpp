@@ -114,4 +114,8 @@ TEST_CASE("compiler/tuple", "")
 	vm->assembly = std::move(assembly);
 	MethodEnvironment env(vm->newStackFrame(), &method);
 	vm->execute(env);
+	Object* obj = vm->getValue(2).pointerValue;
+	REQUIRE(obj != NULL);
+	REQUIRE(obj->getField(0).intValue == 1);
+	REQUIRE(obj->getField(1).intValue == 2);
 }

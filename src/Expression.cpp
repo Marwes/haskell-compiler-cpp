@@ -118,8 +118,16 @@ void Apply::evaluate(Environment& env, std::vector<Instruction>& instructions)
 	if (Name* name = dynamic_cast<Name*>(function.get()))
 	{
 		int index = env.getFunction(name->name);
-		assert(index != -1);
-		instructions.push_back(Instruction(OP::CALLI, index));
+		if (index >= 0)
+		{
+			instructions.push_back(Instruction(OP::CALLI, index));
+		}
+		else
+		{
+			index = env.getNativeFunction(name->name);
+			assert(index != -1);
+			instructions.push_back(Instruction(OP::CALLNATIVE, index));
+		}
 	}
 	else
 	{
