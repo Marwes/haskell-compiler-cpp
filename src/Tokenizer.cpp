@@ -153,6 +153,16 @@ bool Tokenizer::readToken(Token& token)
 		token.type = SymbolEnum::RBRACKET;
 		return true;
 	}
+	else if (c == '{')
+	{
+		token.type = SymbolEnum::LBRACE;
+		return true;
+	}
+	else if (c == '}')
+	{
+		token.type = SymbolEnum::RBRACE;
+		return true;
+	}
 	else if (c == ',')
 	{
 		token.type = SymbolEnum::COMMA;
@@ -162,20 +172,25 @@ bool Tokenizer::readToken(Token& token)
 }
 
 
-Tokenizer& Tokenizer::operator++()
+const Token& Tokenizer::nextToken(bool (*parseError)(const Token&))
 {
 	if (offset < 0)
 	{
 		offset++;
-		return *this;
+		return **this;
 	}
 	else if (!unprocessedTokens.empty())
 	{
-		tokenize2();
-		return *this;
+		tokenize2(parseError);
+		return **this;
 	}
-	tokenize();
+	tokenize(parseError);
+	return **this;
+}
 
+Tokenizer& Tokenizer::operator++()
+{
+	nextToken();
 	return *this;
 }
 
@@ -197,7 +212,7 @@ const Token& Tokenizer::tokenizeModule()
 	return **this;
 }
 
-bool Tokenizer::tokenize()
+bool Tokenizer::tokenize(bool (*parseError)(const Token&))
 {
 	unprocessedTokens.reserve(unprocessedTokens.size() + 4);
 	unprocessedTokens.push_back(Token());
@@ -205,7 +220,7 @@ bool Tokenizer::tokenize()
 	bool success = false;
 	if (readToken(tok))
 	{
-		if (tok.type != SymbolEnum::LBRACKET)
+		if (tok.type != SymbolEnum::LBRACE)
 		{
 			if (previousTokenWasKeyword())
 			{
@@ -214,7 +229,7 @@ bool Tokenizer::tokenize()
 		}
 		success = true;
 	}
-	tokenize2();
+	tokenize2(parseError);
 	return success;
 }
 
@@ -223,7 +238,7 @@ bool parseError(const Token& tok)
 	return tok.type == SymbolEnum::IN || tok.type == SymbolEnum::OF;//???
 }
 
-bool Tokenizer::tokenize2()
+bool Tokenizer::tokenize2(bool (*parseError)(const Token&))
 {
 	if (!unprocessedTokens.empty())
 	{
@@ -243,7 +258,7 @@ bool Tokenizer::tokenize2()
 				{
 					//TODO
 					indentLevels.pop_back();
-					tokens.push_back(Token(SymbolEnum::RBRACKET, "}"));
+					tokens.push_back(Token(SymbolEnum::RBRACE, "}"));
 					return true;
 				}
 			}
@@ -264,24 +279,25 @@ bool Tokenizer::tokenize2()
 				int m = indentLevels.back();
 				if (n > m)
 				{
-					tokens.push_back(Token(SymbolEnum::LBRACKET, "{"));
+					unprocessedTokens.pop_back();
+					tokens.push_back(Token(SymbolEnum::LBRACE, "{"));
 					indentLevels.push_back(n);
 					return true;
 				}
 			}
 			if (n > 0)
 			{
-				tokens.push_back(Token(SymbolEnum::LBRACKET, "{"));
+				tokens.push_back(Token(SymbolEnum::LBRACE, "{"));
 				unprocessedTokens.pop_back();
 				indentLevels.push_back(n);
 				return true;
 			}
-			tokens.push_back(Token(SymbolEnum::LBRACKET, "{"));
-			tokens.push_back(Token(SymbolEnum::LBRACKET, "}"));
+			tokens.push_back(Token(SymbolEnum::LBRACE, "{"));
+			tokens.push_back(Token(SymbolEnum::RBRACE, "}"));
 			unprocessedTokens.back() = Token(SymbolEnum::INDENTLEVEL, "<n>", tok.indent);
 			return true;
 		}
-		else if (tok.type == SymbolEnum::RBRACKET)
+		else if (tok.type == SymbolEnum::RBRACE)
 		{
 			if (indentLevels.size() > 0 && indentLevels.back() == 0)
 			{
@@ -295,7 +311,7 @@ bool Tokenizer::tokenize2()
 				return false;//parse-error
 			}
 		}
-		else if (tok.type == SymbolEnum::LBRACKET)
+		else if (tok.type == SymbolEnum::LBRACE)
 		{
 			tokens.push_back(unprocessedTokens.back());
 			unprocessedTokens.pop_back();
@@ -306,9 +322,9 @@ bool Tokenizer::tokenize2()
 		if (!indentLevels.empty())//L (t:ts) (m:ms) 	= 	} : (L (t:ts) ms) 	if m /= 0 and parse-error(t) 
 		{
 			int m = indentLevels.back();
-			if (m != 0 && parseError(tok))
+			if (m != 0 && parseError && parseError(tok))
 			{
-				tokens.push_back(Token(SymbolEnum::RBRACKET, "}"));
+				tokens.push_back(Token(SymbolEnum::RBRACE, "}"));
 				indentLevels.pop_back();
 				return true;
 			}
@@ -326,7 +342,7 @@ bool Tokenizer::tokenize2()
 		else if (indentLevels.back() != 0)//Keep pusing righ brackets
 		{
 			indentLevels.pop_back();
-			tokens.push_back(Token(SymbolEnum::RBRACKET, "}"));
+			tokens.push_back(Token(SymbolEnum::RBRACE, "}"));
 			return true;
 		}
 	}

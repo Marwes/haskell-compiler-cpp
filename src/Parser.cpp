@@ -28,11 +28,7 @@ Parser::Parser(Tokenizer& tokenizer)
     
 std::unique_ptr<Expression> Parser::run()
 {
-    if (!tokenizer.tokenize())
-    {
-        return nullptr;
-    }
-    return expression(*tokenizer);
+    return expression();
 }
 
 bool isPlusMinusOP(const Token& token)
@@ -75,11 +71,24 @@ int getPrecedence(const std::string& name)
 	return operators.at(name).precedence;
 }
 
+bool toplevelError(const Token& t)
+{
+	return t.type != SymbolEnum::NAME
+		&& t.type != SymbolEnum::RBRACKET
+		&& t.type != SymbolEnum::SEMICOLON;
+}
+
+bool toplevelNewBindError(const Token& t)
+{
+	return t.type != SymbolEnum::RBRACKET
+		&& t.type != SymbolEnum::SEMICOLON;
+}
+
 
 std::vector<Binding> Parser::toplevel()
 {
 	const Token& lBracket = tokenizer.tokenizeModule();
-	if (lBracket.type != SymbolEnum::LBRACKET)
+	if (lBracket.type != SymbolEnum::LBRACE)
 	{
 		throw std::runtime_error("Expected '{' in beginning of module, got " + std::string(enumToString(lBracket.type)));
 	}
@@ -89,21 +98,22 @@ std::vector<Binding> Parser::toplevel()
 	const Token* semicolon;
 	do
 	{
-		const Token& token = tokenizer.nextToken();
+		const Token& token = tokenizer.nextToken(toplevelError);
 		if (token.type == SymbolEnum::NAME)
 		{
-			auto bind = binding(token);
+			--tokenizer;
+			auto bind = binding();
 			binds.push_back(std::move(bind));
 		}
 		else
 		{
 			break;
 		}
-		semicolon = &tokenizer.nextToken();
+		semicolon = &tokenizer.nextToken(toplevelNewBindError);
 	} while (semicolon->type == SymbolEnum::SEMICOLON);
 
 	const Token& rBracket = *tokenizer;
-	if (rBracket.type != SymbolEnum::RBRACKET)
+	if (rBracket.type != SymbolEnum::RBRACE)
 	{
 		throw std::runtime_error("Expected '}' to end module, got " + std::string(enumToString(rBracket.type)));
 	}
@@ -111,20 +121,36 @@ std::vector<Binding> Parser::toplevel()
 	return std::move(binds);
 }
 
-std::unique_ptr<Expression> Parser::expression(const Token& token)
+std::unique_ptr<Expression> Parser::expression()
 {
 	{
-		return parseOperatorExpression(application(token), 0);
+		return parseOperatorExpression(application(), 0);
 	}
 }
 
-std::unique_ptr<Expression> Parser::subExpression(const Token& token)
+bool subExpressionError(const Token& t)
 {
+	return t.type != SymbolEnum::LPARENS
+		&& t.type != SymbolEnum::LET
+		&& t.type != SymbolEnum::NAME
+		&& t.type != SymbolEnum::NUMBER
+		&& t.type != SymbolEnum::SEMICOLON;
+}
+
+
+bool letExpressionEndError(const Token& t)
+{
+	return t.type != SymbolEnum::IN;
+}
+
+std::unique_ptr<Expression> Parser::subExpression(bool (*parseError)(const Token&))
+{
+	const Token& token = tokenizer.nextToken(parseError ? parseError : subExpressionError);
 	switch (token.type)
 	{
 	case SymbolEnum::LPARENS:
 		{
-			std::unique_ptr<Expression> result = expression(tokenizer.nextToken());
+			std::unique_ptr<Expression> result = expression();
 			const Token& maybeParens = tokenizer.nextToken();
 			if (maybeParens.type == SymbolEnum::RPARENS)
 			{
@@ -140,7 +166,7 @@ std::unique_ptr<Expression> Parser::subExpression(const Token& token)
 	case SymbolEnum::LET:
 		{
 			const Token& lbracket = tokenizer.nextToken();
-			if (lbracket.type != SymbolEnum::LBRACKET)
+			if (lbracket.type != SymbolEnum::LBRACE)
 			{
 				throw std::runtime_error("Expected bracket after 'let' keyword");
 			}
@@ -148,20 +174,20 @@ std::unique_ptr<Expression> Parser::subExpression(const Token& token)
 			const Token* semicolon;
 			do
 			{
-				auto bind = binding(tokenizer.nextToken());
+				auto bind = binding();
 				binds.push_back(std::move(bind));
 				semicolon = &tokenizer.nextToken();
 			} while (semicolon->type == SymbolEnum::SEMICOLON);
 
 			const Token& rBracket = *tokenizer;
-			if (rBracket.type != SymbolEnum::RBRACKET)
+			if (rBracket.type != SymbolEnum::RBRACE)
 			{
 				throw std::runtime_error("Expected bracket after 'let' bindings");
 			}
-			const Token& inToken = tokenizer.nextToken();
+			const Token& inToken = tokenizer.nextToken(letExpressionEndError);
 			if (inToken.type != SymbolEnum::IN)
 				throw std::runtime_error(std::string("Expected 'in' token to end a let exprssion, got ") + enumToString(tokenizer->type));
-			return std::unique_ptr<Expression>(new Let(std::move(binds), expression(tokenizer.nextToken())));
+			return std::unique_ptr<Expression>(new Let(std::move(binds), expression()));
 		}
 		break;
     case SymbolEnum::NAME:
@@ -181,7 +207,7 @@ std::unique_ptr<Expression> Parser::parseOperatorExpression(std::unique_ptr<Expr
 		&& getPrecedence(tokenizer->name) >= minPrecedence)
 	{
 		const Token& op = *tokenizer;
-		std::unique_ptr<Expression> rhs = application(tokenizer.nextToken());
+		std::unique_ptr<Expression> rhs = application();
 		const Token& nextOP = tokenizer.nextToken();
 		while (tokenizer && nextOP.type == SymbolEnum::OPERATOR
 			&& getPrecedence(nextOP.name) > getPrecedence(op.name))
@@ -200,14 +226,25 @@ std::unique_ptr<Expression> Parser::parseOperatorExpression(std::unique_ptr<Expr
 	return lhs;
 }
 
-std::unique_ptr<Expression> Parser::application(const Token& token)
+
+bool applicationError(const Token& t)
 {
-	std::unique_ptr<Expression> lhs = subExpression(token);
+	return t.type != SymbolEnum::LPARENS
+		&& t.type != SymbolEnum::LET
+		&& t.type != SymbolEnum::NAME
+		&& t.type != SymbolEnum::NUMBER
+		&& t.type != SymbolEnum::OPERATOR
+		&& t.type != SymbolEnum::SEMICOLON;
+}
+
+std::unique_ptr<Expression> Parser::application()
+{
+	std::unique_ptr<Expression> lhs = subExpression();
 	if (!lhs)
 		return nullptr;
 
 	std::vector<std::unique_ptr<Expression>> expressions;
-	while (auto expr = subExpression(tokenizer.nextToken()))
+	while (auto expr = subExpression(applicationError))
 	{
 		expressions.push_back(std::move(expr));
 	}
@@ -220,17 +257,27 @@ std::unique_ptr<Expression> Parser::application(const Token& token)
 }
 
 
-
-Binding Parser::binding(const Token& token)
+bool errorIfNotName(const Token& tok)
 {
-	if (token.type != SymbolEnum::NAME)
+	return tok.type != SymbolEnum::NAME;
+}
+
+bool errorIfNotNameOrEqul(const Token& tok)
+{
+	return tok.type != SymbolEnum::NAME && tok.type != SymbolEnum::EQUALSSIGN;
+}
+
+Binding Parser::binding()
+{
+	const Token nameToken = tokenizer.nextToken(errorIfNotName);
+	if (nameToken.type != SymbolEnum::NAME)
 	{
-		throw std::runtime_error("Expected NAME on left side of binding");
+		throw std::runtime_error("Expected NAME on left side of binding " + std::string(enumToString(nameToken.type)));
 	}
 	std::vector<std::string> arguments;
 	while (true)
 	{
-		const Token& token = tokenizer.nextToken();
+		const Token& token = tokenizer.nextToken(errorIfNotNameOrEqul);
 		if (token.type == SymbolEnum::NAME)
 		{
 			arguments.push_back(token.name);
@@ -246,12 +293,12 @@ Binding Parser::binding(const Token& token)
 	}
 	if (arguments.size() > 0)
 	{
-		std::unique_ptr<Expression> lambda(new Lambda(std::move(arguments), expression(tokenizer.nextToken())));
-		return Binding(token.name, std::move(lambda));
+		std::unique_ptr<Expression> lambda(new Lambda(std::move(arguments), expression()));
+		return Binding(nameToken.name, std::move(lambda));
 	}
 	else
 	{
-		return Binding(token.name, expression(tokenizer.nextToken()));
+		return Binding(nameToken.name, expression());
 	}
 }
 

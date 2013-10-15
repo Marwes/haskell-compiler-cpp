@@ -30,10 +30,10 @@ public:
 	std::unique_ptr<Expression> run();
 
 	std::vector<Binding> toplevel();
-    std::unique_ptr<Expression> expression(const Token& token);
-	std::unique_ptr<Expression> subExpression(const Token& token);
-	std::unique_ptr<Expression> application(const Token& token);
-	Binding binding(const Token& token);
+    std::unique_ptr<Expression> expression();
+	std::unique_ptr<Expression> subExpression(bool (*parseError)(const Token&) = nullptr);
+	std::unique_ptr<Expression> application();
+	Binding binding();
 
 	std::unique_ptr<Expression> parseOperatorExpression(std::unique_ptr<Expression> lhs, int minPrecedence);
 private:

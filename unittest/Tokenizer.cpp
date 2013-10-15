@@ -66,16 +66,16 @@ TEST_CASE("tokenizer/3 + (2 / 4) * one", "3 + (2 + 4)")
 
 TEST_CASE("tokenizer/let", "Let expression")
 {
-	std::stringstream stream("let x = 3 in (2+x)");
+	std::stringstream stream("let{ x = 3 }in (2+x)");
 	Tokenizer tokenizer(stream);
 
 	Token expected [] = {
 		Token(SymbolEnum::LET, "let"),
-		Token(SymbolEnum::LBRACKET, "{"),
+		Token(SymbolEnum::LBRACE, "{"),
 		Token(SymbolEnum::NAME, "x"),
 		Token(SymbolEnum::EQUALSSIGN, "="),
 		Token(SymbolEnum::NUMBER, "3"),
-		Token(SymbolEnum::RBRACKET, "}"),
+		Token(SymbolEnum::RBRACE, "}"),
 		Token(SymbolEnum::IN, "in"),
 		Token(SymbolEnum::LPARENS, "("),
 		Token(SymbolEnum::NUMBER, "2"),
@@ -103,7 +103,7 @@ in y*x";
 
 	Token expected [] = {
 		Token(SymbolEnum::LET, "let"),
-		Token(SymbolEnum::LBRACKET, "{"),
+		Token(SymbolEnum::LBRACE, "{"),
 		Token(SymbolEnum::NAME, "x"),
 		Token(SymbolEnum::EQUALSSIGN, "="),
 		Token(SymbolEnum::NUMBER, "3"),
@@ -111,7 +111,7 @@ in y*x";
 		Token(SymbolEnum::NAME, "y"),
 		Token(SymbolEnum::EQUALSSIGN, "="),
 		Token(SymbolEnum::NUMBER, "2"),
-		Token(SymbolEnum::RBRACKET, "}"),
+		Token(SymbolEnum::RBRACE, "}"),
 		Token(SymbolEnum::IN, "in"),
 		Token(SymbolEnum::NAME, "y"),
 		Token(SymbolEnum::OPERATOR, "*"),

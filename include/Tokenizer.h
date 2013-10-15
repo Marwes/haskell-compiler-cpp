@@ -16,6 +16,8 @@ namespace MyVMNamespace
 	XX(t,RPARENS) \
 	XX(t,LBRACKET) \
 	XX(t,RBRACKET) \
+	XX(t,LBRACE) \
+	XX(t,RBRACE) \
 	XX(t,INDENTSTART) \
 	XX(t,INDENTLEVEL) \
 	XX(t,COMMA) \
@@ -57,13 +59,9 @@ public:
 
 	const Token& tokenizeModule();
 
-	const Token& nextToken()
-	{
-		++(*this);
-		return **this;
-	}
+	const Token& nextToken(bool (*parseError)(const Token&) = nullptr);
 
-	bool tokenize();
+	bool tokenize(bool (*parseError)(const Token&) = nullptr);
 
 	const Token& operator*() const
 	{
@@ -98,7 +96,7 @@ private:
 	bool readToken(Token& token);
 	bool getChar(char& c);
 	bool previousTokenWasKeyword();
-	bool tokenize2();
+	bool tokenize2(bool (*parseError)(const Token&) = nullptr);
 
 	std::istream& input;
 	boost::circular_buffer<Token> tokens;
