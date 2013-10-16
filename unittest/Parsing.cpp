@@ -338,3 +338,43 @@ TEST_CASE("parser/case2", "case expr of")
 	REQUIRE(*caseExpr.alternatives[1].pattern == PatternName("_"));
 	REQUIRE(*caseExpr.alternatives[1].expression == Name("False"));
 }
+
+
+TEST_CASE("parser/typedeclaration", "")
+{
+	const char* expr = "test :: Int";
+	std::stringstream stream(expr);
+	Tokenizer tokenizer(stream);
+	Parser parser(tokenizer);
+
+	Module module = parser.toplevel();
+	TypeDeclaration& type = module.typeDeclaration[0];
+	REQUIRE(type.name == "test");
+	REQUIRE(type.type->toString() == "Int");
+}
+
+TEST_CASE("parser/typedeclaration2", "Function")
+{
+	const char* expr = "double :: Int -> Int";
+	std::stringstream stream(expr);
+	Tokenizer tokenizer(stream);
+	Parser parser(tokenizer);
+
+	Module module = parser.toplevel();
+	TypeDeclaration& type = module.typeDeclaration[0];
+	REQUIRE(type.name == "double");
+	REQUIRE(type.type->toString() == "Int -> Int");
+}
+
+TEST_CASE("parser/typedeclaration3", "Function")
+{
+	const char* expr = "add :: (Int -> Double) -> Int";
+	std::stringstream stream(expr);
+	Tokenizer tokenizer(stream);
+	Parser parser(tokenizer);
+
+	Module module = parser.toplevel();
+	TypeDeclaration& type = module.typeDeclaration[0];
+	REQUIRE(type.name == "add");
+	REQUIRE(type.type->toString() == "(Int -> Double) -> Int");
+}

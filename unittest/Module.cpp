@@ -11,7 +11,8 @@ TEST_CASE("module/function", "")
     Tokenizer tokenizer(stream);
     Parser parser(tokenizer);
 
-	std::vector<Binding> bindings = parser.toplevel();
+	Module module = parser.toplevel();
+	std::vector<Binding>& bindings = module.bindings;
 
 	REQUIRE(bindings.size() == 1);
 	REQUIRE(bindings[0].name == "test");
@@ -29,7 +30,8 @@ f x y = x + y\n";
 	Tokenizer tokenizer(stream);
 	Parser parser(tokenizer);
 
-	std::vector<Binding> bindings = parser.toplevel();
+	Module module = parser.toplevel();
+	std::vector<Binding>& bindings = module.bindings;
 
 	REQUIRE(bindings.size() == 2);
 	REQUIRE(bindings[0].name == "test");
@@ -49,7 +51,8 @@ f x y = x + y\n";
 	Tokenizer tokenizer(stream);
 	Parser parser(tokenizer);
 
-	std::vector<Binding> bindings = parser.toplevel();
+	Module module = parser.toplevel();
+	std::vector<Binding>& bindings = module.bindings;
 
 	REQUIRE(bindings.size() == 2);
 	const Binding& test = bindings[0];

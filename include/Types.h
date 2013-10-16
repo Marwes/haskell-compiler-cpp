@@ -52,12 +52,68 @@ inline size_t sizeofType(TypeEnum  e)
     }
 }
 
-struct Type
+class Type
 {
+public:
     Type(TypeEnum e)
         : type(e)
-    {}
-    TypeEnum type;
+	{}
+	Type(std::string name, TypeEnum e)
+		: type(e)
+		, name(std::move(name))
+	{}
+	Type(Type && other)
+		: type(other.type)
+		, name(std::move(other.name))
+	{
+	}
+
+	virtual ~Type()
+	{
+	}
+
+	virtual const std::string& toString()
+	{
+		return name;
+	}
+
+	TypeEnum type;
+protected:
+	std::string name;
+};
+
+class FunctionType : public Type
+{
+public:
+	FunctionType(std::unique_ptr<Type>&& argumentType, std::unique_ptr<Type>&& returnType)
+		: Type(TypeEnum::TYPE_METHOD)
+		, argumentType(std::move(argumentType))
+		, returnType(std::move(returnType))
+		, typeNameCorrect(false)
+	{}
+	FunctionType(FunctionType&& other)
+		: Type(other)
+		, argumentType(std::move(other.argumentType))
+		, returnType(std::move(other.returnType))
+		, typeNameCorrect(other.typeNameCorrect)
+	{}
+
+	virtual const std::string& toString()
+	{
+		if (!typeNameCorrect)
+		{
+			if (typeid(*argumentType) == typeid(FunctionType))
+				name = "(" + argumentType->toString() + ") -> " + returnType->toString();
+			else
+				name = argumentType->toString() + " -> " + returnType->toString();
+		}
+		return Type::toString();
+	}
+
+private:
+	std::unique_ptr<Type> argumentType;
+	std::unique_ptr<Type> returnType;
+	bool typeNameCorrect;
 };
 
 class Object;
@@ -124,8 +180,8 @@ inline T data_cast(U&& v)
 class VMField : public Object
 {
 public:
-    VMField(Type type, int offset)
-        : type(type)
+    VMField(Type&& type, int offset)
+        : type(std::move(type))
         , offset(offset)
     {}
 

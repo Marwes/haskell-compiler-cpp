@@ -1,26 +1,15 @@
 #pragma once
-#include "Expression.h"
-#include "Tokenizer.h"
 #include <vector>
 #include <fstream>
 #include <memory>
+#include "Expression.h"
+#include "Tokenizer.h"
+#include "Module.h"
 
 namespace MyVMNamespace
 {
 class Token;
 class Tokenizer;
-
-
-class Binding
-{
-public:
-	Binding(std::string name, std::unique_ptr<Expression> expression);
-	Binding(Binding&& binding);
-
-	std::string name;
-	std::unique_ptr<Expression> expression;
-};
-
 
 class Parser
 {
@@ -30,12 +19,14 @@ public:
     
 	std::unique_ptr<Expression> run();
 
-	std::vector<Binding> toplevel();
+	Module toplevel();
     std::unique_ptr<Expression> expression();
 	std::unique_ptr<Expression> subExpression(bool (*parseError)(const Token&) = nullptr);
 	std::unique_ptr<Expression> application();
 	Alternative alternative();
 	Binding binding();
+	TypeDeclaration typeDeclaration();
+	std::unique_ptr<Type> type();
 
 	template<class TResult>
 	std::vector<TResult> many1(TResult (Parser::*parse)() , SymbolEnum delim);

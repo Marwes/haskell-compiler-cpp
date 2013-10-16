@@ -30,6 +30,7 @@ namespace MyVMNamespace
 	XX(t,CASE) \
 	XX(t,OF) \
 	XX(t,ARROW) \
+	XX(t,TYPEDECL) \
 
 DECLARE_ENUM(SymbolEnum, SYMBOLENUM);
 

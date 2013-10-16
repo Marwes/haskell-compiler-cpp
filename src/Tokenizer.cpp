@@ -40,7 +40,7 @@ bool isTokenSeparator(char c)
 
 bool isOperator(char c)
 {
-	static std::string operators("+-*/.$=<>");
+	static std::string operators("+-*/.$:=<>");
 	return operators.find(c) != -1;
 }
 
@@ -98,6 +98,10 @@ bool Tokenizer::readToken(Token& token, bool& newline)
 		else if (token.name == "->")
 		{
 			token.type = SymbolEnum::ARROW;
+		}
+		else if (token.name == "::")
+		{
+			token.type = SymbolEnum::TYPEDECL;
 		}
 		else
 		{

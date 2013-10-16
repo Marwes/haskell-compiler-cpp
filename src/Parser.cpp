@@ -9,17 +9,6 @@
 namespace MyVMNamespace
 {
 
-Binding::Binding(std::string name, std::unique_ptr<Expression> expression)
-	: name(std::move(name))
-	, expression(std::move(expression))
-{
-}
-Binding::Binding(Binding&& other)
-	: name(std::move(other.name))
-	, expression(std::move(other.expression))
-{
-}
-
 Parser::Parser(Tokenizer& tokenizer)
     : tokenizer(tokenizer)
 {
@@ -84,8 +73,15 @@ bool toplevelNewBindError(const Token& t)
 		&& t.type != SymbolEnum::SEMICOLON;
 }
 
+bool bindingError(const Token& t)
+{
+	return t.type != SymbolEnum::EQUALSSIGN
+		&& t.type != SymbolEnum::NAME
+		&& t.type != SymbolEnum::TYPEDECL;
+}
 
-std::vector<Binding> Parser::toplevel()
+
+Module Parser::toplevel()
 {
 	const Token& lBracket = tokenizer.tokenizeModule();
 	if (lBracket.type != SymbolEnum::LBRACE)
@@ -93,7 +89,7 @@ std::vector<Binding> Parser::toplevel()
 		throw std::runtime_error("Expected '{' in beginning of module, got " + std::string(enumToString(lBracket.type)));
 	}
 
-	std::vector<Binding> binds;
+	Module module;
 
 	const Token* semicolon;
 	do
@@ -101,9 +97,21 @@ std::vector<Binding> Parser::toplevel()
 		const Token& token = tokenizer.nextToken(toplevelError);
 		if (token.type == SymbolEnum::NAME)
 		{
-			--tokenizer;
-			auto bind = binding();
-			binds.push_back(std::move(bind));
+			const Token& equalOrType = tokenizer.nextToken(bindingError);
+			if (equalOrType.type == SymbolEnum::TYPEDECL)
+			{
+				--tokenizer;
+				--tokenizer;
+				auto bind = typeDeclaration();
+				module.typeDeclaration.push_back(std::move(bind));
+			}
+			else
+			{
+				--tokenizer;
+				--tokenizer;
+				auto bind = binding();
+				module.bindings.push_back(std::move(bind));
+			}
 		}
 		else
 		{
@@ -118,7 +126,7 @@ std::vector<Binding> Parser::toplevel()
 		throw std::runtime_error("Expected '}' to end module, got " + std::string(enumToString(rBracket.type)));
 	}
 
-	return std::move(binds);
+	return std::move(module);
 }
 
 std::unique_ptr<Expression> Parser::expression()
@@ -368,6 +376,61 @@ Binding Parser::binding()
 	{
 		return Binding(nameToken.name, expression());
 	}
+}
+
+TypeDeclaration Parser::typeDeclaration()
+{
+	const Token nameToken = tokenizer.nextToken(errorIfNotName);
+	if (nameToken.type != SymbolEnum::NAME)
+	{
+		throw std::runtime_error("Expected NAME on left side of binding " + std::string(enumToString(nameToken.type)));
+	}
+	const Token& decl = tokenizer.nextToken();
+	if (decl.type != SymbolEnum::TYPEDECL)
+	{
+		throw std::runtime_error("Expected '::' in binding, got " + std::string(enumToString(tokenizer->type)));
+	}
+	std::unique_ptr<Type> t = type();
+
+	return TypeDeclaration(nameToken.name, std::move(t));
+}
+
+std::unique_ptr<Type> Parser::type()
+{
+	Type result(TypeEnum::TYPE_METHOD);
+	const Token& token = tokenizer.nextToken();
+	switch (token.type)
+	{
+	case SymbolEnum::LPARENS:
+		{
+			auto arg = type();
+			const Token& rParens = *tokenizer;
+			if (rParens.type == SymbolEnum::RPARENS)
+			{
+				const Token& arrow = tokenizer.nextToken();
+				if (arrow.type == SymbolEnum::ARROW)
+				{
+					return std::unique_ptr<Type>(new FunctionType(std::move(arg), type()));
+				}
+				return std::move(arg);
+			}
+		}
+		break;
+	case SymbolEnum::NAME:
+		{
+			const Token& arrow = tokenizer.nextToken();
+			if (arrow.type == SymbolEnum::ARROW)
+			{
+				std::unique_ptr<Type> arg(new Type(token.name, TypeEnum::TYPE_CLASS));
+				return std::unique_ptr<Type>(new FunctionType(std::move(arg), type()));
+			}
+			return std::unique_ptr<Type>(new Type(token.name, TypeEnum::TYPE_CLASS));
+		}
+		break;
+	default:
+		break;
+	}
+	return nullptr;
 }
 
 }
