@@ -391,8 +391,17 @@ TypeDeclaration Parser::typeDeclaration()
 		throw std::runtime_error("Expected '::' in binding, got " + std::string(enumToString(tokenizer->type)));
 	}
 	std::unique_ptr<Type> t = type();
+	--tokenizer;
 
 	return TypeDeclaration(nameToken.name, std::move(t));
+}
+
+bool typeParseError(const Token& t)
+{
+	return t.type != SymbolEnum::ARROW
+		&& t.type != SymbolEnum::SEMICOLON
+		&& t.type != SymbolEnum::RBRACE
+		&& t.type != SymbolEnum::RPARENS;
 }
 
 std::unique_ptr<Type> Parser::type()
@@ -418,7 +427,7 @@ std::unique_ptr<Type> Parser::type()
 		break;
 	case SymbolEnum::NAME:
 		{
-			const Token& arrow = tokenizer.nextToken();
+			const Token& arrow = tokenizer.nextToken(typeParseError);
 			if (arrow.type == SymbolEnum::ARROW)
 			{
 				std::unique_ptr<Type> arg(new Type(token.name, TypeEnum::TYPE_CLASS));

@@ -378,3 +378,22 @@ TEST_CASE("parser/typedeclaration3", "Function")
 	REQUIRE(type.name == "add");
 	REQUIRE(type.type->toString() == "(Int -> Double) -> Int");
 }
+
+TEST_CASE("parser/typedeclaration4", "add")
+{
+	const char* expr =
+"add :: Int -> Int -> Int\n\
+add x y = x + y\n";
+	std::stringstream stream(expr);
+	Tokenizer tokenizer(stream);
+	Parser parser(tokenizer);
+
+	Module module = parser.toplevel();
+	TypeDeclaration& type = module.typeDeclaration[0];
+	REQUIRE(type.name == "add");
+	REQUIRE(type.type->toString() == "Int -> Int -> Int");
+	Binding& bind = module.bindings[0];
+	REQUIRE(bind.name == "add");
+	Lambda& lambda = dynamic_cast<Lambda&>(*bind.expression);
+	REQUIRE(lambda.arguments.size() == 2);
+}
