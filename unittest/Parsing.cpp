@@ -16,7 +16,7 @@ bool operator==(const Number& lhs, const Number& rhs)
     return lhs.value == rhs.value;
 }
 
-bool operator==(const FunctionApplication& lhs, const FunctionApplication& rhs)
+bool operator==(const Apply& lhs, const Apply& rhs)
 {
     return lhs.function == rhs.function && lhs.arguments == rhs.arguments;
 }
@@ -26,8 +26,8 @@ bool operator==(const FunctionApplication& lhs, const FunctionApplication& rhs)
 bool operator==(const Expression& lhs, const Expression& rhs)
 {
     {
-        auto r = dynamic_cast<const FunctionApplication*>(&rhs);
-        auto l = dynamic_cast<const FunctionApplication*>(&lhs);
+        auto r = dynamic_cast<const Apply*>(&rhs);
+		auto l = dynamic_cast<const Apply*>(&lhs);
         if (r && l)
             return *r == *l;
     }

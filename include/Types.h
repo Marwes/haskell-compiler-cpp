@@ -77,6 +77,17 @@ public:
 		return name;
 	}
 
+	virtual bool operator==(const Type& other)
+	{
+		return type == other.type && name == other.name;
+	}
+	bool operator!=(const Type& other)
+	{
+		return !(*this == other);
+	}
+
+	static const Type any;
+
 	TypeEnum type;
 protected:
 	std::string name;
@@ -108,6 +119,21 @@ public:
 				name = argumentType->toString() + " -> " + returnType->toString();
 		}
 		return Type::toString();
+	}
+
+	virtual bool operator==(const Type& o)
+	{
+		if (typeid(*this) != typeid(o))
+		{
+			return false;
+		}
+		const FunctionType& other = static_cast<const FunctionType&>(o);
+		bool equal = (argumentType != nullptr && other.argumentType != nullptr && *argumentType == *other.argumentType)
+			|| argumentType == other.argumentType;
+		if (!equal)
+			return false;
+		return (returnType != nullptr && other.argumentType != nullptr && *argumentType == *other.argumentType)
+			|| argumentType == other.argumentType;
 	}
 
 private:

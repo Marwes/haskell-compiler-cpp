@@ -10,7 +10,7 @@ Name::Name(std::string name)
 {
 }
 
-void Name::evaluate(Environment& env, std::vector<Instruction>& instructions)
+void Name::evaluate(Environment& env, const Type& inferred, std::vector<Instruction>& instructions)
 {
 	int stackPos = env.getIndexForName(this->name);
 	if (stackPos == -1)
@@ -25,7 +25,7 @@ Number::Number(int value)
 {
 }
 
-void Number::evaluate(Environment& env, std::vector<Instruction>& instructions)
+void Number::evaluate(Environment& env, const Type& inferred, std::vector<Instruction>& instructions)
 {
     instructions.push_back(Instruction(OP::LOAD_INT_CONST, value));
 }
@@ -37,31 +37,13 @@ PrimOP::PrimOP(OP op, std::unique_ptr<Expression>&& lhs, std::unique_ptr<Express
 {
 }
 
-void PrimOP::evaluate(Environment& env, std::vector<Instruction>& instructions)
+void PrimOP::evaluate(Environment& env, const Type& inferred, std::vector<Instruction>& instructions)
 {
-    lhs->evaluate(env, instructions);
-    rhs->evaluate(env, instructions);
-    
-    instructions.push_back(Instruction(op));
+	lhs->evaluate(env, inferred, instructions);
+	rhs->evaluate(env, inferred, instructions);
+
+	instructions.push_back(Instruction(op));
 }
-
-FunctionApplication::FunctionApplication(std::unique_ptr<Expression>&& function, std::vector<std::unique_ptr<Expression>>&& arguments)
-    : function(std::move(function))
-    , arguments(std::move(arguments))
-{
-}
-
-void FunctionApplication::evaluate(Environment& env, std::vector<Instruction>& instructions)
-{
-    function->evaluate(env, instructions);
-
-    for (auto& arg : arguments)
-    {
-        arg->evaluate(env, instructions);
-    }
-    instructions.push_back(Instruction(OP::CALL, arguments.size()));
-}
-
 
 Let::Let(std::vector<Binding>&& bindings, std::unique_ptr<Expression>&& expression)
 	: bindings(std::move(bindings))
@@ -69,7 +51,7 @@ Let::Let(std::vector<Binding>&& bindings, std::unique_ptr<Expression>&& expressi
 {
 }
 
-void Let::evaluate(Environment& env, std::vector<Instruction>& instructions)
+void Let::evaluate(Environment& env, const Type& inferred, std::vector<Instruction>& instructions)
 {
 	//Always causes evaluation of bindings before execution of the rest
 	//bindings must be used in order of definition in order or it will fail
@@ -82,10 +64,10 @@ void Let::evaluate(Environment& env, std::vector<Instruction>& instructions)
 		else
 		{
 			env.newLocal(bind.name);
-			bind.expression->evaluate(env, instructions);
+			bind.expression->evaluate(env, Type::any, instructions);
 		}
 	}
-	expression->evaluate(env, instructions);
+	expression->evaluate(env, inferred, instructions);
 }
 
 
@@ -95,7 +77,7 @@ Lambda::Lambda(std::vector<std::string> && arguments, std::unique_ptr<Expression
 {
 }
 
-void Lambda::evaluate(Environment& env, std::vector<Instruction>& instructions)
+void Lambda::evaluate(Environment& env, const Type& inferred, std::vector<Instruction>& instructions)
 {
 	int index = env.addLambda(*this);
 	instructions.push_back(Instruction(OP::LOAD_FUNCTION, index));//TODO, dont get stack index
@@ -109,11 +91,11 @@ Apply::Apply(std::unique_ptr<Expression> && function, std::vector<std::unique_pt
 }
 
 
-void Apply::evaluate(Environment& env, std::vector<Instruction>& instructions)
+void Apply::evaluate(Environment& env, const Type& inferred, std::vector<Instruction>& instructions)
 {
 	for (auto& arg : arguments)
 	{
-		arg->evaluate(env, instructions);
+		arg->evaluate(env, Type::any, instructions);
 	}
 	if (Name* name = dynamic_cast<Name*>(function.get()))
 	{
@@ -140,9 +122,9 @@ Case::Case(std::unique_ptr<Expression> && expr, std::vector<Alternative> && alte
 	, alternatives(std::move(alternatives))
 {}
 
-void Case::evaluate(Environment& env, std::vector<Instruction>& instructions)
+void Case::evaluate(Environment& env, const Type& inferred, std::vector<Instruction>& instructions)
 {
-	expression->evaluate(env, instructions);
+	expression->evaluate(env, Type::any, instructions);
 	std::vector<size_t> branches;
 	size_t beginSize = instructions.size();
 	for (Alternative& alt : alternatives)
@@ -172,11 +154,11 @@ void Case::evaluate(Environment& env, std::vector<Instruction>& instructions)
 		{
 			Environment caseEnv = env.childEnvironment();
 			caseEnv.newLocal(pattern->name);
-			alt.expression->evaluate(caseEnv, instructions);
+			alt.expression->evaluate(caseEnv, inferred, instructions);
 		}
 		else if (NumberLiteral* pattern = dynamic_cast<NumberLiteral*>(alt.pattern.get()))
 		{
-			alt.expression->evaluate(env, instructions);
+			alt.expression->evaluate(env, inferred, instructions);
 		}
 		instructions.push_back(Instruction(OP::RETURN));
 	}
