@@ -18,9 +18,9 @@ std::unique_ptr<VM> evaluateInt(const char* expr)
 	Assembly assembly = compiler.compile();
 
 	std::unique_ptr<VM> vm = make_unique<VM>();
-	Method method = Method::main(assembly);
 	vm->assembly = std::move(assembly);
-	MethodEnvironment env(vm->newStackFrame(), &method);
+	FunctionDefinition* def = vm->assembly.getFunction("main");
+	MethodEnvironment env(&vm->assembly, vm->newStackFrame(), def);
 	vm->execute(env);
 	return std::move(vm);
 }
@@ -107,15 +107,32 @@ TEST_CASE("compiler/tuple", "")
 	const char* expr = "(1,2)";
 	std::stringstream input(expr);
 	Evaluator compiler(input);
-	Assembly assembly = compiler.compile();
-
 	std::unique_ptr<VM> vm = make_unique<VM>();
-	Method method = Method::main(assembly);
-	vm->assembly = std::move(assembly);
-	MethodEnvironment env(vm->newStackFrame(), &method);
+	vm->assembly = compiler.compile();
+
+	FunctionDefinition* def = vm->assembly.getFunction("main");
+	MethodEnvironment env(&vm->assembly, vm->newStackFrame(), def);
 	vm->execute(env);
 	Object* obj = vm->getValue(2).pointerValue;
 	REQUIRE(obj != NULL);
 	REQUIRE(obj->getField(0).intValue == 1);
 	REQUIRE(obj->getField(1).intValue == 2);
+}
+
+
+TEST_CASE("compiler/module", "")
+{
+	std::stringstream stream(
+"add :: Int -> Int -> Int\n\
+add x y = x + y\n");
+	Compiler compiler(stream);
+
+	Assembly assembly = compiler.compile();
+	FunctionDefinition* def = assembly.getFunction("add");
+	REQUIRE(def != NULL);
+
+	std::unique_ptr<VM> vm = make_unique<VM>();
+	vm->assembly = std::move(assembly);
+	MethodEnvironment env(&vm->assembly, vm->newStackFrame(), def);
+	vm->execute(env);
 }

@@ -65,7 +65,7 @@ struct Instruction
     unsigned char arg2;
 };
 
-class FunctionDefinition
+class FunctionDefinition : public Object
 {
 public:
 	FunctionDefinition()
@@ -87,8 +87,8 @@ public:
 
 	int addFunction(const std::string& name, std::unique_ptr<FunctionDefinition> && def);
 
-	FunctionDefinition* getFunction(size_t index);
-	FunctionDefinition* getFunction(const std::string& name);
+	FunctionDefinition* getFunction(size_t index) const;
+	FunctionDefinition* getFunction(const std::string& name) const;
 
 
 	VM_Function getNativeFunction(const std::string& name)

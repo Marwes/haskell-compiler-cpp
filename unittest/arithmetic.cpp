@@ -25,8 +25,7 @@ TEST_CASE("arithmetic", "test arithmetic")
 
     {
         VM vm;
-        Method method = Method::main(assembly);
-        MethodEnvironment env(vm.newStackFrame(), &method);
+        MethodEnvironment env(&vm.assembly, vm.newStackFrame(), &def);
         vm.execute(env);
         REQUIRE(vm.getValue(0).intValue == 15);
         REQUIRE(vm.getValue(1).intValue == 35);
@@ -36,9 +35,8 @@ TEST_CASE("arithmetic", "test arithmetic")
     // [0] = 5 - 10
     def.instructions.push_back(Instruction(OP::SUBTRACT));
     {
-        VM vm;
-        Method method = Method::main(assembly);
-        MethodEnvironment env(vm.newStackFrame(), &method);
+		VM vm;
+		MethodEnvironment env(&vm.assembly, vm.newStackFrame(), &def);
         vm.execute(env);
         REQUIRE(vm.getValue(0).intValue == -20);
     }
@@ -49,9 +47,8 @@ TEST_CASE("arithmetic", "test arithmetic")
     def.instructions.push_back(Instruction(OP::MULTIPLY));
     // 400
     {
-        VM vm;
-        Method method = Method::main(assembly);
-        MethodEnvironment env(vm.newStackFrame(), &method);
+		VM vm;
+		MethodEnvironment env(&vm.assembly, vm.newStackFrame(), &def);
         vm.execute(env);
         REQUIRE(vm.getValue(0).intValue == 400);
     }
@@ -61,9 +58,8 @@ TEST_CASE("arithmetic", "test arithmetic")
     def.instructions.push_back(Instruction(OP::DIVIDE));
     // 80
     {
-        VM vm;
-        Method method = Method::main(assembly);
-        MethodEnvironment env(vm.newStackFrame(), &method);
+		VM vm;
+		MethodEnvironment env(&vm.assembly, vm.newStackFrame(), &def);
         vm.execute(env);
         REQUIRE(vm.getValue(0).intValue == 80);
     }
@@ -73,9 +69,8 @@ TEST_CASE("arithmetic", "test arithmetic")
     def.instructions.push_back(Instruction(OP::REMAINDER));
     // 3
     {
-        VM vm;
-        Method method = Method::main(assembly);
-        MethodEnvironment env(vm.newStackFrame(), &method);
+		VM vm;
+		MethodEnvironment env(&vm.assembly, vm.newStackFrame(), &def);
         vm.execute(env);
         REQUIRE(vm.getValue(0).intValue == 3);
     }

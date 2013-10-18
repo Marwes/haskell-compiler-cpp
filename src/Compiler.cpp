@@ -82,4 +82,30 @@ Assembly Evaluator::compile()
 	return std::move(assembly);
 }
 
+Compiler::Compiler(std::istream& input)
+	: tokenizer(input)
+	, parser(tokenizer)
+{
+}
+
+Assembly Compiler::compile()
+{
+	Assembly assembly;
+	Environment env(assembly);
+	Module module = parser.toplevel();
+
+	assert(module.bindings.size() == module.typeDeclaration.size());
+	for (size_t ii = 0; ii < module.bindings.size(); ++ii)
+	{
+		const Binding& bind = module.bindings[0];
+		const TypeDeclaration& decl = module.typeDeclaration[0];
+		assembly.addFunction(bind.name, make_unique<FunctionDefinition>());
+		FunctionDefinition* def = assembly.getFunction(bind.name);
+		assert(def);
+		bind.expression->evaluate(env, *decl.type, def->instructions);
+	}
+
+	return std::move(assembly);
+}
+
 }

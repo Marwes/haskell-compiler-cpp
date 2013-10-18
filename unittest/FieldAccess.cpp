@@ -8,7 +8,8 @@ TEST_CASE("field", "test field access")
 {
     Assembly assembly;
 	assembly.addFunction("main", make_unique<FunctionDefinition>());
-	std::vector<Instruction>& instructions = assembly.getFunction("main")->instructions;
+	FunctionDefinition* function = assembly.getFunction("main");
+	std::vector<Instruction>& instructions = function->instructions;
     instructions.push_back(Instruction(OP::LOAD_INT_CONST, 10));
     VMInt size = sizeof(StackObject) * 2;
     instructions.push_back(Instruction(OP::NEWOBJECT, size));
@@ -19,8 +20,7 @@ TEST_CASE("field", "test field access")
         VM vm;
         std::vector<RefCountedPointer> fields;
         fields.push_back(RefCountedPointer(new VMField(Type(TYPE_INT), 0)));
-        Method method(methodInstructions, std::vector<Type>(), std::move(fields));
-        MethodEnvironment env(vm.newStackFrame(), &method);
+        MethodEnvironment env(&vm.assembly, vm.newStackFrame(), function);
         
         vm.execute(env);
         REQUIRE(vm.getValue(2).intValue == 10); // 10 obj 10

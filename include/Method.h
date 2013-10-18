@@ -42,39 +42,4 @@ namespace MyVMNamespace
         Object* value;
     };
 
-class Method : public Object
-{
-public:
-    typedef std::vector<RefCountedPointer> ObjectVector;
-    Method(Slice<Instruction> code, std::vector<Type> parameters, ObjectVector&& data = ObjectVector())
-        : code(std::move(code))
-        , data(std::move(data))
-        , parameterTypes(std::move(parameters))
-    {
-    }
-
-    Method(Method&& method)
-        : code(std::move(method.code))
-        , data(std::move(method.data))
-        , parameterTypes(std::move(method.parameterTypes))
-        , stackLayout(std::move(method.stackLayout))
-    {
-    }
-
-    static Method main(Assembly& assembly)
-    {
-		FunctionDefinition* funcDef = assembly.getFunction("main");
-		assert(funcDef);
-        Instruction* begin = funcDef->instructions.data() + assembly.entrypoint;
-        size_t size = funcDef->instructions.size() - assembly.entrypoint;
-		ObjectVector data;
-        return Method(Slice<Instruction>(begin, size), std::vector<Type>(), std::move(data));
-    }
-
-    const Slice<Instruction> code;
-    ObjectVector data;
-    const std::vector<Type> parameterTypes;
-    StackLayout stackLayout;
-};
-
 }

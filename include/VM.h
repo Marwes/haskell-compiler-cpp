@@ -8,22 +8,22 @@
 
 namespace MyVMNamespace
 {
-
-class Method;
 class VMI;
 
 struct MethodEnvironment
 {
-    MethodEnvironment(const StackFrame& frame, Method* method)
+    MethodEnvironment(const Assembly* assembly, const StackFrame& frame, FunctionDefinition* function)
         : stackFrame(frame)
-        , method(method)
+		, function(function)
+		, assembly(assembly)
     {
     }
 
     ~MethodEnvironment();
 
     StackFrame stackFrame;
-    Method* method;
+	FunctionDefinition* function;
+	const Assembly* assembly;
 };
 
 struct VM

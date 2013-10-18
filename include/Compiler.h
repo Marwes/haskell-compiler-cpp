@@ -63,4 +63,15 @@ private:
     Parser parser;
 };
 
+class Compiler
+{
+public:
+	Compiler(std::istream& input);
+
+	Assembly compile();
+private:
+	Tokenizer tokenizer;
+	Parser parser;
+};
+
 }

@@ -36,8 +36,10 @@ public:
 
 	static void op_load_function(MethodEnvironment& environment, Instruction current)
 	{
-		RefCountedPointer& o = environment.method->data[current.arg0];
-		environment.stackFrame.push(o.get());
+		FunctionDefinition* f = environment.assembly->getFunction(current.arg0);
+		StackObject o;
+		o.pointerValue = f;
+		environment.stackFrame.push(f);
 	}
 
     static void op_load_int_constant(MethodEnvironment& environment, Instruction& current)
@@ -47,9 +49,10 @@ public:
 
     static void op_load_string_constant(MethodEnvironment& environment, Instruction& current)
     {
-        String* string = data_cast<String*>(environment.method->data[current.arg0].get());
+		assert(0);
+        //String* string = data_cast<String*>(environment.method->data[current.arg0].get());
 
-        environment.stackFrame.push(string);
+		//environment.stackFrame.push(string);
     }
 
     static void op_branch_true(MethodEnvironment& environment, Instruction& current, size_t& instructionPointer)
@@ -57,13 +60,13 @@ public:
         StackObject& obj = environment.stackFrame.top();
         if (obj.intValue != 0)
         {
-            assert(current.arg0 < (int)environment.method->code.size());
+            assert(current.arg0 < (int)environment.function->instructions.size());
             instructionPointer = current.arg0;
         }
 	}
 	static void op_jump(MethodEnvironment& environment, Instruction& current, size_t& instructionPointer)
 	{
-		assert(current.arg0 < (int) environment.method->code.size());
+		assert(current.arg0 < (int) environment.function->instructions.size());
 		instructionPointer = current.arg0;
 	}
 
@@ -79,9 +82,8 @@ public:
     static void op_getfield(MethodEnvironment& environment, Instruction current)
     {
         StackObject* obj = &environment.stackFrame.top();
-        const VMField& field = data_cast<const VMField&>(*environment.method->data[current.arg0]);
 
-        environment.stackFrame[current.arg1] = *(obj + field.offset);
+        environment.stackFrame[current.arg1] = *(obj + current.arg0);
     }
 
     static void op_call(VM& vm, MethodEnvironment& environment, Instruction current)
@@ -93,9 +95,8 @@ public:
 	{
 		FunctionDefinition* func = vm.assembly.getFunction(current.arg0);
 		assert(func);
-		Method method(Slice<Instruction>(func->instructions.data(), func->instructions.size()), std::vector<Type>());
 
-		MethodEnvironment newEnvironment(environment.stackFrame.makeChildFrame(func->numArguments), &method);
+		MethodEnvironment newEnvironment(&vm.assembly, environment.stackFrame.makeChildFrame(func->numArguments), func);
 
 		vm.execute(newEnvironment);
 		size_t i = environment.stackFrame.size() - func->numArguments;
@@ -122,9 +123,8 @@ public:
     static void op_setfield(MethodEnvironment& environment, Instruction current)
     {
         StackObject* obj = &environment.stackFrame.top();
-        const VMField& field = data_cast<const VMField&>(*environment.method->data[current.arg0]);
         
-        *(obj + field.offset) = environment.stackFrame[current.arg1];
+        *(obj + current.arg0) = environment.stackFrame[current.arg1];
     }
 
 
@@ -172,7 +172,9 @@ typedef void (*execute_function_t)(VM& vm, Instruction current);
 
 MethodEnvironment::~MethodEnvironment()
 {
-    const StackLayout& stackLayout = this->method->stackLayout;
+	//TODO
+#if 0
+    const StackLayout& stackLayout = this->function->stackLayout;
     //cleanup the stack
     for (size_t ii = 0; ii < stackFrame.size() && ii < stackLayout.types.size(); ++ii)
     {
@@ -190,6 +192,7 @@ MethodEnvironment::~MethodEnvironment()
         }
 
     }
+#endif
 }
 
 VM::VM()
@@ -220,7 +223,7 @@ void VM::printstack()
 void VM::execute(MethodEnvironment& environment)
 {
     size_t currentInstruction = 0;
-    const Slice<Instruction>& code = environment.method->code;
+	const std::vector<Instruction>& code = environment.function->instructions;
     while (currentInstruction < code.size())
     {
         Instruction instruction = code[currentInstruction];
@@ -319,6 +322,7 @@ void VM::execute(MethodEnvironment& environment)
 
 void VM::endFrame(MethodEnvironment& environment)
 {
+#if 0
     int stackLevel = 0;
     unsigned char* base = reinterpret_cast<unsigned char*>(environment.stackFrame.data());
     for (TypeEnum type : environment.method->stackLayout.types)
@@ -332,6 +336,7 @@ void VM::endFrame(MethodEnvironment& environment)
         }
         stackLevel += sizeofType(type);
     }
+#endif
 }
 
 };

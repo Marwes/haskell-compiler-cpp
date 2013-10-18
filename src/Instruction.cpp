@@ -51,12 +51,12 @@ int Assembly::addFunction(const std::string& name, std::unique_ptr<FunctionDefin
 	return index;
 }
 
-FunctionDefinition* Assembly::getFunction(size_t index)
+FunctionDefinition* Assembly::getFunction(size_t index) const
 {
 	return functionDefinitions[index].get();
 }
 
-FunctionDefinition* Assembly::getFunction(const std::string& name)
+FunctionDefinition* Assembly::getFunction(const std::string& name) const
 {
 	auto& found = functionDefinitionsIndexes.find(name);
 	if (found == functionDefinitionsIndexes.end())
