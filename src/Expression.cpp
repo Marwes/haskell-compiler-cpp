@@ -156,7 +156,7 @@ Case::Case(std::unique_ptr<Expression> && expr, std::vector<Alternative> && alte
 
 const Type& Case::evaluate(Environment& env, const Type& inferred, std::vector<Instruction>& instructions)
 {
-	expression->evaluate(env, PolymorphicType::any, instructions);
+	const Type& caseType = expression->evaluate(env, PolymorphicType::any, instructions);
 	std::vector<size_t> branches;
 	size_t beginSize = instructions.size();
 	for (Alternative& alt : alternatives)
@@ -168,6 +168,10 @@ const Type& Case::evaluate(Environment& env, const Type& inferred, std::vector<I
 		}
 		else if (NumberLiteral* pattern = dynamic_cast<NumberLiteral*>(alt.pattern.get()))
 		{
+			if (!caseType.isCompatibleWith(intType))
+			{
+				throw std::runtime_error("Number literal is not valid in case alternative for non-number types");
+			}
 			//Load the topmost value since it will be reduced by the comparison
 			instructions.push_back(Instruction(OP::LOAD, env.getStackTop()));
 			instructions.push_back(Instruction(OP::LOAD_INT_CONST, pattern->value));
