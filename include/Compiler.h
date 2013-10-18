@@ -42,7 +42,7 @@ public:
 	}
 
 	int addLambda(Lambda& expr);
-	int addFunction(const std::string& name, Lambda& lambda);
+	int addFunction(const std::string& name, const Type& type, Lambda& lambda);
 private:
 	const Environment* parent;
 	Assembly& assembly;
@@ -57,6 +57,7 @@ public:
 	Evaluator(std::istream& input);
 
 	Assembly compile();
+	void compile(Assembly& assembly);
 
 private:
     Tokenizer tokenizer;

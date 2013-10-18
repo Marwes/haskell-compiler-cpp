@@ -35,7 +35,7 @@ int Environment::getIndexForName(const std::string& name) const
 }
 
 
-int Environment::addFunction(const std::string& name, Lambda& lambda)
+int Environment::addFunction(const std::string& name, const Type& type, Lambda& lambda)
 {
 	std::unique_ptr<FunctionDefinition> def(new FunctionDefinition());
 	def->numArguments = lambda.arguments.size();
@@ -44,7 +44,7 @@ int Environment::addFunction(const std::string& name, Lambda& lambda)
 	{
 		child.newLocal(arg);
 	}
-	lambda.expression->evaluate(child, PolymorphicType::any, def->instructions);
+	lambda.expression->evaluate(child, type, def->instructions);
 	return assembly.addFunction(name, std::move(def));
 }
 
@@ -73,13 +73,18 @@ Evaluator::Evaluator(std::istream& input)
 Assembly Evaluator::compile()
 {
 	Assembly assembly;
+	compile(assembly);
+	return std::move(assembly);
+}
+
+void Evaluator::compile(Assembly& assembly)
+{
 	Environment env(assembly);
 	assembly.addFunction("main", make_unique<FunctionDefinition>());
 	std::unique_ptr<Expression> expr = parser.run();
 	FunctionDefinition* def = assembly.getFunction("main");
 	assert(def);
 	expr->evaluate(env, PolymorphicType::any, def->instructions);
-	return std::move(assembly);
 }
 
 Compiler::Compiler(std::istream& input)
@@ -99,10 +104,17 @@ Assembly Compiler::compile()
 	{
 		const Binding& bind = module.bindings[0];
 		const TypeDeclaration& decl = module.typeDeclaration[0];
-		assembly.addFunction(bind.name, make_unique<FunctionDefinition>());
-		FunctionDefinition* def = assembly.getFunction(bind.name);
-		assert(def);
-		bind.expression->evaluate(env, *decl.type, def->instructions);
+		if (Lambda* lambda = dynamic_cast<Lambda*>(bind.expression.get()))
+		{
+			env.addFunction(bind.name, *decl.type, *lambda);
+		}
+		else
+		{
+			assembly.addFunction(bind.name, make_unique<FunctionDefinition>());
+			FunctionDefinition* def = assembly.getFunction(bind.name);
+			assert(def);
+			bind.expression->evaluate(env, *decl.type, def->instructions);
+		}
 	}
 
 	return std::move(assembly);

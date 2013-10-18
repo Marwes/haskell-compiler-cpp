@@ -76,7 +76,7 @@ const Type& Let::evaluate(Environment& env, const Type& inferred, std::vector<In
 	{
 		if (Lambda* lambda = dynamic_cast<Lambda*>(bind.expression.get()))
 		{
-			env.addFunction(bind.name, *lambda);
+			env.addFunction(bind.name, PolymorphicType::any, *lambda);
 		}
 		else
 		{

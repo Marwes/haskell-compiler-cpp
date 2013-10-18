@@ -119,6 +119,17 @@ TEST_CASE("compiler/tuple", "")
 	REQUIRE(obj->getField(1).intValue == 2);
 }
 
+int run(VM& vm, const std::string& expr)
+{
+	std::stringstream str(expr);
+	Evaluator eval(str);
+	eval.compile(vm.assembly);
+	FunctionDefinition* def = vm.assembly.getFunction("main");
+	assert(def != nullptr);
+	MethodEnvironment env(&vm.assembly, vm.newStackFrame(), def);
+	vm.execute(env);
+	return vm.getStack()[0].intValue;
+}
 
 TEST_CASE("compiler/module", "")
 {
@@ -128,11 +139,9 @@ add x y = x + y\n");
 	Compiler compiler(stream);
 
 	Assembly assembly = compiler.compile();
-	FunctionDefinition* def = assembly.getFunction("add");
-	REQUIRE(def != NULL);
 
 	std::unique_ptr<VM> vm = make_unique<VM>();
 	vm->assembly = std::move(assembly);
-	MethodEnvironment env(&vm->assembly, vm->newStackFrame(), def);
-	vm->execute(env);
+	REQUIRE(run(*vm, "add 2 3") == (2 + 3));
 }
+
