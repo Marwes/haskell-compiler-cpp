@@ -51,10 +51,10 @@ private:
 };
 
 
-class Compiler
+class Evaluator
 {
 public:
-	Compiler(std::istream& input);
+	Evaluator(std::istream& input);
 
 	Assembly compile();
 

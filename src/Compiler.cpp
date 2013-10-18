@@ -64,13 +64,13 @@ int Environment::addLambda(Lambda& lambda)
 }
 
 
-Compiler::Compiler(std::istream& input)
+Evaluator::Evaluator(std::istream& input)
 	: tokenizer(input)
 	, parser(tokenizer)
 {
 }
 
-Assembly Compiler::compile()
+Assembly Evaluator::compile()
 {
 	Assembly assembly;
 	Environment env(assembly);

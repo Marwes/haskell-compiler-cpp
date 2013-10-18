@@ -14,7 +14,7 @@ using namespace MyVMNamespace;
 std::unique_ptr<VM> evaluateInt(const char* expr)
 {
 	std::stringstream input(expr);
-	Compiler compiler(input);
+	Evaluator compiler(input);
 	Assembly assembly = compiler.compile();
 
 	std::unique_ptr<VM> vm = make_unique<VM>();
@@ -106,7 +106,7 @@ TEST_CASE("compiler/tuple", "")
 {
 	const char* expr = "(1,2)";
 	std::stringstream input(expr);
-	Compiler compiler(input);
+	Evaluator compiler(input);
 	Assembly assembly = compiler.compile();
 
 	std::unique_ptr<VM> vm = make_unique<VM>();
