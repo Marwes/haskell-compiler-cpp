@@ -2,5 +2,15 @@
 
 namespace MyVMNamespace
 {
-const Type Type::any("a", TypeEnum::TYPE_CLASS);
+const PolymorphicType PolymorphicType::any;
+
+const Type& PolymorphicType::getArgumentType() const
+{
+	return *this;
+}
+const Type& PolymorphicType::getReturnType() const
+{
+	return *this;
+}
+
 }

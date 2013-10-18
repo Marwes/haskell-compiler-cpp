@@ -64,7 +64,7 @@ void Let::evaluate(Environment& env, const Type& inferred, std::vector<Instructi
 		else
 		{
 			env.newLocal(bind.name);
-			bind.expression->evaluate(env, Type::any, instructions);
+			bind.expression->evaluate(env, PolymorphicType::any, instructions);
 		}
 	}
 	expression->evaluate(env, inferred, instructions);
@@ -93,9 +93,21 @@ Apply::Apply(std::unique_ptr<Expression> && function, std::vector<std::unique_pt
 
 void Apply::evaluate(Environment& env, const Type& inferred, std::vector<Instruction>& instructions)
 {
+	auto functionType = dynamic_cast<const RecursiveType*>(&inferred);
+	if (functionType == nullptr)
+	{
+		throw std::runtime_error("Tried to apply non function type.");
+	}
+
+	const RecursiveType* curriedFunc = functionType;
 	for (auto& arg : arguments)
 	{
-		arg->evaluate(env, Type::any, instructions);
+		if (curriedFunc == nullptr)
+		{
+			throw std::runtime_error("Function does not have enough arguments.");
+		}
+		arg->evaluate(env, curriedFunc->getArgumentType(), instructions);
+		curriedFunc = dynamic_cast<const RecursiveType*>(&curriedFunc->getReturnType());
 	}
 	if (Name* name = dynamic_cast<Name*>(function.get()))
 	{
@@ -124,7 +136,7 @@ Case::Case(std::unique_ptr<Expression> && expr, std::vector<Alternative> && alte
 
 void Case::evaluate(Environment& env, const Type& inferred, std::vector<Instruction>& instructions)
 {
-	expression->evaluate(env, Type::any, instructions);
+	expression->evaluate(env, PolymorphicType::any, instructions);
 	std::vector<size_t> branches;
 	size_t beginSize = instructions.size();
 	for (Alternative& alt : alternatives)

@@ -86,28 +86,58 @@ public:
 		return !(*this == other);
 	}
 
-	static const Type any;
-
 	TypeEnum type;
 protected:
 	std::string name;
 };
 
-class FunctionType : public Type
+class RecursiveType : public Type
+{
+public:
+	RecursiveType()
+		: Type(TypeEnum::TYPE_METHOD)
+	{}
+
+	virtual const Type& getArgumentType() const = 0;
+	virtual const Type& getReturnType() const = 0;
+};
+
+class PolymorphicType : public RecursiveType
+{
+public:
+
+	virtual const Type& getArgumentType() const;
+	virtual const Type& getReturnType() const;
+
+
+	static const PolymorphicType any;
+};
+
+class FunctionType : public RecursiveType
 {
 public:
 	FunctionType(std::unique_ptr<Type>&& argumentType, std::unique_ptr<Type>&& returnType)
-		: Type(TypeEnum::TYPE_METHOD)
-		, argumentType(std::move(argumentType))
+		: argumentType(std::move(argumentType))
 		, returnType(std::move(returnType))
 		, typeNameCorrect(false)
-	{}
+	{
+		assert(this->argumentType != nullptr);
+		assert(this->returnType != nullptr);
+	}
 	FunctionType(FunctionType&& other)
-		: Type(other)
-		, argumentType(std::move(other.argumentType))
+		: argumentType(std::move(other.argumentType))
 		, returnType(std::move(other.returnType))
 		, typeNameCorrect(other.typeNameCorrect)
 	{}
+
+	virtual const Type& getArgumentType() const
+	{
+		return *argumentType;
+	}
+	virtual const Type& getReturnType() const
+	{
+		return *returnType;
+	}
 
 	virtual const std::string& toString()
 	{

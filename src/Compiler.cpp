@@ -44,7 +44,7 @@ int Environment::addFunction(const std::string& name, Lambda& lambda)
 	{
 		child.newLocal(arg);
 	}
-	lambda.expression->evaluate(child, Type::any, def->instructions);
+	lambda.expression->evaluate(child, PolymorphicType::any, def->instructions);
 	return assembly.addFunction(name, std::move(def));
 }
 
@@ -57,7 +57,7 @@ int Environment::addLambda(Lambda& lambda)
 	{
 		child.newLocal(arg);
 	}
-	lambda.expression->evaluate(child, Type::any, def->instructions);
+	lambda.expression->evaluate(child, PolymorphicType::any, def->instructions);
 	std::stringstream name;
 	name << "lambda" << lambdaIndex++;
 	return assembly.addFunction(name.str(), std::move(def));
@@ -78,7 +78,7 @@ Assembly Compiler::compile()
 	std::unique_ptr<Expression> expr = parser.run();
 	FunctionDefinition* def = assembly.getFunction("main");
 	assert(def);
-	expr->evaluate(env, Type::any, def->instructions);
+	expr->evaluate(env, PolymorphicType::any, def->instructions);
 	return std::move(assembly);
 }
 
