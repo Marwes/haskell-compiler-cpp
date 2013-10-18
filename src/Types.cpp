@@ -13,4 +13,16 @@ const Type& PolymorphicType::getReturnType() const
 	return *this;
 }
 
+
+bool PolymorphicType::isCompatibleWith(const Type&) const
+{
+	return true;
+}
+
+
+bool FunctionType::isCompatibleWith(const Type& other) const
+{
+	return *this == other;
+}
+
 }

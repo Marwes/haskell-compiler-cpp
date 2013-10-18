@@ -10,7 +10,7 @@ Name::Name(std::string name)
 {
 }
 
-void Name::evaluate(Environment& env, const Type& inferred, std::vector<Instruction>& instructions)
+const Type& Name::evaluate(Environment& env, const Type& inferred, std::vector<Instruction>& instructions)
 {
 	int stackPos = env.getIndexForName(this->name);
 	if (stackPos == -1)
@@ -18,6 +18,7 @@ void Name::evaluate(Environment& env, const Type& inferred, std::vector<Instruct
 		throw std::runtime_error("Could not find local " + this->name);
 	}
 	instructions.push_back(Instruction(OP::LOAD, stackPos));
+	return inferred;
 }
 
 Number::Number(int value)
@@ -25,9 +26,12 @@ Number::Number(int value)
 {
 }
 
-void Number::evaluate(Environment& env, const Type& inferred, std::vector<Instruction>& instructions)
+const Type intType("Int", TypeEnum::TYPE_INT);
+
+const Type& Number::evaluate(Environment& env, const Type& inferred, std::vector<Instruction>& instructions)
 {
     instructions.push_back(Instruction(OP::LOAD_INT_CONST, value));
+	return intType;
 }
 
 PrimOP::PrimOP(OP op, std::unique_ptr<Expression>&& lhs, std::unique_ptr<Expression>&& rhs)
@@ -37,12 +41,25 @@ PrimOP::PrimOP(OP op, std::unique_ptr<Expression>&& lhs, std::unique_ptr<Express
 {
 }
 
-void PrimOP::evaluate(Environment& env, const Type& inferred, std::vector<Instruction>& instructions)
+const Type& PrimOP::evaluate(Environment& env, const Type& inferred, std::vector<Instruction>& instructions)
 {
-	lhs->evaluate(env, inferred, instructions);
-	rhs->evaluate(env, inferred, instructions);
+	const Type& lhsType = lhs->evaluate(env, inferred, instructions);
+	const Type& rhsType = rhs->evaluate(env, inferred, instructions);
 
-	instructions.push_back(Instruction(op));
+	if (inferred.isCompatibleWith(lhsType) && inferred.isCompatibleWith(rhsType))
+	{
+		if (lhsType.isCompatibleWith(rhsType))
+		{
+			instructions.push_back(Instruction(op));
+			return rhsType;
+		}
+		else if (rhsType.isCompatibleWith(lhsType))
+		{
+			instructions.push_back(Instruction(op));
+			return lhsType;
+		}
+	}
+	throw std::runtime_error("Types are not compatible in PrimOP expression");
 }
 
 Let::Let(std::vector<Binding>&& bindings, std::unique_ptr<Expression>&& expression)
@@ -51,7 +68,7 @@ Let::Let(std::vector<Binding>&& bindings, std::unique_ptr<Expression>&& expressi
 {
 }
 
-void Let::evaluate(Environment& env, const Type& inferred, std::vector<Instruction>& instructions)
+const Type& Let::evaluate(Environment& env, const Type& inferred, std::vector<Instruction>& instructions)
 {
 	//Always causes evaluation of bindings before execution of the rest
 	//bindings must be used in order of definition in order or it will fail
@@ -67,7 +84,7 @@ void Let::evaluate(Environment& env, const Type& inferred, std::vector<Instructi
 			bind.expression->evaluate(env, PolymorphicType::any, instructions);
 		}
 	}
-	expression->evaluate(env, inferred, instructions);
+	return expression->evaluate(env, inferred, instructions);
 }
 
 
@@ -77,10 +94,12 @@ Lambda::Lambda(std::vector<std::string> && arguments, std::unique_ptr<Expression
 {
 }
 
-void Lambda::evaluate(Environment& env, const Type& inferred, std::vector<Instruction>& instructions)
+const Type& Lambda::evaluate(Environment& env, const Type& inferred, std::vector<Instruction>& instructions)
 {
 	int index = env.addLambda(*this);
 	instructions.push_back(Instruction(OP::LOAD_FUNCTION, index));//TODO, dont get stack index
+	
+	return inferred;
 }
 
 
@@ -91,7 +110,7 @@ Apply::Apply(std::unique_ptr<Expression> && function, std::vector<std::unique_pt
 }
 
 
-void Apply::evaluate(Environment& env, const Type& inferred, std::vector<Instruction>& instructions)
+const Type& Apply::evaluate(Environment& env, const Type& inferred, std::vector<Instruction>& instructions)
 {
 	auto functionType = dynamic_cast<const RecursiveType*>(&inferred);
 	if (functionType == nullptr)
@@ -127,6 +146,7 @@ void Apply::evaluate(Environment& env, const Type& inferred, std::vector<Instruc
 	{
 		assert(0 && "Can only handle 'static' functions.");
 	}
+	return inferred;
 }
 
 Case::Case(std::unique_ptr<Expression> && expr, std::vector<Alternative> && alternatives)
@@ -134,7 +154,7 @@ Case::Case(std::unique_ptr<Expression> && expr, std::vector<Alternative> && alte
 	, alternatives(std::move(alternatives))
 {}
 
-void Case::evaluate(Environment& env, const Type& inferred, std::vector<Instruction>& instructions)
+const Type& Case::evaluate(Environment& env, const Type& inferred, std::vector<Instruction>& instructions)
 {
 	expression->evaluate(env, PolymorphicType::any, instructions);
 	std::vector<size_t> branches;
@@ -157,6 +177,7 @@ void Case::evaluate(Environment& env, const Type& inferred, std::vector<Instruct
 			instructions.push_back(Instruction(OP::POP));
 		}
 	}
+	const Type* ret = nullptr;
 	for (size_t ii = 0; ii < alternatives.size(); ++ii)
 	{
 		const Alternative& alt = alternatives[ii];
@@ -166,14 +187,33 @@ void Case::evaluate(Environment& env, const Type& inferred, std::vector<Instruct
 		{
 			Environment caseEnv = env.childEnvironment();
 			caseEnv.newLocal(pattern->name);
-			alt.expression->evaluate(caseEnv, inferred, instructions);
+			const Type& t = alt.expression->evaluate(caseEnv, inferred, instructions);
+			if (ret == nullptr)
+				ret = &t;
+			else
+			{
+				bool nextIsCompatible = t.isCompatibleWith(*ret);
+				if (!nextIsCompatible && !ret->isCompatibleWith(t))
+				{
+					throw std::runtime_error("All case alternatives must have the same type");
+				}
+				if (!nextIsCompatible)
+					ret = &t;
+			}
 		}
 		else if (NumberLiteral* pattern = dynamic_cast<NumberLiteral*>(alt.pattern.get()))
 		{
-			alt.expression->evaluate(env, inferred, instructions);
+			const Type& t = alt.expression->evaluate(env, inferred, instructions);
+			if (ret != nullptr && t != *ret)
+			{
+				throw std::runtime_error("All case alternatives must have the same type");
+			}
+			ret = &t;
 		}
 		instructions.push_back(Instruction(OP::RETURN));
 	}
+	assert(ret != nullptr);
+	return *ret;
 }
 
 

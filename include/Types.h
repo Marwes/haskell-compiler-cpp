@@ -47,7 +47,7 @@ inline size_t sizeofType(TypeEnum  e)
         break;
     default:
         assert(0);
-        return -1;
+        return 0;
         break;
     }
 }
@@ -77,11 +77,16 @@ public:
 		return name;
 	}
 
-	virtual bool operator==(const Type& other)
+	virtual bool isCompatibleWith(const Type& other) const
 	{
 		return type == other.type && name == other.name;
 	}
-	bool operator!=(const Type& other)
+
+	virtual bool operator==(const Type& other) const
+	{
+		return type == other.type && name == other.name;
+	}
+	bool operator!=(const Type& other) const
 	{
 		return !(*this == other);
 	}
@@ -109,6 +114,8 @@ public:
 	virtual const Type& getArgumentType() const;
 	virtual const Type& getReturnType() const;
 
+
+	virtual bool isCompatibleWith(const Type& other) const;
 
 	static const PolymorphicType any;
 };
@@ -151,7 +158,9 @@ public:
 		return Type::toString();
 	}
 
-	virtual bool operator==(const Type& o)
+	virtual bool isCompatibleWith(const Type& other) const;
+
+	virtual bool operator==(const Type& o) const
 	{
 		if (typeid(*this) != typeid(o))
 		{
