@@ -119,7 +119,8 @@ TEST_CASE("compiler/tuple", "")
 	REQUIRE(obj->getField(1).intValue == 2);
 }
 
-int run(VM& vm, const std::string& expr)
+template<class T>
+T runExpr(VM& vm, const std::string& expr)
 {
 	std::stringstream str(expr);
 	Evaluator eval(str);
@@ -128,7 +129,7 @@ int run(VM& vm, const std::string& expr)
 	assert(def != nullptr);
 	MethodEnvironment env(&vm.assembly, vm.newStackFrame(), def);
 	vm.execute(env);
-	return vm.getStack()[0].intValue;
+	return getObject<T>(vm.getStack()[0]);
 }
 
 TEST_CASE("compiler/module/1", "")
@@ -142,7 +143,7 @@ add x y = x + y\n");
 
 	std::unique_ptr<VM> vm = make_unique<VM>();
 	vm->assembly = std::move(assembly);
-	REQUIRE(run(*vm, "add 2 3") == (2 + 3));
+	REQUIRE(runExpr<VMInt>(*vm, "add 2 3") == (2 + 3));
 }
 
 TEST_CASE("compiler/module/2", "Compile invalid type in primop return")
@@ -164,4 +165,17 @@ add x y = x + y\n");
 	Compiler compiler(stream);
 
 	REQUIRE_THROWS_AS(compiler.compile(), TypeError);
+}
+
+TEST_CASE("compiler/module/divdeDoubles", "Test dividing doubles")
+{
+	std::stringstream stream(
+"divide :: Double -> Double -> Double\n\
+divide x y = x / y\n");
+	Compiler compiler(stream);
+	Assembly assembly = compiler.compile();
+
+	std::unique_ptr<VM> vm = make_unique<VM>();
+	vm->assembly = std::move(assembly);
+	REQUIRE(runExpr<VMFloat>(*vm, "divide 3 2") == 3. / 2);
 }

@@ -197,6 +197,29 @@ union StackObject
 	Object* pointerValue;
 };
 
+
+template<class T>
+inline T& getObject(StackObject& o)
+{
+	static_assert(0, "Invalid type for StackObject");
+	return o.intValue;
+}
+template<>
+inline VMInt& getObject(StackObject& o)
+{
+	return o.intValue;
+}
+template<>
+inline VMFloat& getObject(StackObject& o)
+{
+	return o.floatValue;
+}
+template<>
+inline Object*& getObject(StackObject& o)
+{
+	return o.pointerValue;
+}
+
 class Object
 {
 public:

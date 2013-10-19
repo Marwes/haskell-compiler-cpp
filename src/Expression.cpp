@@ -35,6 +35,7 @@ Number::Number(int value)
 }
 
 const Type intType("Int", TypeEnum::TYPE_CLASS);
+const Type doubleType("Double", TypeEnum::TYPE_CLASS);
 
 const Type& Number::evaluate(Environment& env, const Type& inferred, std::vector<Instruction>& instructions)
 {
@@ -42,11 +43,48 @@ const Type& Number::evaluate(Environment& env, const Type& inferred, std::vector
 	return intType;
 }
 
-PrimOP::PrimOP(OP op, std::unique_ptr<Expression>&& lhs, std::unique_ptr<Expression>&& rhs)
+PrimOP::PrimOP(PrimOps op, std::unique_ptr<Expression> && lhs, std::unique_ptr<Expression> && rhs)
     : op(op)
     , lhs(std::move(lhs))
     , rhs(std::move(rhs))
 {
+}
+
+
+OP translatePrimOp(PrimOps op, const Type& type)
+{
+#define OP_CASE(op) \
+	case PrimOps::##op:\
+	if (type.isCompatibleWith(intType))\
+	return OP::##op##_INT; \
+	if (type.isCompatibleWith(doubleType))\
+		return OP::##op##_DOUBLE; \
+	break;
+
+	switch (op)
+	{
+		OP_CASE(ADD)
+		OP_CASE(SUBTRACT)
+		OP_CASE(MULTIPLY)
+		OP_CASE(DIVIDE)
+		OP_CASE(REMAINDER)
+	case PrimOps::COMPARE_EQ:
+		return OP::COMPARE_EQ;
+	case PrimOps::COMPARE_NEQ:
+		return OP::COMPARE_NEQ;
+	case PrimOps::COMPARE_LT:
+		return OP::COMPARE_LT;
+	case PrimOps::COMPARE_GT:
+		return OP::COMPARE_GT;
+	case PrimOps::COMPARE_LE:
+		return OP::COMPARE_LE;
+	case PrimOps::COMPARE_GE:
+		return OP::COMPARE_GE;
+	default:
+		break;
+	}
+#undef OP_CASE
+	throw TypeError(intType, type);//TODO, multiple types
 }
 
 const Type& PrimOP::evaluate(Environment& env, const Type& inferred, std::vector<Instruction>& instructions)
@@ -54,16 +92,16 @@ const Type& PrimOP::evaluate(Environment& env, const Type& inferred, std::vector
 	const Type& lhsType = lhs->evaluate(env, inferred, instructions);
 	const Type& rhsType = rhs->evaluate(env, inferred, instructions);
 
-	if (inferred.isCompatibleWith(intType))
+	if (inferred.isCompatibleWith(intType) || inferred.isCompatibleWith(doubleType))
 	{
 		if (lhsType.isCompatibleWith(rhsType))
 		{
-			instructions.push_back(Instruction(op));
+			instructions.push_back(Instruction(translatePrimOp(op, rhsType)));
 			return rhsType;
 		}
 		else if (rhsType.isCompatibleWith(lhsType))
 		{
-			instructions.push_back(Instruction(op));
+			instructions.push_back(Instruction(translatePrimOp(op, lhsType)));
 			return lhsType;
 		}
 	}
@@ -146,7 +184,8 @@ const Type& Apply::evaluate(Environment& env, const Type& inferred, std::vector<
 		else
 		{
 			int index = env.getNativeFunction(name->name);
-			assert(index != -1);
+			if (index == -1)
+				throw std::runtime_error("Did not find function " + name->name);
 			instructions.push_back(Instruction(OP::CALLNATIVE, index));
 		}
 	}

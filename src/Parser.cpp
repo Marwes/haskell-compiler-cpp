@@ -32,25 +32,25 @@ bool isMultDivOp(const Token& token)
 
 struct Operator
 {
-	OP op;
+	PrimOps op;
 	int precedence;
 };
 
 static const std::map<std::string, Operator> operators = {
-	std::make_pair("+", Operator { OP::ADD, 1 }),
-	std::make_pair("-", Operator { OP::SUBTRACT, 1 }),
-	std::make_pair("*", Operator { OP::MULTIPLY, 3 }),
-	std::make_pair("/", Operator { OP::DIVIDE, 3 }),
-	std::make_pair("%", Operator { OP::REMAINDER, 3 }),
-	std::make_pair("==", Operator { OP::COMPARE_EQ, 1 }),
-	std::make_pair("/=", Operator { OP::COMPARE_NEQ, 1 }),
-	std::make_pair("<", Operator { OP::COMPARE_LT, 1 }),
-	std::make_pair(">", Operator { OP::COMPARE_GT, 1 }),
-	std::make_pair("<=", Operator { OP::COMPARE_LE, 1 }),
-	std::make_pair(">=", Operator { OP::COMPARE_GE, 1 }),
+	std::make_pair("+", Operator { PrimOps::ADD, 1 }),
+	std::make_pair("-", Operator { PrimOps::SUBTRACT, 1 }),
+	std::make_pair("*", Operator { PrimOps::MULTIPLY, 3 }),
+	std::make_pair("/", Operator { PrimOps::DIVIDE, 3 }),
+	std::make_pair("%", Operator { PrimOps::REMAINDER, 3 }),
+	std::make_pair("==", Operator { PrimOps::COMPARE_EQ, 1 }),
+	std::make_pair("/=", Operator { PrimOps::COMPARE_NEQ, 1 }),
+	std::make_pair("<", Operator { PrimOps::COMPARE_LT, 1 }),
+	std::make_pair(">", Operator { PrimOps::COMPARE_GT, 1 }),
+	std::make_pair("<=", Operator { PrimOps::COMPARE_LE, 1 }),
+	std::make_pair(">=", Operator { PrimOps::COMPARE_GE, 1 }),
 };
 
-OP getOperand(const std::string& name)
+PrimOps getOperand(const std::string& name)
 {
 	return operators.at(name).op;
 }

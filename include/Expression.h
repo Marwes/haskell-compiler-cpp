@@ -11,6 +11,21 @@ namespace MyVMNamespace
 class Environment;
 class Binding;
 
+enum class PrimOps
+{
+	ADD,
+	SUBTRACT,
+	MULTIPLY,
+	DIVIDE,
+	REMAINDER,
+	COMPARE_EQ,
+	COMPARE_NEQ,
+	COMPARE_LT,
+	COMPARE_GT,
+	COMPARE_LE,
+	COMPARE_GE,
+};
+
 class Expression
 {
 public:
@@ -42,12 +57,12 @@ public:
 class PrimOP : public Expression
 {
 public:
-    PrimOP(OP op, std::unique_ptr<Expression>&& lhs, std::unique_ptr<Expression>&& rhs);
+	PrimOP(PrimOps op, std::unique_ptr<Expression> && lhs, std::unique_ptr<Expression> && rhs);
 
 	virtual const Type& evaluate(Environment& env, const Type& inferred, std::vector<Instruction>& instructions);
 
     std::unique_ptr<Expression> lhs, rhs;
-    OP op;
+    PrimOps op;
 };
 
 class Let : public Expression

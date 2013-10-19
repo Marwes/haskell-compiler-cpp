@@ -129,43 +129,55 @@ public:
 
 
 
-	template<VMInt (*op)(VMInt, VMInt)>
+	template<class T, T (*op)(T, T)>
 	static void op_binop(MethodEnvironment& environment, Instruction current)
 	{
-		VMInt rhs = environment.stackFrame.top().intValue;
+		T rhs = getObject<T>(environment.stackFrame.top());
 		environment.stackFrame.pop();
-		VMInt lhs = environment.stackFrame.top().intValue;
+		T lhs = getObject<T>(environment.stackFrame.top());
 		StackObject o;
-		o.intValue = op(lhs, rhs);
+		getObject<T>(o) = op(lhs, rhs);
 		environment.stackFrame.top() = o;
 	}
 
-	static VMInt op_add(VMInt l, VMInt r)
+	template<class T>
+	static T op_add(T l, T r)
 	{
 		return l + r;
 	}
-	static VMInt op_multiply(VMInt l, VMInt r)
+	template<class T>
+	static T op_subtract(T l, T r)
+	{
+		return l - r;
+	}
+	template<class T>
+	static T op_multiply(T l, T r)
 	{
 		return l * r;
 	}
-	static VMInt op_equal(VMInt l, VMInt r)
+	template<class T>
+	static T op_divide(T l, T r)
+	{
+		return l / r;
+	}
+	static VMInt op_remainder(VMInt l, VMInt r)
+	{
+		return l % r;
+	}
+	template<class T>
+	static T op_equal(T l, T r)
 	{
 		return l == r;
 	}
 };
 
-#define DO_ARITH(op, environment, instruction) {\
-    VMInt lhs = environment.stackFrame.at<VMInt>(instruction.arg1);\
-    VMInt rhs = environment.stackFrame.at<VMInt>(instruction.arg2);\
-    environment.stackFrame.at<VMInt>(instruction.arg0) = lhs op rhs; }
-
 #define DO_TOP_BINOP(op, environment, instruction) {\
-    VMInt rhs = environment.stackFrame.top().intValue;\
-    environment.stackFrame.pop();\
-    VMInt lhs = environment.stackFrame.top().intValue;\
-    StackObject o;\
-    o.intValue = lhs op rhs;\
-    environment.stackFrame.top() = o; }
+	VMInt rhs = environment.stackFrame.top().intValue; \
+	environment.stackFrame.pop(); \
+	VMInt lhs = environment.stackFrame.top().intValue; \
+	StackObject o; \
+	o.intValue = lhs op rhs; \
+	environment.stackFrame.top() = o; }
 
 typedef void (*execute_function_t)(VM& vm, Instruction current); 
 
@@ -222,6 +234,20 @@ void VM::printstack()
 
 void VM::execute(MethodEnvironment& environment)
 {
+#define ARITH_BINOPS(enumtype, type) \
+	case OP::ADD_##enumtype:\
+		VMI::op_binop<type, VMI::op_add<type>>(environment, instruction);\
+		break; \
+	case OP::SUBTRACT_##enumtype:\
+		VMI::op_binop<type, VMI::op_subtract<type>>(environment, instruction); \
+		break; \
+	case OP::MULTIPLY_##enumtype:\
+		VMI::op_binop<type, VMI::op_multiply<type>>(environment, instruction); \
+		break; \
+	case OP::DIVIDE_##enumtype:\
+		VMI::op_binop<type, VMI::op_divide<type>>(environment, instruction); \
+		break;
+
     size_t currentInstruction = 0;
 	const std::vector<Instruction>& code = environment.function->instructions;
     while (currentInstruction < code.size())
@@ -261,24 +287,17 @@ void VM::execute(MethodEnvironment& environment)
         case OP::SETFIELD:
             VMI::op_setfield(environment, instruction);
             break;
-        case OP::ADD:
-			VMI::op_binop<VMI::op_add>(environment, instruction);
-            break;
-        case OP::SUBTRACT:
-			DO_TOP_BINOP(-, environment, instruction);
-            break;
-		case OP::MULTIPLY:
-			VMI::op_binop<VMI::op_multiply>(environment, instruction);
-            break;
-        case OP::DIVIDE:
-			DO_TOP_BINOP(/ , environment, instruction);
-            break;
-        case OP::REMAINDER:
-			DO_TOP_BINOP(%, environment, instruction);
-            break;
+
+			ARITH_BINOPS(INT, VMInt)
+
+		case OP::REMAINDER_INT:\
+			VMI::op_binop<VMInt, VMI::op_remainder>(environment, instruction);
+			break;
+
+			ARITH_BINOPS(DOUBLE, VMFloat)
 
 		case OP::COMPARE_EQ:
-			VMI::op_binop<VMI::op_equal>(environment, instruction);
+			VMI::op_binop<VMInt, VMI::op_equal<VMInt>>(environment, instruction);
 			break;
 		case OP::COMPARE_NEQ:
 			DO_TOP_BINOP(!= , environment, instruction);

@@ -18,10 +18,10 @@ TEST_CASE("arithmetic", "test arithmetic")
 	FunctionDefinition& def = *assembly.getFunction("main");
     def.instructions.push_back(Instruction(OP::LOAD_INT_CONST, 5));
     def.instructions.push_back(Instruction(OP::LOAD_INT_CONST, 10));
-    def.instructions.push_back(Instruction(OP::ADD));
+    def.instructions.push_back(Instruction(OP::ADD_INT));
     def.instructions.push_back(Instruction(OP::LOAD, 0));
     def.instructions.push_back(Instruction(OP::LOAD_INT_CONST, 20)); 
-    def.instructions.push_back(Instruction(OP::ADD));
+	def.instructions.push_back(Instruction(OP::ADD_INT));
 
     {
         VM vm;
@@ -33,7 +33,7 @@ TEST_CASE("arithmetic", "test arithmetic")
 
     // 15 10 5
     // [0] = 5 - 10
-    def.instructions.push_back(Instruction(OP::SUBTRACT));
+    def.instructions.push_back(Instruction(OP::SUBTRACT_INT));
     {
 		VM vm;
 		MethodEnvironment env(&vm.assembly, vm.newStackFrame(), &def);
@@ -44,7 +44,7 @@ TEST_CASE("arithmetic", "test arithmetic")
     // -20
     def.instructions.push_back(Instruction(OP::LOAD, 0));
     // -20 -20
-    def.instructions.push_back(Instruction(OP::MULTIPLY));
+    def.instructions.push_back(Instruction(OP::MULTIPLY_INT));
     // 400
     {
 		VM vm;
@@ -55,7 +55,7 @@ TEST_CASE("arithmetic", "test arithmetic")
 
     def.instructions.push_back(Instruction(OP::LOAD_INT_CONST, 5));
     // 400 5
-    def.instructions.push_back(Instruction(OP::DIVIDE));
+	def.instructions.push_back(Instruction(OP::DIVIDE_INT));
     // 80
     {
 		VM vm;
@@ -66,7 +66,7 @@ TEST_CASE("arithmetic", "test arithmetic")
     // 80
     def.instructions.push_back(Instruction(OP::LOAD_INT_CONST, 7));
     // 80 7
-    def.instructions.push_back(Instruction(OP::REMAINDER));
+	def.instructions.push_back(Instruction(OP::REMAINDER_INT));
     // 3
     {
 		VM vm;
