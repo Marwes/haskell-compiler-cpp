@@ -6,9 +6,51 @@
 namespace MyVMNamespace
 {
 
+TypeEnvironment::TypeEnvironment()
+	: parent(nullptr)
+{}
+
+TypeEnvironment::TypeEnvironment(TypeEnvironment&& env)
+	: types(std::move(env.types))
+	, parent(env.parent)
+{
+}
+
+TypeEnvironment TypeEnvironment::child()
+{
+	TypeEnvironment c;
+	c.parent = this;
+	return std::move(c);
+}
+
+void TypeEnvironment::addType(const std::string& name, const Type& type)
+{
+	types.insert({ name, std::unique_ptr<Type>(type.copy()) });
+}
+
+Type* TypeEnvironment::getType(const std::string& name)
+{
+	auto found = types.find(name);
+	if (found != types.end())
+		return found->second.get();
+	if (parent != nullptr)
+		return parent->getType(name);
+	return nullptr;
+}
+
 Name::Name(std::string name)
     : name(std::move(name))
 {
+}
+
+void Name::typecheck(TypeEnvironment& env, const Type& self)
+{
+	const Type* t = env.getType(name);
+	if (t == nullptr)
+		throw std::runtime_error("Could not find type " + name);
+	if (!self.isCompatibleWith(*t))
+		throw TypeError(self, *t);
+	this->type = std::unique_ptr<Type>(t->copy());
 }
 
 const Type& Name::evaluate(Environment& env, const Type& inferred, std::vector<Instruction>& instructions)
@@ -29,12 +71,28 @@ const Type& Name::evaluate(Environment& env, const Type& inferred, std::vector<I
 	return variable.type;
 }
 
+const Type* Name::getType() const
+{
+	return type.get();
+}
+
 const Type intType("Int", TypeEnum::TYPE_CLASS);
 const Type doubleType("Double", TypeEnum::TYPE_CLASS);
 
 Rational::Rational(double value)
 	: value(value)
 {
+}
+
+void Rational::typecheck(TypeEnvironment& env, const Type& self)
+{
+	if (!self.isCompatibleWith(doubleType))
+		throw TypeError(self, doubleType);
+}
+
+const Type* Rational::getType() const
+{
+	return &doubleType;
 }
 
 const Type& Rational::evaluate(Environment& env, const Type& inferred, std::vector<Instruction>& instructions)
@@ -49,11 +107,23 @@ Number::Number(int value)
 {
 }
 
+void Number::typecheck(TypeEnvironment& env, const Type& self)
+{
+	if (!self.isCompatibleWith(intType))
+		throw TypeError(self, intType);
+}
+
 const Type& Number::evaluate(Environment& env, const Type& inferred, std::vector<Instruction>& instructions)
 {
     instructions.push_back(Instruction(OP::LOAD_INT_CONST, value));
 	return intType;
 }
+
+const Type* Number::getType() const
+{
+	return &intType;
+}
+
 
 PrimOP::PrimOP(PrimOps op, std::unique_ptr<Expression> && lhs, std::unique_ptr<Expression> && rhs)
     : op(op)
@@ -62,6 +132,27 @@ PrimOP::PrimOP(PrimOps op, std::unique_ptr<Expression> && lhs, std::unique_ptr<E
 {
 }
 
+void throwNotCompatible(const Type& inferred, const Type& actual)
+{
+	if (!inferred.isCompatibleWith(actual))
+		throw TypeError(inferred, actual);
+}
+
+void PrimOP::typecheck(TypeEnvironment& env, const Type& inferred)
+{
+	lhs->typecheck(env, inferred);
+	rhs->typecheck(env, inferred);
+	throwNotCompatible(inferred, *lhs->getType());
+	throwNotCompatible(inferred, *rhs->getType());
+
+	const Type& selfType = lhs->getType()->isCompatibleWith(*rhs->getType()) ? *rhs->getType() : *lhs->getType();
+}
+
+
+const Type* PrimOP::getType() const
+{
+	return lhs->getType();
+}
 
 OP translatePrimOp(PrimOps op, const Type& type)
 {
@@ -126,6 +217,20 @@ Let::Let(std::vector<Binding>&& bindings, std::unique_ptr<Expression>&& expressi
 {
 }
 
+void Let::typecheck(TypeEnvironment& env, const Type& self)
+{
+	TypeEnvironment child = env.child();
+	for (auto& bind : bindings)
+	{
+		bind.expression->typecheck(child, PolymorphicType::any);
+	}
+}
+
+const Type* Let::getType() const
+{
+	return expression->getType();
+}
+
 const Type& Let::evaluate(Environment& env, const Type& inferred, std::vector<Instruction>& instructions)
 {
 	//Always causes evaluation of bindings before execution of the rest
@@ -139,7 +244,7 @@ const Type& Let::evaluate(Environment& env, const Type& inferred, std::vector<In
 		else
 		{
 			env.newLocal(bind.name, &PolymorphicType::any);
-			bind.expression->evaluate(env, PolymorphicType::any, instructions);
+			auto t = bind.expression->evaluate(env, PolymorphicType::any, instructions);
 		}
 	}
 	return expression->evaluate(env, inferred, instructions);
@@ -150,6 +255,43 @@ Lambda::Lambda(std::vector<std::string> && arguments, std::unique_ptr<Expression
 	: arguments(std::move(arguments))
 	, expression(std::move(expression))
 {
+}
+
+std::unique_ptr<Type> createFunctionType(const std::vector<const Type*>& types)
+{
+	assert(types.size() >= 2);
+	std::unique_ptr<Type> func(types.back()->copy());
+	for (size_t ii = types.size() - 2; ii >= 0; ii--)
+	{
+		func = std::unique_ptr<FunctionType>(
+			new FunctionType(std::unique_ptr<Type>(types[ii]->copy()), std::move(func)));
+	}
+	return func;
+}
+
+void Lambda::typecheck(TypeEnvironment& env, const Type& inferred)
+{
+	const RecursiveType* funcType = dynamic_cast<const RecursiveType*>(&inferred);
+	if (funcType == nullptr)
+		throw TypeError("Expected: Function type", inferred);
+
+	std::vector<const Type*> argTypes;
+	argTypes.push_back(&funcType->getArgumentType());
+	const Type* returnType = &funcType->getReturnType();
+	for (size_t ii = 0; ii < arguments.size() - 1; ii++)
+	{
+		if (auto t = dynamic_cast<const RecursiveType*>(returnType))
+		{
+			argTypes.push_back(&t->getArgumentType());
+			returnType = &t->getReturnType();
+		}
+		else
+			throw TypeError("To few arguments", inferred);
+	}
+	assert(returnType != nullptr);
+	expression->typecheck(env, *returnType);
+	argTypes.push_back(expression->getType());
+	this->type = createFunctionType(argTypes);
 }
 
 const Type& Lambda::evaluate(Environment& env, const Type& inferred, std::vector<Instruction>& instructions)
@@ -163,6 +305,10 @@ const Type& Lambda::evaluate(Environment& env, const Type& inferred, std::vector
 	return inferred;
 }
 
+const Type* Lambda::getType() const
+{
+	return this->type.get();
+}
 
 Apply::Apply(std::unique_ptr<Expression> && function, std::vector<std::unique_ptr<Expression>> && arguments)
 	: function(std::move(function))
@@ -170,6 +316,24 @@ Apply::Apply(std::unique_ptr<Expression> && function, std::vector<std::unique_pt
 {
 }
 
+void Apply::typecheck(TypeEnvironment& env, const Type& self)
+{
+	function->typecheck(env, PolymorphicType::any);
+	const FunctionType* funcType = dynamic_cast<const FunctionType*>(function->getType());
+	if (funcType == nullptr)
+		throw TypeError("Expected: function type", *function->getType());
+
+	for (auto& arg : arguments)
+	{
+		if (funcType == nullptr)
+			throw std::runtime_error("Not enough arguments to function");
+		arg->typecheck(env, funcType->getArgumentType());
+		funcType = dynamic_cast<const FunctionType*>(&funcType->getReturnType());
+	}
+	if (funcType == nullptr)
+		throw std::runtime_error("Not enough arguments to function");
+	this->type = std::unique_ptr<Type>(funcType->getReturnType().copy());
+}
 
 const Type& Apply::evaluate(Environment& env, const Type& inferred, std::vector<Instruction>& instructions)
 {
@@ -211,10 +375,55 @@ const Type& Apply::evaluate(Environment& env, const Type& inferred, std::vector<
 	return inferred;
 }
 
+const Type* Apply::getType() const
+{
+	return type.get();
+}
+
 Case::Case(std::unique_ptr<Expression> && expr, std::vector<Alternative> && alternatives)
 	: expression(std::move(expr))
 	, alternatives(std::move(alternatives))
 {}
+
+void Case::typecheck(TypeEnvironment& env, const Type& self)
+{
+	expression->typecheck(env, PolymorphicType::any);
+
+	const Type* returnType;
+	for (Alternative& alt : alternatives)
+	{
+		//TODO alt.pattern->typecheck(altType);
+		if (PatternName* pattern = dynamic_cast<PatternName*>(alt.pattern.get()))
+		{
+			TypeEnvironment caseEnv = env.child();
+			caseEnv.addType(pattern->name, *expression->getType());
+			alt.expression->typecheck(caseEnv, self);
+			const Type& t = *alt.expression->getType();
+			if (returnType == nullptr)//First alternative
+				returnType = &t;
+			else
+			{
+				bool nextIsCompatible = t.isCompatibleWith(*returnType);
+				if (!nextIsCompatible && !returnType->isCompatibleWith(t))
+				{
+					throw std::runtime_error("All case alternatives must have the same type");
+				}
+				if (!nextIsCompatible)
+					returnType = &t;
+			}
+		}
+		else if (NumberLiteral* pattern = dynamic_cast<NumberLiteral*>(alt.pattern.get()))
+		{
+			alt.expression->typecheck(env, self);
+			const Type& t = *alt.expression->getType();
+			if (returnType != nullptr && t != *returnType)
+			{
+				throw std::runtime_error("All case alternatives must have the same type");
+			}
+			returnType = &t;
+		}
+	}
+}
 
 const Type& Case::evaluate(Environment& env, const Type& inferred, std::vector<Instruction>& instructions)
 {
@@ -282,5 +491,9 @@ const Type& Case::evaluate(Environment& env, const Type& inferred, std::vector<I
 	return *ret;
 }
 
+const Type* Case::getType() const
+{
+	return expression->getType();
+}
 
 }
