@@ -126,6 +126,11 @@ Module Parser::toplevel()
 		throw std::runtime_error("Expected '}' to end module, got " + std::string(enumToString(rBracket.type)));
 	}
 
+	if (tokenizer.nextToken().type != SymbolEnum::NONE)
+	{
+		throw std::runtime_error("Unexpected token after end of module, " + std::string(enumToString(tokenizer->type)));
+	}
+
 	return std::move(module);
 }
 

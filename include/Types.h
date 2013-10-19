@@ -72,7 +72,7 @@ public:
 	{
 	}
 
-	virtual const std::string& toString()
+	virtual const std::string& toString() const
 	{
 		return name;
 	}
@@ -146,16 +146,16 @@ public:
 		return *returnType;
 	}
 
-	virtual const std::string& toString()
+	virtual const std::string& toString() const
 	{
 		if (!typeNameCorrect)
 		{
 			if (typeid(*argumentType) == typeid(FunctionType))
-				name = "(" + argumentType->toString() + ") -> " + returnType->toString();
+				functionName = "(" + argumentType->toString() + ") -> " + returnType->toString();
 			else
-				name = argumentType->toString() + " -> " + returnType->toString();
+				functionName = argumentType->toString() + " -> " + returnType->toString();
 		}
-		return Type::toString();
+		return functionName;
 	}
 
 	virtual bool isCompatibleWith(const Type& other) const;
@@ -178,6 +178,7 @@ public:
 private:
 	std::unique_ptr<Type> argumentType;
 	std::unique_ptr<Type> returnType;
+	mutable std::string functionName;
 	bool typeNameCorrect;
 };
 

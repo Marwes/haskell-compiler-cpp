@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <sstream>
 #include "Expression.h"
 #include "Compiler.h"
 
@@ -26,7 +27,7 @@ Number::Number(int value)
 {
 }
 
-const Type intType("Int", TypeEnum::TYPE_INT);
+const Type intType("Int", TypeEnum::TYPE_CLASS);
 
 const Type& Number::evaluate(Environment& env, const Type& inferred, std::vector<Instruction>& instructions)
 {
@@ -46,7 +47,7 @@ const Type& PrimOP::evaluate(Environment& env, const Type& inferred, std::vector
 	const Type& lhsType = lhs->evaluate(env, inferred, instructions);
 	const Type& rhsType = rhs->evaluate(env, inferred, instructions);
 
-	if (inferred.isCompatibleWith(lhsType) && inferred.isCompatibleWith(rhsType))
+	if (inferred.isCompatibleWith(intType))
 	{
 		if (lhsType.isCompatibleWith(rhsType))
 		{
@@ -59,7 +60,10 @@ const Type& PrimOP::evaluate(Environment& env, const Type& inferred, std::vector
 			return lhsType;
 		}
 	}
-	throw std::runtime_error("Types are not compatible in PrimOP expression");
+	std::stringstream err("Types are not compatible in PrimOP expression.\n");
+	err << "Inferred: " << inferred.toString() << "\n";
+	err << "Actual: " << intType.toString() << "\n";
+	throw std::runtime_error(err.str());
 }
 
 Let::Let(std::vector<Binding>&& bindings, std::unique_ptr<Expression>&& expression)

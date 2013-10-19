@@ -40,11 +40,17 @@ int Environment::addFunction(const std::string& name, const Type& type, Lambda& 
 	std::unique_ptr<FunctionDefinition> def(new FunctionDefinition());
 	def->numArguments = lambda.arguments.size();
 	Environment child = childEnvironment();
+	const Type* exprType = &type;
 	for (auto& arg : lambda.arguments)
 	{
 		child.newLocal(arg);
+		if (auto temp = dynamic_cast<const RecursiveType*>(exprType))
+			exprType = &temp->getReturnType();
+		if (exprType == nullptr)
+			throw std::runtime_error("Not enough parameters for function!");
 	}
-	lambda.expression->evaluate(child, type, def->instructions);
+	assert(exprType != nullptr);
+	lambda.expression->evaluate(child, *exprType, def->instructions);
 	return assembly.addFunction(name, std::move(def));
 }
 

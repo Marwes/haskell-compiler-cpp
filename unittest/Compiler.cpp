@@ -131,7 +131,7 @@ int run(VM& vm, const std::string& expr)
 	return vm.getStack()[0].intValue;
 }
 
-TEST_CASE("compiler/module", "")
+TEST_CASE("compiler/module/1", "")
 {
 	std::stringstream stream(
 "add :: Int -> Int -> Int\n\
@@ -145,3 +145,12 @@ add x y = x + y\n");
 	REQUIRE(run(*vm, "add 2 3") == (2 + 3));
 }
 
+TEST_CASE("compiler/module/2", "Compile invalid type in primop return")
+{
+	std::stringstream stream(
+"add :: Int -> Int -> String\n\
+add x y = x + y\n");
+	Compiler compiler(stream);
+
+	REQUIRE_THROWS_AS(compiler.compile(), std::runtime_error);
+}
