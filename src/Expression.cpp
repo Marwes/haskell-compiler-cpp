@@ -29,13 +29,25 @@ const Type& Name::evaluate(Environment& env, const Type& inferred, std::vector<I
 	return variable.type;
 }
 
-Number::Number(int value)
-    : value(value)
+const Type intType("Int", TypeEnum::TYPE_CLASS);
+const Type doubleType("Double", TypeEnum::TYPE_CLASS);
+
+Rational::Rational(double value)
+	: value(value)
 {
 }
 
-const Type intType("Int", TypeEnum::TYPE_CLASS);
-const Type doubleType("Double", TypeEnum::TYPE_CLASS);
+const Type& Rational::evaluate(Environment& env, const Type& inferred, std::vector<Instruction>& instructions)
+{
+	instructions.push_back(Instruction(OP::LOAD_DOUBLE_CONST, value));
+	return intType;
+}
+
+Number::Number(int value)
+	: Rational(0)
+	, value(value)
+{
+}
 
 const Type& Number::evaluate(Environment& env, const Type& inferred, std::vector<Instruction>& instructions)
 {
@@ -142,8 +154,11 @@ Lambda::Lambda(std::vector<std::string> && arguments, std::unique_ptr<Expression
 
 const Type& Lambda::evaluate(Environment& env, const Type& inferred, std::vector<Instruction>& instructions)
 {
-	int index = env.addLambda(*this);
-	instructions.push_back(Instruction(OP::LOAD_FUNCTION, index));//TODO, dont get stack index
+	if (auto t = dynamic_cast<const FunctionType*>(&inferred))
+	{
+		int index = env.addLambda(*this, *t);
+		instructions.push_back(Instruction(OP::LOAD_FUNCTION, index));//TODO, dont get stack index
+	}
 	
 	return inferred;
 }
@@ -220,7 +235,7 @@ const Type& Case::evaluate(Environment& env, const Type& inferred, std::vector<I
 				throw std::runtime_error("Number literal is not valid in case alternative for non-number types");
 			}
 			//Load the topmost value since it will be reduced by the comparison
-			instructions.push_back(Instruction(OP::LOAD, env.getStackTop()));
+			instructions.push_back(Instruction(OP::LOAD, (VMInt)env.getStackTop()));
 			instructions.push_back(Instruction(OP::LOAD_INT_CONST, pattern->value));
 			instructions.push_back(Instruction(OP::COMPARE_EQ));
 			instructions.push_back(Instruction(OP::BRANCH_TRUE));

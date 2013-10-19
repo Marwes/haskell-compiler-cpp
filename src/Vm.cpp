@@ -268,7 +268,10 @@ void VM::execute(MethodEnvironment& environment)
 			break;
         case OP::LOAD_INT_CONST:
             environment.stackFrame.push(instruction.arg0);
-            break;
+			break;
+		case OP::LOAD_DOUBLE_CONST:
+			environment.stackFrame.push(instruction.arg0);
+			break;
         case OP::LOAD_STRING_CONST:
             VMI::op_load_string_constant(environment, instruction);
             break;

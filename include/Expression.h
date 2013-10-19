@@ -44,7 +44,17 @@ public:
     std::string name;
 };
 
-class Number : public Expression
+class Rational : public Expression
+{
+public:
+	Rational(double value);
+
+	virtual const Type& evaluate(Environment& env, const Type& inferred, std::vector<Instruction>& instructions);
+
+	double value;
+};
+
+class Number : public Rational
 {
 public:
     Number(int value);

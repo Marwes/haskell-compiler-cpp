@@ -16,6 +16,7 @@ class StackFrame;
 	XX(t, LOAD) \
 	XX(t, LOAD_FUNCTION) \
 	XX(t, LOAD_INT_CONST) \
+	XX(t, LOAD_DOUBLE_CONST) \
 	XX(t, LOAD_STRING_CONST) \
 	XX(t, POP) \
 	XX(t, BRANCH_TRUE) \
@@ -62,20 +63,35 @@ struct Instruction
         , arg1(arg1)
         , arg2(arg2)
     {
-    }
-    
-    VMInt arg0;
-    OP op;
-    unsigned char arg1;
-    unsigned char arg2;
+	}
+	Instruction(OP op, double value)
+		: op(op)
+		, value(value)
+	{
+	}
+
+	OP op;
+	union
+	{
+		struct
+		{
+			VMInt arg0;
+			unsigned char arg1;
+			unsigned char arg2;
+		};
+		double value;
+	};
 };
 
 class FunctionDefinition : public Object
 {
 public:
-	FunctionDefinition()
-		: numArguments(0)
+	FunctionDefinition(std::unique_ptr<RecursiveType> type)
+		: type(std::move(type))
+		, numArguments(0)
 	{}
+
+	std::unique_ptr<RecursiveType> type;
 	int numArguments;
 	std::vector<Instruction> instructions;
 };
