@@ -151,6 +151,15 @@ Assembly Compiler::compile()
 	{
 		const Binding& bind = module.bindings[0];
 		const TypeDeclaration& decl = module.typeDeclaration[0];
+		TypeEnvironment env;
+
+		bind.expression->typecheck(env, *decl.type);
+	}
+
+	for (size_t ii = 0; ii < module.bindings.size(); ++ii)
+	{
+		const Binding& bind = module.bindings[0];
+		const TypeDeclaration& decl = module.typeDeclaration[0];
 		if (Lambda* lambda = dynamic_cast<Lambda*>(bind.expression.get()))
 		{
 			if (auto funcType = dynamic_cast<const FunctionType*>(decl.type.get()))

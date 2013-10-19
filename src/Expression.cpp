@@ -47,7 +47,7 @@ void Name::typecheck(TypeEnvironment& env, const Type& self)
 {
 	const Type* t = env.getType(name);
 	if (t == nullptr)
-		throw std::runtime_error("Could not find type " + name);
+		throw std::runtime_error("Could not find type for name '" + name + "'");
 	if (!self.isCompatibleWith(*t))
 		throw TypeError(self, *t);
 	this->type = std::unique_ptr<Type>(t->copy());
@@ -261,7 +261,7 @@ std::unique_ptr<Type> createFunctionType(const std::vector<const Type*>& types)
 {
 	assert(types.size() >= 2);
 	std::unique_ptr<Type> func(types.back()->copy());
-	for (size_t ii = types.size() - 2; ii >= 0; ii--)
+	for (int ii = types.size() - 2; ii >= 0; ii--)
 	{
 		func = std::unique_ptr<FunctionType>(
 			new FunctionType(std::unique_ptr<Type>(types[ii]->copy()), std::move(func)));
@@ -275,13 +275,16 @@ void Lambda::typecheck(TypeEnvironment& env, const Type& inferred)
 	if (funcType == nullptr)
 		throw TypeError("Expected: Function type", inferred);
 
+	TypeEnvironment childEnv = env.child();
+	childEnv.addType(arguments[0], funcType->getArgumentType());
 	std::vector<const Type*> argTypes;
 	argTypes.push_back(&funcType->getArgumentType());
 	const Type* returnType = &funcType->getReturnType();
-	for (size_t ii = 0; ii < arguments.size() - 1; ii++)
+	for (size_t ii = 1; ii < arguments.size(); ii++)
 	{
 		if (auto t = dynamic_cast<const RecursiveType*>(returnType))
 		{
+			childEnv.addType(arguments[ii], t->getArgumentType());
 			argTypes.push_back(&t->getArgumentType());
 			returnType = &t->getReturnType();
 		}
@@ -289,7 +292,7 @@ void Lambda::typecheck(TypeEnvironment& env, const Type& inferred)
 			throw TypeError("To few arguments", inferred);
 	}
 	assert(returnType != nullptr);
-	expression->typecheck(env, *returnType);
+	expression->typecheck(childEnv, *returnType);
 	argTypes.push_back(expression->getType());
 	this->type = createFunctionType(argTypes);
 }
