@@ -8,7 +8,11 @@ namespace MyVMNamespace
 
 TypeEnvironment::TypeEnvironment()
 	: parent(nullptr)
-{}
+{
+	Type pair("(a,b", TypeEnum::TYPE_CLASS);
+	auto type = FunctionType::create({ &PolymorphicType::any, &PolymorphicType::any, &pair });
+	addType("(,)", *type);
+}
 
 TypeEnvironment::TypeEnvironment(TypeEnvironment&& env)
 	: types(std::move(env.types))
@@ -109,7 +113,7 @@ Number::Number(int value)
 
 void Number::typecheck(TypeEnvironment& env, const Type& self)
 {
-	if (!self.isCompatibleWith(intType))
+	if (!self.isCompatibleWith(intType) && !self.isCompatibleWith(doubleType))
 		throw TypeError(self, intType);
 }
 
@@ -258,18 +262,6 @@ Lambda::Lambda(std::vector<std::string> && arguments, std::unique_ptr<Expression
 {
 }
 
-std::unique_ptr<Type> createFunctionType(const std::vector<const Type*>& types)
-{
-	assert(types.size() >= 2);
-	std::unique_ptr<Type> func(types.back()->copy());
-	for (int ii = types.size() - 2; ii >= 0; ii--)
-	{
-		func = std::unique_ptr<FunctionType>(
-			new FunctionType(std::unique_ptr<Type>(types[ii]->copy()), std::move(func)));
-	}
-	return func;
-}
-
 void Lambda::typecheck(TypeEnvironment& env, const Type& inferred)
 {
 	const RecursiveType* funcType = dynamic_cast<const RecursiveType*>(&inferred);
@@ -295,7 +287,7 @@ void Lambda::typecheck(TypeEnvironment& env, const Type& inferred)
 	assert(returnType != nullptr);
 	expression->typecheck(childEnv, *returnType);
 	argTypes.push_back(expression->getType());
-	this->type = createFunctionType(argTypes);
+	this->type = FunctionType::create(argTypes);
 }
 
 const Type& Lambda::evaluate(Environment& env, const Type& inferred, std::vector<Instruction>& instructions)
@@ -327,16 +319,25 @@ void Apply::typecheck(TypeEnvironment& env, const Type& self)
 	if (funcType == nullptr)
 		throw TypeError("Expected: function type", *function->getType());
 
+	const Type* returnType = nullptr;
 	for (auto& arg : arguments)
 	{
-		if (funcType == nullptr)
-			throw std::runtime_error("Not enough arguments to function");
-		arg->typecheck(env, funcType->getArgumentType());
-		funcType = dynamic_cast<const FunctionType*>(&funcType->getReturnType());
+		if (returnType == nullptr)
+		{
+			returnType = &funcType->getReturnType();
+			arg->typecheck(env, funcType->getArgumentType());
+		}
+		else if (auto t = dynamic_cast<const RecursiveType*>(returnType))
+		{
+			returnType = &t->getReturnType();
+			arg->typecheck(env, funcType->getArgumentType());
+		}
+		else
+			throw std::runtime_error("Function was called with more arguments that the type has, Type: " + function->getType()->toString());
 	}
-	if (funcType == nullptr)
+	if (returnType == nullptr)
 		throw std::runtime_error("Not enough arguments to function");
-	this->type = std::unique_ptr<Type>(funcType->getReturnType().copy());
+	this->type = std::unique_ptr<Type>(returnType->copy());
 }
 
 const Type& Apply::evaluate(Environment& env, const Type& inferred, std::vector<Instruction>& instructions)
@@ -393,7 +394,7 @@ void Case::typecheck(TypeEnvironment& env, const Type& self)
 {
 	expression->typecheck(env, PolymorphicType::any);
 
-	const Type* returnType;
+	const Type* returnType = nullptr;
 	for (Alternative& alt : alternatives)
 	{
 		//TODO alt.pattern->typecheck(altType);

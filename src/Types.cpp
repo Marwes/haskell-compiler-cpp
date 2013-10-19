@@ -30,6 +30,26 @@ PolymorphicType* PolymorphicType::copy() const
 	return new PolymorphicType(*this);
 }
 
+std::unique_ptr<FunctionType> FunctionType::create(const std::vector<const Type*>& types)
+{
+	assert(types.size() >= 2);
+	std::unique_ptr<FunctionType> func;
+	for (int ii = types.size() - 2; ii >= 0; ii--)
+	{
+		if (ii == types.size() - 2)
+		{
+			func = std::unique_ptr<FunctionType>(
+				new FunctionType(std::unique_ptr<Type>(types[ii]->copy()), std::unique_ptr<Type>(types.back()->copy())));
+		}
+		else
+		{
+			func = std::unique_ptr<FunctionType>(
+				new FunctionType(std::unique_ptr<Type>(types[ii]->copy()), std::move(func)));
+		}
+	}
+	return std::move(func);
+}
+
 bool FunctionType::isCompatibleWith(const Type& other) const
 {
 	return *this == other;

@@ -187,6 +187,18 @@ public:
 	int value;
 };
 
+class ConstructorPattern : public Pattern
+{
+public:
+	ConstructorPattern(std::vector<std::unique_ptr<Pattern>>&& patterns)
+		: patterns(std::move(patterns))
+	{}
+	ConstructorPattern(ConstructorPattern&& other)
+		: patterns(std::move(other.patterns))
+	{}
+	std::vector<std::unique_ptr<Pattern>> patterns;
+};
+
 class Alternative
 {
 public:

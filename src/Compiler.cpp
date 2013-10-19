@@ -132,6 +132,12 @@ void Evaluator::compile(Assembly& assembly)
 	FunctionDefinition* def = assembly.getFunction("main");
 	assert(def);
 	TypeEnvironment typeEnv;
+	for (auto& pair : assembly.functionDefinitionsIndexes)
+	{
+		auto& funcDef = assembly.functionDefinitions[pair.second];
+		typeEnv.addType(pair.first, *funcDef->type);
+
+	}
 	expr->typecheck(typeEnv, PolymorphicType::any);
 	expr->evaluate(env, PolymorphicType::any, def->instructions);
 }

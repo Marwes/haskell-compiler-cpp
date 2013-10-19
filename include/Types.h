@@ -125,9 +125,12 @@ public:
 	static const PolymorphicType any;
 };
 
+
+
 class FunctionType : public RecursiveType
 {
 public:
+
 	FunctionType(std::shared_ptr<Type> && argumentType, std::shared_ptr<Type> && returnType)
 		: argumentType(std::move(argumentType))
 		, returnType(std::move(returnType))
@@ -182,6 +185,7 @@ public:
 			|| argumentType == other.argumentType;
 	}
 
+	static std::unique_ptr<FunctionType> create(const std::vector<const Type*>& types);
 private:
 	std::shared_ptr<Type> argumentType;
 	std::shared_ptr<Type> returnType;
