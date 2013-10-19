@@ -154,3 +154,14 @@ add x y = x + y\n");
 
 	REQUIRE_THROWS_AS(compiler.compile(), std::runtime_error);
 }
+
+
+TEST_CASE("compiler/module/3", "Compile invalid type in primop argument")
+{
+	std::stringstream stream(
+"add :: Int -> String -> Int\n\
+add x y = x + y\n");
+	Compiler compiler(stream);
+
+	REQUIRE_THROWS_AS(compiler.compile(), std::runtime_error);
+}

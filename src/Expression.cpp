@@ -13,13 +13,20 @@ Name::Name(std::string name)
 
 const Type& Name::evaluate(Environment& env, const Type& inferred, std::vector<Instruction>& instructions)
 {
-	int stackPos = env.getIndexForName(this->name);
-	if (stackPos == -1)
+	Variable variable = env.getVariable(this->name);
+	if (variable.index == -1)
 	{
-		throw std::runtime_error("Could not find local " + this->name);
+		throw std::runtime_error("Could not find variable " + this->name);
 	}
-	instructions.push_back(Instruction(OP::LOAD, stackPos));
-	return inferred;
+	if (variable.accessType == VariableType::STACK)
+	{
+		instructions.push_back(Instruction(OP::LOAD, variable.index));
+	}
+	else
+	{
+		instructions.push_back(Instruction(OP::LOAD_FUNCTION, variable.index));
+	}
+	return variable.type;
 }
 
 Number::Number(int value)
@@ -84,7 +91,7 @@ const Type& Let::evaluate(Environment& env, const Type& inferred, std::vector<In
 		}
 		else
 		{
-			env.newLocal(bind.name);
+			env.newLocal(bind.name, &PolymorphicType::any);
 			bind.expression->evaluate(env, PolymorphicType::any, instructions);
 		}
 	}
@@ -134,14 +141,14 @@ const Type& Apply::evaluate(Environment& env, const Type& inferred, std::vector<
 	}
 	if (Name* name = dynamic_cast<Name*>(function.get()))
 	{
-		int index = env.getFunction(name->name);
-		if (index >= 0)
+		Variable variable = env.getFunction(name->name);
+		if (variable.index >= 0)
 		{
-			instructions.push_back(Instruction(OP::CALLI, index));
+			instructions.push_back(Instruction(OP::CALLI, variable.index));
 		}
 		else
 		{
-			index = env.getNativeFunction(name->name);
+			int index = env.getNativeFunction(name->name);
 			assert(index != -1);
 			instructions.push_back(Instruction(OP::CALLNATIVE, index));
 		}
@@ -194,7 +201,7 @@ const Type& Case::evaluate(Environment& env, const Type& inferred, std::vector<I
 		if (PatternName* pattern = dynamic_cast<PatternName*>(alt.pattern.get()))
 		{
 			Environment caseEnv = env.childEnvironment();
-			caseEnv.newLocal(pattern->name);
+			caseEnv.newLocal(pattern->name, &caseType);
 			const Type& t = alt.expression->evaluate(caseEnv, inferred, instructions);
 			if (ret == nullptr)
 				ret = &t;

@@ -11,6 +11,13 @@ Environment::Environment(Assembly& assembly)
 	, assembly(assembly)
 { }
 
+Environment::Environment(Environment&& other)
+	: parent(other.parent)
+	, assembly(std::move(other.assembly))
+	, stackTypes(std::move(other.stackTypes))
+	, stackValues(std::move(other.stackValues))
+{ }
+
 Environment Environment::childEnvironment() const
 {
 	Environment child(assembly);
@@ -18,20 +25,49 @@ Environment Environment::childEnvironment() const
 	return std::move(child);
 }
 
-int Environment::newLocal(const std::string& name)
+int Environment::newLocal(const std::string& name, const Type* type)
 {
 	stackValues.push_back(name);
+	stackTypes.push_back(type);
 	return stackValues.size() - 1;
 }
 
-int Environment::getIndexForName(const std::string& name) const
+Variable Environment::getVariable(const std::string& name) const
 {
 	auto found = std::find(stackValues.begin(), stackValues.end(), name);
 	if (found != stackValues.end())
 	{
-		return std::distance(stackValues.begin(), found);
+		size_t ii = std::distance(stackValues.begin(), found);
+		assert(stackTypes[ii] != nullptr);
+		return Variable { VariableType::STACK, *stackTypes[ii], ii };
 	}
-	return -1;
+	if (parent == nullptr)
+	{
+		return this->getFunction(name);
+	}
+	else
+	{
+		return parent->getVariable(name);
+	}
+	return Variable { VariableType::STACK, PolymorphicType::any, -1 };
+}
+
+
+Variable Environment::getFunction(const std::string& name) const
+{
+	auto found = assembly.functionDefinitionsIndexes.find(name);
+	if (found == assembly.functionDefinitionsIndexes.end())
+		return Variable { VariableType::TOPLEVEL, PolymorphicType::any, -1 };
+	else
+		return Variable { VariableType::TOPLEVEL, PolymorphicType::any, found->second };//TODO
+}
+int Environment::getNativeFunction(const std::string& name) const
+{
+	auto found = assembly.nativeFunctionIndexes.find(name);
+	if (found == assembly.nativeFunctionIndexes.end())
+		return -1;
+	else
+		return found->second;
 }
 
 
@@ -43,9 +79,12 @@ int Environment::addFunction(const std::string& name, const Type& type, Lambda& 
 	const Type* exprType = &type;
 	for (auto& arg : lambda.arguments)
 	{
-		child.newLocal(arg);
-		if (auto temp = dynamic_cast<const RecursiveType*>(exprType))
-			exprType = &temp->getReturnType();
+		auto func = dynamic_cast<const RecursiveType*>(exprType);
+		if (func != nullptr)
+		{
+			child.newLocal(arg, &func->getArgumentType());
+			exprType = &func->getReturnType();
+		}
 		if (exprType == nullptr)
 			throw std::runtime_error("Not enough parameters for function!");
 	}
@@ -61,7 +100,7 @@ int Environment::addLambda(Lambda& lambda)
 	Environment child = childEnvironment();
 	for (auto& arg : lambda.arguments)
 	{
-		child.newLocal(arg);
+		child.newLocal(arg, &PolymorphicType::any);
 	}
 	lambda.expression->evaluate(child, PolymorphicType::any, def->instructions);
 	std::stringstream name;

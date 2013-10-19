@@ -7,39 +7,36 @@
 
 namespace MyVMNamespace
 {
-
+enum class VariableType
+{
+	STACK,
+	TOPLEVEL
+};
+struct Variable
+{
+	VariableType accessType;
+	const Type& type;
+	int index;
+};
 class Environment
 {
 public:
 	Environment(Assembly& assembly);
+	Environment(Environment&& other);
 
 	Environment childEnvironment() const;
 	Assembly& getCurrentAssembly() { return assembly; }
 
-	int newLocal(const std::string& name);
+	int newLocal(const std::string& name, const Type* type);
 
 	size_t getStackTop()
 	{
 		return stackValues.size();
 	}
-	int getIndexForName(const std::string& name) const;
+	Variable getVariable(const std::string& name) const;
 
-	int getFunction(const std::string& name)
-	{
-		auto found = assembly.functionDefinitionsIndexes.find(name);
-		if (found == assembly.functionDefinitionsIndexes.end())
-			return -1;
-		else
-			return found->second;
-	}
-	int getNativeFunction(const std::string& name)
-	{
-		auto found = assembly.nativeFunctionIndexes.find(name);
-		if (found == assembly.nativeFunctionIndexes.end())
-			return -1;
-		else
-			return found->second;
-	}
+	Variable getFunction(const std::string& name) const;
+	int getNativeFunction(const std::string& name) const;
 
 	int addLambda(Lambda& expr);
 	int addFunction(const std::string& name, const Type& type, Lambda& lambda);
@@ -47,6 +44,7 @@ private:
 	const Environment* parent;
 	Assembly& assembly;
 	std::vector<std::string> stackValues;
+	std::vector<const Type*> stackTypes;
 	static int lambdaIndex;
 };
 
