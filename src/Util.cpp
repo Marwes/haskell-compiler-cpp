@@ -60,7 +60,8 @@ Assembly readAssemblyFile(const char* filename)
     bool st = stream.good();
     FROM_BIGENDIAN(&assembly.entrypoint);
 
-	assembly.addFunction("main", make_unique<FunctionDefinition>());
+	std::unique_ptr<RecursiveType> mainType(PolymorphicType::any.copy());
+	assembly.addFunction("main", std::unique_ptr<FunctionDefinition>(new FunctionDefinition(std::move(mainType))));
 	FunctionDefinition& def = *assembly.getFunction("main");
 
     while (stream >> i)

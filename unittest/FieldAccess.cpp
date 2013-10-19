@@ -6,8 +6,9 @@ using namespace MyVMNamespace;
 
 TEST_CASE("field", "test field access")
 {
-    Assembly assembly;
-	assembly.addFunction("main", make_unique<FunctionDefinition>());
+	Assembly assembly;
+	std::unique_ptr<RecursiveType> mainType(PolymorphicType::any.copy());
+	assembly.addFunction("main", std::unique_ptr<FunctionDefinition>(new FunctionDefinition(std::move(mainType))));
 	FunctionDefinition* function = assembly.getFunction("main");
 	std::vector<Instruction>& instructions = function->instructions;
     instructions.push_back(Instruction(OP::LOAD_INT_CONST, 10));

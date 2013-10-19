@@ -71,12 +71,12 @@ int Environment::getNativeFunction(const std::string& name) const
 }
 
 
-int Environment::addFunction(const std::string& name, const Type& type, Lambda& lambda)
+int Environment::addFunction(const std::string& name, const RecursiveType& type, Lambda& lambda)
 {
-	std::unique_ptr<FunctionDefinition> def(new FunctionDefinition());
-	def->numArguments = lambda.arguments.size();
+	std::unique_ptr<FunctionDefinition> def(new FunctionDefinition(std::unique_ptr<RecursiveType>(type.copy())));
 	Environment child = childEnvironment();
 	const Type* exprType = &type;
+	def->numArguments = lambda.arguments.size();
 	for (auto& arg : lambda.arguments)
 	{
 		auto func = dynamic_cast<const RecursiveType*>(exprType);
@@ -93,9 +93,10 @@ int Environment::addFunction(const std::string& name, const Type& type, Lambda& 
 	return assembly.addFunction(name, std::move(def));
 }
 
-int Environment::addLambda(Lambda& lambda)
+int Environment::addLambda(Lambda& lambda, const FunctionType& inferred)
 {
-	std::unique_ptr<FunctionDefinition> def(new FunctionDefinition());
+	std::unique_ptr<FunctionType> function(inferred.copy());
+	std::unique_ptr<FunctionDefinition> def(new FunctionDefinition(std::move(function)));
 
 	Environment child = childEnvironment();
 	for (auto& arg : lambda.arguments)
@@ -125,7 +126,8 @@ Assembly Evaluator::compile()
 void Evaluator::compile(Assembly& assembly)
 {
 	Environment env(assembly);
-	assembly.addFunction("main", make_unique<FunctionDefinition>());
+	std::unique_ptr<RecursiveType> mainType(PolymorphicType::any.copy());
+	assembly.addFunction("main", std::unique_ptr<FunctionDefinition>(new FunctionDefinition(std::move(mainType))));
 	std::unique_ptr<Expression> expr = parser.run();
 	FunctionDefinition* def = assembly.getFunction("main");
 	assert(def);
@@ -151,11 +153,15 @@ Assembly Compiler::compile()
 		const TypeDeclaration& decl = module.typeDeclaration[0];
 		if (Lambda* lambda = dynamic_cast<Lambda*>(bind.expression.get()))
 		{
-			env.addFunction(bind.name, *decl.type, *lambda);
+			if (auto funcType = dynamic_cast<const FunctionType*>(decl.type.get()))
+				env.addFunction(bind.name, *funcType, *lambda);
+			else
+				throw TypeError("Expected: function type", *decl.type);
 		}
 		else
 		{
-			assembly.addFunction(bind.name, make_unique<FunctionDefinition>());
+			std::unique_ptr<FunctionDefinition> type(new FunctionDefinition(std::unique_ptr<RecursiveType>(PolymorphicType::any.copy())));
+			assembly.addFunction(bind.name, std::move(type));
 			FunctionDefinition* def = assembly.getFunction(bind.name);
 			assert(def);
 			bind.expression->evaluate(env, *decl.type, def->instructions);

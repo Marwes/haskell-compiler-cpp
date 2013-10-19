@@ -13,8 +13,9 @@ using namespace MyVMNamespace;
 TEST_CASE("arithmetic", "test arithmetic")
 {
     Assembly assembly;
-    assembly.entrypoint = 0;
-	assembly.addFunction("main", make_unique<FunctionDefinition>());
+	assembly.entrypoint = 0;
+	std::unique_ptr<RecursiveType> mainType(PolymorphicType::any.copy());
+	assembly.addFunction("main", std::unique_ptr<FunctionDefinition>(new FunctionDefinition(std::move(mainType))));
 	FunctionDefinition& def = *assembly.getFunction("main");
     def.instructions.push_back(Instruction(OP::LOAD_INT_CONST, 5));
     def.instructions.push_back(Instruction(OP::LOAD_INT_CONST, 10));

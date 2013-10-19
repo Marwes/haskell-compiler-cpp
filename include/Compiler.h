@@ -38,8 +38,8 @@ public:
 	Variable getFunction(const std::string& name) const;
 	int getNativeFunction(const std::string& name) const;
 
-	int addLambda(Lambda& expr);
-	int addFunction(const std::string& name, const Type& type, Lambda& lambda);
+	int addLambda(Lambda& expr, const FunctionType& inferred);
+	int addFunction(const std::string& name, const RecursiveType& type, Lambda& lambda);
 private:
 	const Environment* parent;
 	Assembly& assembly;

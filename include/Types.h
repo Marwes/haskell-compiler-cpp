@@ -77,6 +77,8 @@ public:
 		return name;
 	}
 
+	virtual Type* copy() const;
+
 	virtual bool isCompatibleWith(const Type& other) const
 	{
 		return type == other.type && name == other.name;
@@ -105,6 +107,7 @@ public:
 
 	virtual const Type& getArgumentType() const = 0;
 	virtual const Type& getReturnType() const = 0;
+	virtual RecursiveType* copy() const = 0;
 };
 
 class PolymorphicType : public RecursiveType
@@ -117,13 +120,15 @@ public:
 
 	virtual bool isCompatibleWith(const Type& other) const;
 
+	virtual PolymorphicType* copy() const;
+
 	static const PolymorphicType any;
 };
 
 class FunctionType : public RecursiveType
 {
 public:
-	FunctionType(std::unique_ptr<Type>&& argumentType, std::unique_ptr<Type>&& returnType)
+	FunctionType(std::shared_ptr<Type> && argumentType, std::shared_ptr<Type> && returnType)
 		: argumentType(std::move(argumentType))
 		, returnType(std::move(returnType))
 		, typeNameCorrect(false)
@@ -160,6 +165,8 @@ public:
 
 	virtual bool isCompatibleWith(const Type& other) const;
 
+	virtual FunctionType* copy() const;
+
 	virtual bool operator==(const Type& o) const
 	{
 		if (typeid(*this) != typeid(o))
@@ -176,8 +183,8 @@ public:
 	}
 
 private:
-	std::unique_ptr<Type> argumentType;
-	std::unique_ptr<Type> returnType;
+	std::shared_ptr<Type> argumentType;
+	std::shared_ptr<Type> returnType;
 	mutable std::string functionName;
 	bool typeNameCorrect;
 };
@@ -186,6 +193,7 @@ class TypeError : public std::runtime_error
 {
 public:
 	TypeError(const Type& expected, const Type& actual);
+	TypeError(const std::string& expected, const Type& actual);
 };
 
 class Object;
