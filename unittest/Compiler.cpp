@@ -152,7 +152,7 @@ TEST_CASE("compiler/module/2", "Compile invalid type in primop return")
 add x y = x + y\n");
 	Compiler compiler(stream);
 
-	REQUIRE_THROWS_AS(compiler.compile(), std::runtime_error);
+	REQUIRE_THROWS_AS(compiler.compile(), TypeError);
 }
 
 
@@ -163,5 +163,5 @@ TEST_CASE("compiler/module/3", "Compile invalid type in primop argument")
 add x y = x + y\n");
 	Compiler compiler(stream);
 
-	REQUIRE_THROWS_AS(compiler.compile(), std::runtime_error);
+	REQUIRE_THROWS_AS(compiler.compile(), TypeError);
 }

@@ -67,10 +67,7 @@ const Type& PrimOP::evaluate(Environment& env, const Type& inferred, std::vector
 			return lhsType;
 		}
 	}
-	std::stringstream err("Types are not compatible in PrimOP expression.\n");
-	err << "Inferred: " << inferred.toString() << "\n";
-	err << "Actual: " << intType.toString() << "\n";
-	throw std::runtime_error(err.str());
+	throw TypeError(inferred, intType);
 }
 
 Let::Let(std::vector<Binding>&& bindings, std::unique_ptr<Expression>&& expression)

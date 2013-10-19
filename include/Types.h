@@ -182,6 +182,12 @@ private:
 	bool typeNameCorrect;
 };
 
+class TypeError : public std::runtime_error
+{
+public:
+	TypeError(const Type& expected, const Type& actual);
+};
+
 class Object;
 
 union StackObject
