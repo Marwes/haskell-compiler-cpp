@@ -222,6 +222,7 @@ void Let::typecheck(TypeEnvironment& env, const Type& self)
 	TypeEnvironment child = env.child();
 	for (auto& bind : bindings)
 	{
+		child.addType(bind.name, PolymorphicType::any);
 		bind.expression->typecheck(child, PolymorphicType::any);
 	}
 }

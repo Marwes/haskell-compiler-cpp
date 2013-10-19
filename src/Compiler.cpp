@@ -131,6 +131,8 @@ void Evaluator::compile(Assembly& assembly)
 	std::unique_ptr<Expression> expr = parser.run();
 	FunctionDefinition* def = assembly.getFunction("main");
 	assert(def);
+	TypeEnvironment typeEnv;
+	expr->typecheck(typeEnv, PolymorphicType::any);
 	expr->evaluate(env, PolymorphicType::any, def->instructions);
 }
 
