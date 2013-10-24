@@ -166,6 +166,10 @@ class Pattern
 {
 public:
 	virtual ~Pattern() {}
+
+	virtual void compile(size_t stackTop, std::vector<size_t>& branches, std::vector<Instruction>& instructions) const = 0;
+	virtual void match(size_t stackTop, std::vector<size_t>& branches, std::vector<Instruction>& instructions) const = 0;
+	virtual void addLocals(Environment& env, int fieldIndex, std::vector<Instruction>& instructions) const = 0;
 };
 
 class PatternName : public Pattern
@@ -174,6 +178,10 @@ public:
 	PatternName(std::string name)
 		: name(std::move(name))
 	{}
+
+	virtual void compile(size_t stackTop, std::vector<size_t>& branches, std::vector<Instruction>& instructions) const;
+	virtual void match(size_t stackTop, std::vector<size_t>& branches, std::vector<Instruction>& instructions) const;
+	virtual void addLocals(Environment& env, int fieldIndex, std::vector<Instruction>& instructions) const;
 
 	std::string name;
 };
@@ -184,6 +192,11 @@ public:
 	NumberLiteral(int value)
 		: value(value)
 	{}
+
+	virtual void compile(size_t stackTop, std::vector<size_t>& branches, std::vector<Instruction>& instructions) const;
+	virtual void match(size_t stackTop, std::vector<size_t>& branches, std::vector<Instruction>& instructions) const;
+	virtual void addLocals(Environment& env, int fieldIndex, std::vector<Instruction>& instructions) const {}
+
 	int value;
 };
 
@@ -196,6 +209,11 @@ public:
 	ConstructorPattern(ConstructorPattern&& other)
 		: patterns(std::move(other.patterns))
 	{}
+
+	virtual void compile(size_t stackTop, std::vector<size_t>& branches, std::vector<Instruction>& instructions) const;
+	virtual void match(size_t stackTop, std::vector<size_t>& branches, std::vector<Instruction>& instructions) const;
+	virtual void addLocals(Environment& env, int fieldIndex, std::vector<Instruction>& instructions) const;
+
 	std::vector<std::unique_ptr<Pattern>> patterns;
 };
 

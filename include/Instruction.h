@@ -34,6 +34,7 @@ class StackFrame;
 	XX(t, MULTIPLY_DOUBLE) \
 	XX(t, DIVIDE_DOUBLE) \
 	XX(t, REMAINDER_DOUBLE) \
+	XX(t, AND) \
 	XX(t, COMPARE_EQ) \
 	XX(t, COMPARE_NEQ) \
 	XX(t, COMPARE_LT) \

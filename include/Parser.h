@@ -25,6 +25,7 @@ public:
 	std::unique_ptr<Expression> application();
 	Alternative alternative();
 	Binding binding();
+	std::unique_ptr<Pattern> pattern();
 	TypeDeclaration typeDeclaration();
 	std::unique_ptr<Type> type();
 

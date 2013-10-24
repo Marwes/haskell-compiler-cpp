@@ -153,6 +153,7 @@ bool subExpressionError(const Token& t)
 {
 	return t.type != SymbolEnum::LPARENS
 		&& t.type != SymbolEnum::LET
+		&& t.type != SymbolEnum::CASE
 		&& t.type != SymbolEnum::NAME
 		&& t.type != SymbolEnum::NUMBER
 		&& t.type != SymbolEnum::SEMICOLON;
@@ -261,16 +262,7 @@ std::unique_ptr<Expression> Parser::subExpression(bool (*parseError)(const Token
 
 Alternative Parser::alternative()
 {
-	const Token& patternToken = tokenizer.nextToken();
-	std::unique_ptr<Pattern> pattern;
-	if (patternToken.type == SymbolEnum::NUMBER)
-	{
-		pattern = make_unique<NumberLiteral>(atoi(patternToken.name.c_str()));
-	}
-	else if (patternToken.type == SymbolEnum::NAME)
-	{
-		pattern = std::unique_ptr<Pattern>(new PatternName(patternToken.name));
-	}
+	std::unique_ptr<Pattern> pat = pattern();
 
 	const Token& arrow = tokenizer.nextToken();
 	if (arrow.type != SymbolEnum::ARROW)
@@ -278,7 +270,7 @@ Alternative Parser::alternative()
 		throw std::runtime_error("Expected '->' in alternative");
 	}
 
-	return Alternative(std::move(pattern), expression());
+	return Alternative(std::move(pat), expression());
 }
 
 std::unique_ptr<Expression> Parser::parseOperatorExpression(std::unique_ptr<Expression> lhs, int minPrecedence)
@@ -312,6 +304,7 @@ bool applicationError(const Token& t)
 {
 	return t.type != SymbolEnum::LPARENS
 		&& t.type != SymbolEnum::LET
+		&& t.type != SymbolEnum::OF
 		&& t.type != SymbolEnum::NAME
 		&& t.type != SymbolEnum::NUMBER
 		&& t.type != SymbolEnum::OPERATOR
@@ -383,6 +376,32 @@ Binding Parser::binding()
 	}
 }
 
+std::unique_ptr<Pattern> Parser::pattern()
+{
+	const Token& token = tokenizer.nextToken();
+	switch (token.type)
+	{
+	case SymbolEnum::NAME:
+		return std::unique_ptr<Pattern>(new PatternName(token.name));
+	case SymbolEnum::NUMBER:
+		return std::unique_ptr<Pattern>(new NumberLiteral(atoi(token.name.c_str())));
+	case SymbolEnum::LPARENS:
+		{
+			auto tupleArgs = many1(&Parser::pattern, SymbolEnum::COMMA);
+			const Token& rParens = *tokenizer;
+			if (rParens.type != SymbolEnum::RPARENS)
+			{
+				throw std::runtime_error("Expected RPARENS, got" + std::string(enumToString(rParens.type)));
+			}
+			return std::unique_ptr<Pattern>(new ConstructorPattern(std::move(tupleArgs)));
+		}
+		break;
+	default:
+		break;
+	}
+	return nullptr;
+}
+
 TypeDeclaration Parser::typeDeclaration()
 {
 	const Token nameToken = tokenizer.nextToken(errorIfNotName);
@@ -417,16 +436,45 @@ std::unique_ptr<Type> Parser::type()
 	{
 	case SymbolEnum::LPARENS:
 		{
-			auto arg = type();
-			const Token& rParens = *tokenizer;
-			if (rParens.type == SymbolEnum::RPARENS)
+			++tokenizer;
+			const Token& maybeComma = tokenizer.nextToken();
+			if (maybeComma.type == SymbolEnum::COMMA)
 			{
-				const Token& arrow = tokenizer.nextToken();
-				if (arrow.type == SymbolEnum::ARROW)
+				--tokenizer;
+				--tokenizer;
+				auto tupleArgs = many1(&Parser::type, SymbolEnum::COMMA);
+				std::vector<const Type*> args;
+				for (auto& a : tupleArgs)
 				{
-					return std::unique_ptr<Type>(new FunctionType(std::move(arg), type()));
+					args.push_back(a.get());
 				}
-				return std::move(arg);
+				const Token& rParens = *tokenizer;
+				if (rParens.type == SymbolEnum::RPARENS)
+				{
+					const Token& arrow = tokenizer.nextToken();
+					if (arrow.type == SymbolEnum::ARROW)
+					{
+						return std::unique_ptr<Type>(new FunctionType(FunctionType::create(args), type()));
+					}
+					return FunctionType::create(args);
+				}
+				throw std::runtime_error("Expected ')' to end tuple type");
+			}
+			else
+			{
+				--tokenizer;
+				--tokenizer;
+				auto arg = type();
+				const Token& rParens = *tokenizer;
+				if (rParens.type == SymbolEnum::RPARENS)
+				{
+					const Token& arrow = tokenizer.nextToken();
+					if (arrow.type == SymbolEnum::ARROW)
+					{
+						return std::unique_ptr<Type>(new FunctionType(std::move(arg), type()));
+					}
+					return std::move(arg);
+				}
 			}
 		}
 		break;
@@ -438,6 +486,8 @@ std::unique_ptr<Type> Parser::type()
 				std::unique_ptr<Type> arg(new Type(token.name, TypeEnum::TYPE_CLASS));
 				return std::unique_ptr<Type>(new FunctionType(std::move(arg), type()));
 			}
+			if (arrow.type == SymbolEnum::COMMA || arrow.type == SymbolEnum::RPARENS)//in tuple type
+				--tokenizer;
 			return std::unique_ptr<Type>(new Type(token.name, TypeEnum::TYPE_CLASS));
 		}
 		break;

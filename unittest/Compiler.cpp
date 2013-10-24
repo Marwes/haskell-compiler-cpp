@@ -179,3 +179,18 @@ divide x y = x / y\n");
 	vm->assembly = std::move(assembly);
 	REQUIRE(runExpr<VMFloat>(*vm, "divide 3 2") == 3. / 2);
 }
+
+
+TEST_CASE("compiler/module/divideTuple", "Test dividing doubles")
+{
+	std::stringstream stream(
+"divide :: (Double, Double) -> Double\n\
+divide z = case z of\n\
+    (x, y) -> x / y\n");
+	Compiler compiler(stream);
+	Assembly assembly = compiler.compile();
+
+	std::unique_ptr<VM> vm = make_unique<VM>();
+	vm->assembly = std::move(assembly);
+	REQUIRE(runExpr<VMFloat>(*vm, "divide (3, 2)") == 3. / 2);
+}

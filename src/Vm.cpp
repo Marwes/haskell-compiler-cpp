@@ -81,10 +81,17 @@ public:
 
     static void op_getfield(MethodEnvironment& environment, Instruction current)
     {
-        StackObject* obj = &environment.stackFrame.top();
+		StackObject* obj = &environment.stackFrame.top();
+		StackObject& field = obj->pointerValue->getField(current.arg0);
+        environment.stackFrame[current.arg1] = field;
+	}
 
-        environment.stackFrame[current.arg1] = *(obj + current.arg0);
-    }
+	static void op_setfield(MethodEnvironment& environment, Instruction current)
+	{
+		StackObject* obj = &environment.stackFrame.top();
+
+		obj->pointerValue->getField(current.arg0) = environment.stackFrame[current.arg1];
+	}
 
     static void op_call(VM& vm, MethodEnvironment& environment, Instruction current)
     {
@@ -119,13 +126,6 @@ public:
 	{
 		environment.stackFrame.pop();
 	}
-
-    static void op_setfield(MethodEnvironment& environment, Instruction current)
-    {
-        StackObject* obj = &environment.stackFrame.top();
-        
-        *(obj + current.arg0) = environment.stackFrame[current.arg1];
-    }
 
 
 
@@ -168,6 +168,11 @@ public:
 	static T op_equal(T l, T r)
 	{
 		return l == r;
+	}
+	template<class T>
+	static T op_and(T l, T r)
+	{
+		return l && r;
 	}
 };
 
@@ -299,6 +304,9 @@ void VM::execute(MethodEnvironment& environment)
 
 			ARITH_BINOPS(DOUBLE, VMFloat)
 
+		case OP::AND:
+			VMI::op_binop<VMInt, VMI::op_and<VMInt>>(environment, instruction);
+			break;
 		case OP::COMPARE_EQ:
 			VMI::op_binop<VMInt, VMI::op_equal<VMInt>>(environment, instruction);
 			break;

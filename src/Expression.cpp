@@ -385,6 +385,78 @@ const Type* Apply::getType() const
 	return type.get();
 }
 
+void PatternName::match(size_t stackTop, std::vector<size_t>& branches, std::vector<Instruction>& instructions) const
+{
+	instructions.push_back(Instruction(OP::LOAD_INT_CONST, 1));
+}
+
+void PatternName::compile(size_t stackTop, std::vector<size_t>& branches, std::vector<Instruction>& instructions) const
+{
+	instructions.push_back(Instruction(OP::JUMP));
+	branches.push_back(instructions.size() - 1);
+}
+
+void PatternName::addLocals(Environment& env, int fieldIndex, std::vector<Instruction>& instructions) const
+{
+	if (fieldIndex >= 0)
+		instructions.push_back(Instruction(OP::GETFIELD, VMInt(fieldIndex)));
+	else
+		instructions.push_back(Instruction(OP::LOAD, VMInt(-fieldIndex-1)));
+	env.newLocal(name, &PolymorphicType::any);//TODO
+}
+
+void NumberLiteral::match(size_t stackTop, std::vector<size_t>& branches, std::vector<Instruction>& instructions) const
+{
+	//Load the topmost value since it will be reduced by the comparison
+	instructions.push_back(Instruction(OP::LOAD, (VMInt) stackTop));
+	instructions.push_back(Instruction(OP::LOAD_INT_CONST, this->value));
+	instructions.push_back(Instruction(OP::COMPARE_EQ));
+}
+
+void NumberLiteral::compile(size_t stackTop, std::vector<size_t>& branches, std::vector<Instruction>& instructions) const
+{
+	match(stackTop, branches, instructions);
+	instructions.push_back(Instruction(OP::BRANCH_TRUE));
+	branches.push_back(instructions.size() - 1);
+	instructions.push_back(Instruction(OP::POP));
+}
+
+void ConstructorPattern::match(size_t stackTop, std::vector<size_t>& branches, std::vector<Instruction>& instructions) const
+{
+	if (patterns.size() == 0)
+		return;
+
+	patterns[0]->match(stackTop, branches, instructions);
+	for (size_t ii = 1;  ii < patterns.size(); ++ii)
+	{
+		patterns[ii]->match(stackTop, branches, instructions);
+		instructions.push_back(Instruction(OP::AND));
+	}
+}
+
+void ConstructorPattern::compile(size_t stackTop, std::vector<size_t>& branches, std::vector<Instruction>& instructions) const
+{
+	match(stackTop, branches, instructions);
+	//Load the topmost value since it will be reduced by the comparison
+	instructions.push_back(Instruction(OP::BRANCH_TRUE));
+	branches.push_back(instructions.size() - 1);
+	instructions.push_back(Instruction(OP::POP));
+}
+
+void ConstructorPattern::addLocals(Environment& env, int fieldIndex, std::vector<Instruction>& instructions) const
+{
+	if (fieldIndex >= 0)
+		instructions.push_back(Instruction(OP::GETFIELD, VMInt(fieldIndex)));
+	else
+		instructions.push_back(Instruction(OP::LOAD, VMInt(-fieldIndex-1)));
+	size_t index = 0;
+	for (auto& p : patterns)
+	{
+		p->addLocals(env, index, instructions);
+		index++;
+	}
+}
+
 Case::Case(std::unique_ptr<Expression> && expr, std::vector<Alternative> && alternatives)
 	: expression(std::move(expr))
 	, alternatives(std::move(alternatives))
@@ -437,25 +509,7 @@ const Type& Case::evaluate(Environment& env, const Type& inferred, std::vector<I
 	size_t beginSize = instructions.size();
 	for (Alternative& alt : alternatives)
 	{
-		if (PatternName* pattern = dynamic_cast<PatternName*>(alt.pattern.get()))
-		{
-			instructions.push_back(Instruction(OP::JUMP));
-			branches.push_back(instructions.size() - 1);
-		}
-		else if (NumberLiteral* pattern = dynamic_cast<NumberLiteral*>(alt.pattern.get()))
-		{
-			if (!caseType.isCompatibleWith(intType))
-			{
-				throw std::runtime_error("Number literal is not valid in case alternative for non-number types");
-			}
-			//Load the topmost value since it will be reduced by the comparison
-			instructions.push_back(Instruction(OP::LOAD, (VMInt)env.getStackTop()));
-			instructions.push_back(Instruction(OP::LOAD_INT_CONST, pattern->value));
-			instructions.push_back(Instruction(OP::COMPARE_EQ));
-			instructions.push_back(Instruction(OP::BRANCH_TRUE));
-			branches.push_back(instructions.size() - 1);
-			instructions.push_back(Instruction(OP::POP));
-		}
+		alt.pattern->compile(env.getStackTop(), branches, instructions);
 	}
 	const Type* ret = nullptr;
 	for (size_t ii = 0; ii < alternatives.size(); ++ii)
@@ -463,9 +517,10 @@ const Type& Case::evaluate(Environment& env, const Type& inferred, std::vector<I
 		const Alternative& alt = alternatives[ii];
 		size_t jumpIndex = branches[ii];
 		instructions[jumpIndex].arg0 = instructions.size();
+		Environment caseEnv = env.childEnvironment();
+		alt.pattern->addLocals(caseEnv, -int(env.getStackTop()) - 1, instructions);
 		if (PatternName* pattern = dynamic_cast<PatternName*>(alt.pattern.get()))
 		{
-			Environment caseEnv = env.childEnvironment();
 			caseEnv.newLocal(pattern->name, &caseType);
 			const Type& t = alt.expression->evaluate(caseEnv, inferred, instructions);
 			if (ret == nullptr)
@@ -484,6 +539,15 @@ const Type& Case::evaluate(Environment& env, const Type& inferred, std::vector<I
 		else if (NumberLiteral* pattern = dynamic_cast<NumberLiteral*>(alt.pattern.get()))
 		{
 			const Type& t = alt.expression->evaluate(env, inferred, instructions);
+			if (ret != nullptr && t != *ret)
+			{
+				throw std::runtime_error("All case alternatives must have the same type");
+			}
+			ret = &t;
+		}
+		else if (ConstructorPattern* pattern = dynamic_cast<ConstructorPattern*>(alt.pattern.get()))
+		{
+			const Type& t = alt.expression->evaluate(caseEnv, inferred, instructions);
 			if (ret != nullptr && t != *ret)
 			{
 				throw std::runtime_error("All case alternatives must have the same type");

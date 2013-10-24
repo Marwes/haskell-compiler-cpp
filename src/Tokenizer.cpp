@@ -276,14 +276,11 @@ bool Tokenizer::tokenize2(bool (*parseError)(const Token&))
 					return true;
 				}
 			}
+			unprocessedTokens.pop_back();
+			if (unprocessedTokens.empty())
+				return tokenize();
 			else
-			{
-				unprocessedTokens.pop_back();
-				if (unprocessedTokens.empty())
-					return tokenize();
-				else
-					return tokenize2();
-			}
+				return tokenize2(parseError);
 		}
 		else if (tok.type == SymbolEnum::INDENTSTART)//{n} token
 		{
