@@ -29,7 +29,14 @@ int Environment::newLocal(const std::string& name, const Type* type)
 {
 	stackValues.push_back(name);
 	stackTypes.push_back(type);
-	return stackValues.size() - 1;
+	const Environment* p = this->parent;
+	size_t varIndex = stackValues.size() - 1;
+	while (p != nullptr)
+	{
+		varIndex += p->stackValues.size();
+		p = p->parent;
+	}
+	return varIndex;
 }
 
 Variable Environment::getVariable(const std::string& name) const
@@ -37,9 +44,16 @@ Variable Environment::getVariable(const std::string& name) const
 	auto found = std::find(stackValues.begin(), stackValues.end(), name);
 	if (found != stackValues.end())
 	{
-		size_t ii = std::distance(stackValues.begin(), found);
-		assert(stackTypes[ii] != nullptr);
-		return Variable { VariableType::STACK, *stackTypes[ii], ii };
+		size_t typeIndex = std::distance(stackValues.begin(), found);
+		assert(stackTypes[typeIndex] != nullptr);
+		const Environment* p = this->parent;
+		size_t varIndex = typeIndex;
+		while (p != nullptr)
+		{
+			varIndex += p->stackValues.size();
+			p = p->parent;
+		}
+		return Variable { VariableType::STACK, *stackTypes[typeIndex], varIndex };
 	}
 	if (parent == nullptr)
 	{
@@ -74,7 +88,7 @@ int Environment::getNativeFunction(const std::string& name) const
 int Environment::addFunction(const std::string& name, const RecursiveType& type, Lambda& lambda)
 {
 	std::unique_ptr<FunctionDefinition> def(new FunctionDefinition(std::unique_ptr<RecursiveType>(type.copy())));
-	Environment child = childEnvironment();
+	Environment newEnv(this->assembly);
 	const Type* exprType = &type;
 	def->numArguments = lambda.arguments.size();
 	for (auto& arg : lambda.arguments)
@@ -82,14 +96,14 @@ int Environment::addFunction(const std::string& name, const RecursiveType& type,
 		auto func = dynamic_cast<const RecursiveType*>(exprType);
 		if (func != nullptr)
 		{
-			child.newLocal(arg, &func->getArgumentType());
+			newEnv.newLocal(arg, &func->getArgumentType());
 			exprType = &func->getReturnType();
 		}
 		if (exprType == nullptr)
 			throw std::runtime_error("Not enough parameters for function!");
 	}
 	assert(exprType != nullptr);
-	lambda.expression->evaluate(child, *exprType, def->instructions);
+	lambda.expression->evaluate(newEnv, *exprType, def->instructions);
 	return assembly.addFunction(name, std::move(def));
 }
 

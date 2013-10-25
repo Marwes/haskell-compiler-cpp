@@ -83,7 +83,7 @@ public:
     {
 		StackObject* obj = &environment.stackFrame.top();
 		StackObject& field = obj->pointerValue->getField(current.arg0);
-        environment.stackFrame[current.arg1] = field;
+        environment.stackFrame.push(field);
 	}
 
 	static void op_setfield(MethodEnvironment& environment, Instruction current)
