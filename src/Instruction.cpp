@@ -7,7 +7,7 @@ namespace MyVMNamespace
 DEFINE_ENUM(OP, OP_ENUM);
 
 
-int allocatePair(VM& vm, StackFrame& stack)
+int allocatePair(VM& vm, StackFrame<StackObject>& stack)
 {
 	void* ptr = malloc(sizeof(Object) + sizeof(StackObject) * 2);
 	Object* o = new (ptr) Object();

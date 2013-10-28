@@ -65,6 +65,11 @@ public:
         return start[index];
     }
 
+	T* data() const
+	{
+		return start;
+	}
+
     size_t size() const
     {
         return maxSize;

@@ -8,6 +8,7 @@
 namespace MyVMNamespace
 {
 struct VM;
+template<class T>
 class StackFrame;
 
 #define OP_ENUM(t,XX) \
@@ -97,7 +98,7 @@ public:
 	std::vector<Instruction> instructions;
 };
 
-typedef int (*VM_Function)(VM& vm, StackFrame& stack);
+typedef int (*VM_Function)(VM& vm, StackFrame<StackObject>& stack);
 
 class Assembly
 {

@@ -12,12 +12,12 @@ struct StackLayout
 };
 
 
-class StackFrame
+template<class T>
+class StackFrame : public Slice<T>
 {
 public:
-	StackFrame(StackObject* stackBase, size_t maxSize, size_t currentSize = 0)
-		: stackBase(stackBase)
-		, maxSize(maxSize)
+	StackFrame(T* stackBase, size_t maxSize, size_t currentSize = 0)
+		: Slice(stackBase, maxSize)
 		, currentSize(currentSize)
 	{
 	}
@@ -41,17 +41,17 @@ public:
 		p->addReference();
         push(o);
     }
-    StackObject pop()
+    T pop()
     {
-        StackObject o = top();
+        T o = top();
         --currentSize;
-        return o;
+        return std::move(o);
     }
 
-    void push(const StackObject& obj)
+    void push(const T& obj)
     {
-        assert(currentSize < maxSize - 1);
-        this->stackBase[currentSize] = obj;
+        assert(currentSize < size() - 1);
+        (*this)[currentSize] = obj;
         currentSize++;
     }
 
@@ -61,9 +61,9 @@ public:
         return *reinterpret_cast<T*>(this->stackBase);
     }
 
-    StackObject& top()
+    T& top()
     {
-        return *(stackBase + currentSize - 1);
+        return *(Slice<T>::begin() + currentSize - 1);
     }
 
     void setStack(VMField field, size_t index, VMPointer data)
@@ -84,36 +84,23 @@ public:
         }
     }
 
-    template<typename T>
-    T& at(size_t index)
+    template<typename U>
+    U& at(size_t index)
     {
-        StackObject& val = this->stackBase[index];
-        return reinterpret_cast<T&>(val);
+        T& val = (*this)[index];
+        return reinterpret_cast<U&>(val);
     }
 
-    StackObject& operator[](size_t index)
+    StackFrame<StackObject> makeChildFrame(size_t numParameters)
     {
-        StackObject& val = this->stackBase[index];
-        return val;
+		StackObject* newBase = data() + currentSize - numParameters;
+		return StackFrame<StackObject>(newBase, size() - (currentSize - numParameters), numParameters);
     }
 
-    StackObject* data()
-    {
-        return stackBase;
-    }
-
-    StackFrame makeChildFrame(size_t numParameters)
-    {
-		StackObject* newBase = stackBase + currentSize - numParameters;
-		return StackFrame(newBase, maxSize - (currentSize - numParameters), numParameters);
-    }
-
-    size_t size()
-    {
-        return currentSize;
-    }
-
-
+	size_t stackSize() const
+	{
+		return currentSize;
+	}
 
     class Iterator
     {
@@ -162,8 +149,6 @@ public:
     }
 
 private:
-    StackObject* stackBase;
     size_t currentSize;
-    size_t maxSize;
 };
 }

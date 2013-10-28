@@ -219,9 +219,9 @@ VM::~VM()
 {
 }
 
-StackFrame VM::newStackFrame()
+StackFrame<StackObject> VM::newStackFrame()
 {
-    return StackFrame(this->stack.data(), 0);
+    return StackFrame<StackObject>(this->stack.data(), this->stack.size());
 }
 
 void printValue(StackObject obj)

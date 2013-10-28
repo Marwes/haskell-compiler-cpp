@@ -42,6 +42,8 @@ private:
 	std::map<std::string, std::unique_ptr<Type>> types;
 };
 
+class EvalEnvironment;
+
 class Expression
 {
 public:
@@ -50,9 +52,16 @@ public:
 	virtual void typecheck(TypeEnvironment& env, const Type& self) = 0;
 
 	virtual const Type& evaluate(Environment& env, const Type& inferred, std::vector<Instruction>& instructions) = 0;
+	virtual std::unique_ptr<Object> eval(EvalEnvironment& env) = 0;
 
 	virtual const Type* getType() const = 0;
 };
+class EvalEnvironment
+{
+public:
+	std::map<std::string, std::unique_ptr<Expression>> values;
+};
+
 
 class Name : public Expression
 {
@@ -62,6 +71,8 @@ public:
 	virtual void typecheck(TypeEnvironment& env, const Type& self);
 
 	virtual const Type& evaluate(Environment& env, const Type& inferred, std::vector<Instruction>& instructions);
+	virtual std::unique_ptr<Object> eval(EvalEnvironment& env);
+
 
 	virtual const Type* getType() const;
 
@@ -78,6 +89,7 @@ public:
 	virtual void typecheck(TypeEnvironment& env, const Type& self);
 
 	virtual const Type& evaluate(Environment& env, const Type& inferred, std::vector<Instruction>& instructions);
+	virtual std::unique_ptr<Object> eval(EvalEnvironment& env);
 
 	virtual const Type* getType() const;
 
@@ -92,6 +104,7 @@ public:
 	virtual void typecheck(TypeEnvironment& env, const Type& self);
 
 	virtual const Type& evaluate(Environment& env, const Type& inferred, std::vector<Instruction>& instructions);
+	virtual std::unique_ptr<Object> eval(EvalEnvironment& env);
 
 	virtual const Type* getType() const;
 
@@ -106,6 +119,7 @@ public:
 	virtual void typecheck(TypeEnvironment& env, const Type& self);
 
 	virtual const Type& evaluate(Environment& env, const Type& inferred, std::vector<Instruction>& instructions);
+	virtual std::unique_ptr<Object> eval(EvalEnvironment& env);
 
 	virtual const Type* getType() const;
 
@@ -121,6 +135,7 @@ public:
 	virtual void typecheck(TypeEnvironment& env, const Type& self);
 
 	virtual const Type& evaluate(Environment& env, const Type& inferred, std::vector<Instruction>& instructions);
+	virtual std::unique_ptr<Object> eval(EvalEnvironment& env);
 
 	virtual const Type* getType() const;
 
@@ -136,6 +151,7 @@ public:
 	virtual void typecheck(TypeEnvironment& env, const Type& self);
 
 	virtual const Type& evaluate(Environment& env, const Type& inferred, std::vector<Instruction>& instructions);
+	virtual std::unique_ptr<Object> eval(EvalEnvironment& env);
 
 	virtual const Type* getType() const;
 
@@ -153,6 +169,7 @@ public:
 	virtual void typecheck(TypeEnvironment& env, const Type& self);
 
 	virtual const Type& evaluate(Environment& env, const Type& inferred, std::vector<Instruction>& instructions);
+	virtual std::unique_ptr<Object> eval(EvalEnvironment& env);
 
 	virtual const Type* getType() const;
 
@@ -241,6 +258,7 @@ public:
 	virtual void typecheck(TypeEnvironment& env, const Type& self);
 
 	virtual const Type& evaluate(Environment& env, const Type& inferred, std::vector<Instruction>& instructions);
+	virtual std::unique_ptr<Object> eval(EvalEnvironment& env);
 
 	virtual const Type* getType() const;
 

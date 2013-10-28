@@ -12,7 +12,7 @@ class VMI;
 
 struct MethodEnvironment
 {
-    MethodEnvironment(const Assembly* assembly, const StackFrame& frame, FunctionDefinition* function)
+    MethodEnvironment(const Assembly* assembly, const StackFrame<StackObject>& frame, FunctionDefinition* function)
         : stackFrame(frame)
 		, function(function)
 		, assembly(assembly)
@@ -21,7 +21,7 @@ struct MethodEnvironment
 
     ~MethodEnvironment();
 
-    StackFrame stackFrame;
+    StackFrame<StackObject> stackFrame;
 	FunctionDefinition* function;
 	const Assembly* assembly;
 };
@@ -35,7 +35,7 @@ struct VM
 
     Array<StackObject>& getStack() { return stack; }
 
-    StackFrame newStackFrame();
+    StackFrame<StackObject> newStackFrame();
 
     void execute(MethodEnvironment& environment);
     void endFrame(MethodEnvironment& environment);
