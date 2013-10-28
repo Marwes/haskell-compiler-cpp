@@ -36,12 +36,12 @@ public:
     }
 
     
-    Instruction* begin() const
+    T* begin() const
     {
         return start;
     }
 
-    Instruction* end() const
+    T* end() const
     {
         return start + maxSize;
     }
