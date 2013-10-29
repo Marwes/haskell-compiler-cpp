@@ -106,7 +106,7 @@ public:
 		MethodEnvironment newEnvironment(&vm.assembly, environment.stackFrame.makeChildFrame(func->numArguments), func);
 
 		vm.execute(newEnvironment);
-		size_t i = environment.stackFrame.size() - func->numArguments;
+		size_t i = environment.stackFrame.stackSize() - func->numArguments;
 		environment.stackFrame[i] = newEnvironment.stackFrame.top();
 	}
 
