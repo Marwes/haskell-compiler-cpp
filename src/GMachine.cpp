@@ -1,5 +1,8 @@
 #include <iostream>
 #include "GMachine.h"
+#include "Tokenizer.h"
+#include "Parser.h"
+#include "Compiler.h"
 
 namespace MyVMNamespace
 {
@@ -16,6 +19,23 @@ GEnvironment GEnvironment::child(SuperCombinator* combinator)
 GMachine::GMachine()
 	: heap(1024)//Just make sure the heap is large enough for small examples for now
 {}
+
+
+void GMachine::compile(std::istream& input)
+{
+	Tokenizer tokens(input);
+	Parser parser(tokens);
+	Module module = parser.toplevel();
+
+	GCompiler comp;
+	for (Binding& bind : module.bindings)
+	{
+		comp.stackVariables.clear();
+		std::vector<GInstruction> instructions;
+		bind.expression->compile(comp, comp.getGlobal(bind.name).instructions);
+	}
+	this->superCombinators = std::move(comp.globals);
+}
 
 void slide(GEnvironment& environment, const GInstruction& instruction)
 {

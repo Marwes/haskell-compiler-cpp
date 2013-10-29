@@ -7,17 +7,6 @@
 
 namespace MyVMNamespace
 {
-enum class VariableType
-{
-	STACK,
-	TOPLEVEL
-};
-struct Variable
-{
-	VariableType accessType;
-	const Type& type;
-	int index;
-};
 class Environment
 {
 public:

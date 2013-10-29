@@ -63,7 +63,8 @@ public:
 
     T& top()
     {
-        return *(Slice<T>::begin() + currentSize - 1);
+		T& x = *(Slice<T>::begin() + currentSize - 1);
+        return x;
     }
 
     void setStack(VMField field, size_t index, VMPointer data)

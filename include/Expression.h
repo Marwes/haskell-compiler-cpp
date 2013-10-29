@@ -4,6 +4,7 @@
 #include <memory>
 #include <map>
 #include "Instruction.h"
+#include "GMachine.h"
 
 
 namespace MyVMNamespace
@@ -26,6 +27,18 @@ enum class PrimOps
 	COMPARE_GE,
 };
 
+enum class VariableType
+{
+	STACK,
+	TOPLEVEL
+};
+struct Variable
+{
+	VariableType accessType;
+	const Type& type;
+	int index;
+};
+
 class TypeEnvironment
 {
 public:
@@ -44,6 +57,18 @@ private:
 
 class EvalEnvironment;
 
+class GCompiler
+{
+public:
+	void newStackVariable(const std::string& name);
+	Variable getVariable(const std::string& name);
+	SuperCombinator& getGlobal(const std::string& name);
+
+
+	std::vector<std::string> stackVariables;
+	std::map<std::string, std::unique_ptr<SuperCombinator>> globals;
+};
+
 class Expression
 {
 public:
@@ -52,6 +77,7 @@ public:
 	virtual void typecheck(TypeEnvironment& env, const Type& self) = 0;
 
 	virtual const Type& evaluate(Environment& env, const Type& inferred, std::vector<Instruction>& instructions) = 0;
+	virtual void compile(GCompiler& env, std::vector<GInstruction>& instructions) = 0;
 	virtual std::unique_ptr<Object> eval(EvalEnvironment& env) = 0;
 
 	virtual const Type* getType() const = 0;
@@ -73,6 +99,7 @@ public:
 	virtual const Type& evaluate(Environment& env, const Type& inferred, std::vector<Instruction>& instructions);
 	virtual std::unique_ptr<Object> eval(EvalEnvironment& env);
 
+	virtual void compile(GCompiler& env, std::vector<GInstruction>& instructions);
 
 	virtual const Type* getType() const;
 
@@ -90,6 +117,7 @@ public:
 
 	virtual const Type& evaluate(Environment& env, const Type& inferred, std::vector<Instruction>& instructions);
 	virtual std::unique_ptr<Object> eval(EvalEnvironment& env);
+	virtual void compile(GCompiler& env, std::vector<GInstruction>& instructions);
 
 	virtual const Type* getType() const;
 
@@ -105,6 +133,7 @@ public:
 
 	virtual const Type& evaluate(Environment& env, const Type& inferred, std::vector<Instruction>& instructions);
 	virtual std::unique_ptr<Object> eval(EvalEnvironment& env);
+	virtual void compile(GCompiler& env, std::vector<GInstruction>& instructions);
 
 	virtual const Type* getType() const;
 
@@ -120,6 +149,7 @@ public:
 
 	virtual const Type& evaluate(Environment& env, const Type& inferred, std::vector<Instruction>& instructions);
 	virtual std::unique_ptr<Object> eval(EvalEnvironment& env);
+	virtual void compile(GCompiler& env, std::vector<GInstruction>& instructions);
 
 	virtual const Type* getType() const;
 
@@ -136,6 +166,7 @@ public:
 
 	virtual const Type& evaluate(Environment& env, const Type& inferred, std::vector<Instruction>& instructions);
 	virtual std::unique_ptr<Object> eval(EvalEnvironment& env);
+	virtual void compile(GCompiler& env, std::vector<GInstruction>& instructions);
 
 	virtual const Type* getType() const;
 
@@ -152,6 +183,7 @@ public:
 
 	virtual const Type& evaluate(Environment& env, const Type& inferred, std::vector<Instruction>& instructions);
 	virtual std::unique_ptr<Object> eval(EvalEnvironment& env);
+	virtual void compile(GCompiler& env, std::vector<GInstruction>& instructions);
 
 	virtual const Type* getType() const;
 
@@ -170,6 +202,7 @@ public:
 
 	virtual const Type& evaluate(Environment& env, const Type& inferred, std::vector<Instruction>& instructions);
 	virtual std::unique_ptr<Object> eval(EvalEnvironment& env);
+	virtual void compile(GCompiler& env, std::vector<GInstruction>& instructions);
 
 	virtual const Type* getType() const;
 
@@ -259,6 +292,7 @@ public:
 
 	virtual const Type& evaluate(Environment& env, const Type& inferred, std::vector<Instruction>& instructions);
 	virtual std::unique_ptr<Object> eval(EvalEnvironment& env);
+	virtual void compile(GCompiler& env, std::vector<GInstruction>& instructions);
 
 	virtual const Type* getType() const;
 

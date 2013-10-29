@@ -565,6 +565,80 @@ const Type* Case::getType() const
 	return expression->getType();
 }
 
+Variable GCompiler::getVariable(const std::string& name)
+{
+	auto found = std::find(stackVariables.begin(), stackVariables.end(), name);
+	if (found != stackVariables.end())
+	{
+		size_t typeIndex = std::distance(stackVariables.begin(), found);
+		return Variable { VariableType::STACK, PolymorphicType::any, typeIndex };
+	}
+	return Variable { VariableType::STACK, PolymorphicType::any, -1 };
+}
+
+SuperCombinator& GCompiler::getGlobal(const std::string& name)
+{
+	auto found = globals.find(name);
+	if (found == globals.end())
+	{
+		auto& ptr =globals[name] = std::unique_ptr<SuperCombinator>(new SuperCombinator());
+		return *ptr;
+	}
+	return *found->second;
+}
+
+
+void Name::compile(GCompiler& env, std::vector<GInstruction>& instructions)
+{
+	Variable var = env.getVariable(this->name);
+	switch (var.accessType)
+	{
+	case VariableType::STACK:
+		instructions.push_back(GInstruction(GOP::PUSH, var.index));
+		break;
+	case VariableType::TOPLEVEL:
+		instructions.push_back(GInstruction(GOP::PUSH_GLOBAL, var.index));
+		break;
+	default:
+		break;
+	}
+}
+
+void Number::compile(GCompiler& env, std::vector<GInstruction>& instructions)
+{
+	instructions.push_back(GInstruction(GOP::PUSH_INT, this->value));
+}
+void Rational::compile(GCompiler& env, std::vector<GInstruction>& instructions)
+{
+	assert(0);
+}
+void PrimOP::compile(GCompiler& env, std::vector<GInstruction>& instructions)
+{
+	assert(0);
+}
+void Let::compile(GCompiler& env, std::vector<GInstruction>& instructions)
+{
+	assert(0);
+}
+void Lambda::compile(GCompiler& env, std::vector<GInstruction>& instructions)
+{
+	assert(0);
+}
+void Apply::compile(GCompiler& env, std::vector<GInstruction>& instructions)
+{
+	function->compile(env, instructions);
+	for (auto& arg : arguments)
+	{
+		//TODO
+		arg->compile(env, instructions);
+	}
+	instructions.push_back(GInstruction(GOP::MKAP));
+}
+void Case::compile(GCompiler& env, std::vector<GInstruction>& instructions)
+{
+	assert(0);
+}
+
 std::unique_ptr<Object> Rational::eval(EvalEnvironment& env)
 {
 	return std::unique_ptr<Object>(new Object);

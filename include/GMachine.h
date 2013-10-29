@@ -22,6 +22,11 @@ enum class GOP : unsigned char
 class GInstruction
 {
 public:
+	GInstruction(GOP op, int value = 0)
+		: op(op)
+		, value(value)
+	{}
+
 	GOP op;
 	int value;
 };
@@ -137,11 +142,27 @@ class GMachine
 public:
 	GMachine();
 
+
+	StackFrame<Address> baseStack()
+	{
+		return StackFrame<Address>(stack.data(), stack.size());
+	}
+
+	void compile(std::istream& input);
+
 	void execute(GEnvironment& environment);
 
+	SuperCombinator* getCombinator(const std::string& name)
+	{
+		return superCombinators[name].get();
+	}
+
 private:
+	Array<Address> stack;
 	std::map<int, Address> globals;
 	std::vector<Node> heap;
+
+	std::map<std::string, std::unique_ptr<SuperCombinator>> superCombinators;
 };
 
 };

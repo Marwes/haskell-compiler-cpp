@@ -102,6 +102,20 @@ TEST_CASE("compiler/case5", "")
 	REQUIRE(evaluateInt(expr)->getValue(0).intValue == 1000);
 }
 
+template<class T>
+T runExpr(VM& vm, const std::string& expr)
+{
+	std::stringstream str(expr);
+	Evaluator eval(str);
+	eval.compile(vm.assembly);
+	FunctionDefinition* def = vm.assembly.getFunction("main");
+	assert(def != nullptr);
+	MethodEnvironment env(&vm.assembly, vm.newStackFrame(), def);
+	vm.execute(env);
+	return getObject<T>(vm.getStack()[0]);
+}
+
+#if 0
 TEST_CASE("compiler/tuple", "")
 {
 	const char* expr = "(1,2)";
@@ -118,19 +132,8 @@ TEST_CASE("compiler/tuple", "")
 	REQUIRE(obj->getField(0).intValue == 1);
 	REQUIRE(obj->getField(1).intValue == 2);
 }
+#endif
 
-template<class T>
-T runExpr(VM& vm, const std::string& expr)
-{
-	std::stringstream str(expr);
-	Evaluator eval(str);
-	eval.compile(vm.assembly);
-	FunctionDefinition* def = vm.assembly.getFunction("main");
-	assert(def != nullptr);
-	MethodEnvironment env(&vm.assembly, vm.newStackFrame(), def);
-	vm.execute(env);
-	return getObject<T>(vm.getStack()[0]);
-}
 
 TEST_CASE("compiler/module/1", "")
 {
@@ -180,6 +183,7 @@ divide x y = x / y\n");
 	REQUIRE(runExpr<VMFloat>(*vm, "divide 3 2") == 3. / 2);
 }
 
+#if 0
 
 TEST_CASE("compiler/module/divideTuple", "Test dividing doubles")
 {
@@ -194,3 +198,5 @@ divide z = case z of\n\
 	vm->assembly = std::move(assembly);
 	REQUIRE(runExpr<VMFloat>(*vm, "divide (3, 2)") == 3. / 2);
 }
+
+#endif
