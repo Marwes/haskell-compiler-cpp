@@ -45,14 +45,17 @@ void GMachine::compile(std::istream& input)
 			SuperCombinator& sc = comp.getGlobal(bind.name);
 			sc.arity = lambda->arguments.size();
 			lambda->expression->compile(comp, sc.instructions);
-			sc.instructions.push_back(GInstruction(GOP::SLIDE, sc.arity + 1));
+			sc.instructions.push_back(GInstruction(GOP::UPDATE, 0));
+			sc.instructions.push_back(GInstruction(GOP::POP, sc.arity));
 			sc.instructions.push_back(GInstruction(GOP::UNWIND));
 		}
 		else
 		{
 			SuperCombinator& sc = comp.getGlobal(bind.name);
+			sc.arity = 0;
 			bind.expression->compile(comp, comp.getGlobal(bind.name).instructions);
-			sc.instructions.push_back(GInstruction(GOP::SLIDE, 1));
+			sc.instructions.push_back(GInstruction(GOP::UPDATE, 0));
+			//sc.instructions.push_back(GInstruction(GOP::POP, 0));
 			sc.instructions.push_back(GInstruction(GOP::UNWIND));
 		}
 	}
@@ -74,6 +77,28 @@ void slide(GEnvironment& environment, const GInstruction& instruction)
 		environment.stack.pop();
 	}
 	environment.stack.push(top);
+}
+
+Address GMachine::executeMain()
+{
+	SuperCombinator* main = superCombinators.at("main").get();
+	int mainIndex = -1;
+	for (size_t ii = 0; ii < globals.size(); ++ii)
+	{
+		Address addr = globals[ii];
+		if (addr.getType() == GLOBAL && addr.getNode()->global == main)
+		{
+			mainIndex = ii;
+			break;
+		}
+	}
+	assert(mainIndex != -1);
+	SuperCombinator sc;
+	sc.arity = 0;
+	sc.instructions = std::vector<GInstruction> { GInstruction(GOP::PUSH_GLOBAL, mainIndex), GInstruction(GOP::UNWIND) };
+	GEnvironment env(baseStack(), &sc);
+	execute(env);
+	return env.stack.top();
 }
 
 void GMachine::execute(GEnvironment& environment)
@@ -99,6 +124,10 @@ void GMachine::execute(GEnvironment& environment)
 			}
 			break;
 		case GOP::POP:
+			for (int i = 0; i < instruction.value; i++)
+			{
+				environment.stack.pop();
+			}
 			break;
 		case GOP::PUSH:
 			{
@@ -132,8 +161,11 @@ void GMachine::execute(GEnvironment& environment)
 				case NUMBER:
 					break;
 				case APPLICATION:
-					environment.stack.push(top.getNode()->apply.func);
-					--index;//Redo the unwind instruction
+					{
+						Node& n = *top.getNode();
+						environment.stack.push(n.apply.func);
+						--index;//Redo the unwind instruction
+					}
 					break;
 				case GLOBAL:
 					{
@@ -143,12 +175,23 @@ void GMachine::execute(GEnvironment& environment)
 						execute(child);
 					}
 					break;
+				case INDIRECTION:
+					{
+						environment.stack.top() = top.getNode()->indirection;
+						--index;//Redo the unwind instruction
+					}
+					break;
 				default:
 					break;
 				}
 			}
 			break;
 		case GOP::UPDATE:
+			{
+				Address top = environment.stack.top();
+				heap.push_back(Node(top));
+				environment.stack[instruction.value] = Address::indirection(&heap.back());
+			}
 			break;
 
 		default:

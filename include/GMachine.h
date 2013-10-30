@@ -40,9 +40,10 @@ public:
 
 enum NodeType
 {
-	NUMBER = 1 << 0,
-	APPLICATION = 1 << 1,
-	GLOBAL = 1 << 2
+	NUMBER,
+	APPLICATION,
+	GLOBAL,
+	INDIRECTION
 };
 
 class Node;
@@ -81,6 +82,13 @@ public:
 		a.type = GLOBAL;
 		return a;
 	}
+	static Address indirection(Node* node)
+	{
+		Address a;
+		a.node = node;
+		a.type = INDIRECTION;
+		return a;
+	}
 
 private:
 	Node* node;
@@ -94,6 +102,9 @@ public:
 	{}
 	Node(int number)
 		: number(number)
+	{}
+	Node(Address indirection)
+		: indirection(indirection)
 	{}
 	Node(Address func, Address arg)
 	{
@@ -111,6 +122,7 @@ public:
 			Address func;
 			Address arg;
 		} apply;
+		Address indirection;
 		SuperCombinator* global;
 	};
 };
@@ -142,6 +154,7 @@ public:
 	void compile(std::istream& input);
 
 	void execute(GEnvironment& environment);
+	Address executeMain();
 
 	SuperCombinator* getCombinator(const std::string& name)
 	{
