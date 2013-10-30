@@ -102,7 +102,7 @@ void GMachine::execute(GEnvironment& environment)
 			break;
 		case GOP::PUSH:
 			{
-				Address* addr = &environment.stack[environment.combinator->arity - instruction.value - 1];
+				Address* addr = &environment.stack[instruction.value];
 				assert(addr->getType() == APPLICATION);
 				environment.stack.push(addr->getNode()->apply.arg);
 			}
