@@ -29,6 +29,7 @@ enum class PrimOps
 
 enum class VariableType
 {
+	NONE,
 	STACK,
 	TOPLEVEL
 };
@@ -60,6 +61,10 @@ class EvalEnvironment;
 class GCompiler
 {
 public:
+	GCompiler()
+		: index(0)
+	{}
+
 	void newStackVariable(const std::string& name);
 	Variable getVariable(const std::string& name);
 	SuperCombinator& getGlobal(const std::string& name);
@@ -67,6 +72,9 @@ public:
 
 	std::vector<std::string> stackVariables;
 	std::map<std::string, std::unique_ptr<SuperCombinator>> globals;
+	std::map<SuperCombinator*, int> globalIndices;
+private:
+	int index;
 };
 
 class Expression

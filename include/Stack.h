@@ -44,6 +44,7 @@ public:
     T pop()
     {
         T o = top();
+		top() = T();
         --currentSize;
         return std::move(o);
     }
@@ -55,10 +56,9 @@ public:
         currentSize++;
     }
 
-    template<typename T>
     T& base()
     {
-        return *reinterpret_cast<T*>(this->stackBase);
+        return this->first();
     }
 
     T& top()

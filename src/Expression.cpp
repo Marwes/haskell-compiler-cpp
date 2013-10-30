@@ -573,6 +573,12 @@ Variable GCompiler::getVariable(const std::string& name)
 		size_t typeIndex = std::distance(stackVariables.begin(), found);
 		return Variable { VariableType::STACK, PolymorphicType::any, typeIndex };
 	}
+	auto foundGlobal = globals.find(name);
+	if (foundGlobal != globals.end())
+	{
+		int i = globalIndices[foundGlobal->second.get()];
+		return Variable { VariableType::TOPLEVEL, PolymorphicType::any, i };
+	}
 	return Variable { VariableType::STACK, PolymorphicType::any, -1 };
 }
 
@@ -581,7 +587,8 @@ SuperCombinator& GCompiler::getGlobal(const std::string& name)
 	auto found = globals.find(name);
 	if (found == globals.end())
 	{
-		auto& ptr =globals[name] = std::unique_ptr<SuperCombinator>(new SuperCombinator());
+		auto& ptr = globals[name] = std::unique_ptr<SuperCombinator>(new SuperCombinator());
+		globalIndices[ptr.get()] = index++;
 		return *ptr;
 	}
 	return *found->second;
@@ -600,6 +607,7 @@ void Name::compile(GCompiler& env, std::vector<GInstruction>& instructions)
 		instructions.push_back(GInstruction(GOP::PUSH_GLOBAL, var.index));
 		break;
 	default:
+		assert(0 && "Could not find the variable");
 		break;
 	}
 }
@@ -626,14 +634,15 @@ void Lambda::compile(GCompiler& env, std::vector<GInstruction>& instructions)
 }
 void Apply::compile(GCompiler& env, std::vector<GInstruction>& instructions)
 {
-	function->compile(env, instructions);
-	for (auto& arg : arguments)
+	for (int ii = arguments.size() - 1; ii >= 0; --ii)
 	{
 		//TODO
-		arg->compile(env, instructions);
+		arguments[ii]->compile(env, instructions);
 	}
-	instructions.push_back(GInstruction(GOP::MKAP));
-}
+	function->compile(env, instructions);
+	for (size_t ii = 0; ii < arguments.size(); ++ii)
+		instructions.push_back(GInstruction(GOP::MKAP));
+}	
 void Case::compile(GCompiler& env, std::vector<GInstruction>& instructions)
 {
 	assert(0);

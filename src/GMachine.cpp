@@ -13,12 +13,16 @@ GEnvironment::GEnvironment(StackFrame<Address> stack, SuperCombinator* combinato
 
 GEnvironment GEnvironment::child(SuperCombinator* combinator)
 {
-	return GEnvironment(StackFrame<Address>(&stack.top(), stack.size() - stack.stackSize()), combinator);
+	Address* base = &stack.top() - combinator->arity;
+	size_t stackSize = stack.size() - stack.stackSize() + combinator->arity;
+	StackFrame<Address> newFrame(base, stackSize, combinator->arity);
+	return GEnvironment(newFrame, combinator);
 }
 
 GMachine::GMachine()
-	: heap(1024)//Just make sure the heap is large enough for small examples for now
-{}
+{
+	heap.reserve(1024);//Just make sure the heap is large enough for small examples for now
+}
 
 
 void GMachine::compile(std::istream& input)
@@ -32,9 +36,34 @@ void GMachine::compile(std::istream& input)
 	{
 		comp.stackVariables.clear();
 		std::vector<GInstruction> instructions;
-		bind.expression->compile(comp, comp.getGlobal(bind.name).instructions);
+		if (Lambda* lambda = dynamic_cast<Lambda*>(bind.expression.get()))
+		{
+			for (auto& arg : lambda->arguments)
+			{
+				comp.stackVariables.push_back(arg);
+			}
+			SuperCombinator& sc = comp.getGlobal(bind.name);
+			sc.arity = lambda->arguments.size();
+			lambda->expression->compile(comp, sc.instructions);
+			sc.instructions.push_back(GInstruction(GOP::SLIDE, sc.arity + 1));
+			sc.instructions.push_back(GInstruction(GOP::UNWIND));
+		}
+		else
+		{
+			SuperCombinator& sc = comp.getGlobal(bind.name);
+			bind.expression->compile(comp, comp.getGlobal(bind.name).instructions);
+			sc.instructions.push_back(GInstruction(GOP::SLIDE, 1));
+			sc.instructions.push_back(GInstruction(GOP::UNWIND));
+		}
 	}
-	this->superCombinators = std::move(comp.globals);
+	superCombinators = std::move(comp.globals);
+	globals.resize(superCombinators.size());
+	for (auto& sc : superCombinators)
+	{
+		int index = comp.globalIndices[sc.second.get()];
+		heap.push_back(Node(superCombinators[sc.first].get()));
+		globals[index] = Address::global(&heap.back());
+	}
 }
 
 void slide(GEnvironment& environment, const GInstruction& instruction)
@@ -73,14 +102,14 @@ void GMachine::execute(GEnvironment& environment)
 			break;
 		case GOP::PUSH:
 			{
-				Address* addr = &environment.stack.top() - instruction.value;
+				Address* addr = &environment.stack[environment.combinator->arity - instruction.value - 1];
 				assert(addr->getType() == APPLICATION);
 				environment.stack.push(addr->getNode()->apply.arg);
 			}
 			break;
 		case GOP::PUSH_GLOBAL:
 			{
-				Address addr = globals[instruction.value];
+				Address addr = globals.at(instruction.value);
 				environment.stack.push(addr);
 			}
 			break;

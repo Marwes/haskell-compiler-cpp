@@ -49,45 +49,36 @@ class Node;
 
 class Address
 {
+	NodeType type;
 public:
 	NodeType getType()
 	{
-		uintptr_t ptr = uintptr_t(node);
-		if (ptr & NUMBER)
-			return NUMBER;
-		if (ptr & APPLICATION)
-			return APPLICATION;
-		return GLOBAL;
+		return type;
 	}
 	Node* getNode()
 	{
-		uintptr_t ptr = uintptr_t(node);
-
-		return reinterpret_cast<Node*>(ptr & ~3);
+		return node;
 	}
 
 	static Address number(Node* node)
 	{
 		Address a;
-		uintptr_t ptr = uintptr_t(node);
-		ptr |= NUMBER;
-		a.node = reinterpret_cast<Node*>(ptr);
+		a.node = node;
+		a.type = NUMBER;
 		return a;
 	}
 	static Address application(Node* node)
 	{
 		Address a;
-		uintptr_t ptr = uintptr_t(node);
-		ptr |= APPLICATION;
-		a.node = reinterpret_cast<Node*>(ptr);
+		a.node = node;
+		a.type = APPLICATION;
 		return a;
 	}
 	static Address global(Node* node)
 	{
 		Address a;
-		uintptr_t ptr = uintptr_t(node);
-		ptr |= GLOBAL;
-		a.node = reinterpret_cast<Node*>(ptr);
+		a.node = node;
+		a.type = GLOBAL;
 		return a;
 	}
 
@@ -159,7 +150,7 @@ public:
 
 private:
 	Array<Address> stack;
-	std::map<int, Address> globals;
+	std::vector<Address> globals;
 	std::vector<Node> heap;
 
 	std::map<std::string, std::unique_ptr<SuperCombinator>> superCombinators;
