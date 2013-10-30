@@ -103,52 +103,6 @@ public:
 		return currentSize;
 	}
 
-    class Iterator
-    {
-    public:
-        Iterator(StackObject* current)
-            : current(current)
-        {
-        }
-
-        StackObject& operator*()
-        {
-            return *current;
-        }
-        const StackObject& operator*() const
-        {
-            return *current;
-        }
-
-        Iterator& operator++()
-        {
-            ++current;
-            return *this;
-        }
-        Iterator operator++(int)
-        {
-            Iterator before(*this);
-            current++;
-            return before;
-        }
-
-        bool operator==(const Iterator& other) { return current == other.current; }
-        bool operator!=(const Iterator& other) { return current != other.current; }
-    private:
-        StackObject* current;
-    };
-
-    
-    Iterator begin() const
-    {
-        return Iterator(stackBase);
-    }
-
-    Iterator end() const
-    {
-        return Iterator(stackBase + currentSize);
-    }
-
 private:
     size_t currentSize;
 };

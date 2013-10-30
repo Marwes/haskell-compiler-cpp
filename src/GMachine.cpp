@@ -131,9 +131,8 @@ void GMachine::execute(GEnvironment& environment)
 			break;
 		case GOP::PUSH:
 			{
-				Address* addr = &environment.stack[instruction.value];
-				assert(addr->getType() == APPLICATION);
-				environment.stack.push(addr->getNode()->apply.arg);
+				Address addr = environment.stack[instruction.value];
+				environment.stack.push(addr);
 			}
 			break;
 		case GOP::PUSH_GLOBAL:
@@ -170,6 +169,15 @@ void GMachine::execute(GEnvironment& environment)
 				case GLOBAL:
 					{
 						SuperCombinator* comb = top.getNode()->global;
+						//Before calling the function, replace all applications on the stack with the actual arguments
+						//This gives faster access to a functions arguments when using PUSH
+						int ii = environment.stack.stackSize() - comb->arity - 1;
+						for (; ii < environment.stack.stackSize() - 1; ii++)
+						{
+							Address& addr = environment.stack[ii];
+							assert(addr.getType() == APPLICATION);
+							addr = addr.getNode()->apply.arg;
+						}
 
 						GEnvironment child = environment.child(comb);
 						execute(child);
