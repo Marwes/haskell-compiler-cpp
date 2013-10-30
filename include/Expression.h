@@ -178,6 +178,7 @@ public:
 
 	virtual const Type* getType() const;
 
+	bool isRecursive;
 	std::vector<Binding> bindings;
 	std::unique_ptr<Expression> expression;
 };

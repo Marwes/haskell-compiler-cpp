@@ -76,7 +76,7 @@ void slide(GEnvironment& environment, const GInstruction& instruction)
 	{
 		environment.stack.pop();
 	}
-	environment.stack.push(top);
+	environment.stack.top() = top;
 }
 
 Address GMachine::executeMain()
@@ -94,6 +94,7 @@ Address GMachine::executeMain()
 	}
 	assert(mainIndex != -1);
 	SuperCombinator sc;
+	sc.name == "__main";
 	sc.arity = 0;
 	sc.instructions = std::vector<GInstruction> { GInstruction(GOP::PUSH_GLOBAL, mainIndex), GInstruction(GOP::UNWIND) };
 	GEnvironment env(baseStack(), &sc);
@@ -188,6 +189,8 @@ void GMachine::execute(GEnvironment& environment)
 
 						GEnvironment child = environment.child(comb);
 						execute(child);
+						for (int i = 0; i < comb->arity; i++)
+							environment.stack.pop();
 					}
 					break;
 				case INDIRECTION:

@@ -34,6 +34,7 @@ public:
 class SuperCombinator
 {
 public:
+	std::string name;
 	int arity;
 	std::vector<GInstruction> instructions;
 };

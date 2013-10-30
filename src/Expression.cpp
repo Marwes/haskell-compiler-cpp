@@ -218,6 +218,7 @@ const Type& PrimOP::evaluate(Environment& env, const Type& inferred, std::vector
 Let::Let(std::vector<Binding>&& bindings, std::unique_ptr<Expression>&& expression)
 	: bindings(std::move(bindings))
 	, expression(std::move(expression))
+	, isRecursive(false)
 {
 }
 
@@ -565,6 +566,12 @@ const Type* Case::getType() const
 	return expression->getType();
 }
 
+
+void GCompiler::newStackVariable(const std::string& name)
+{
+	stackVariables.push_back(name);
+}
+
 Variable GCompiler::getVariable(const std::string& name)
 {
 	auto found = std::find(stackVariables.begin(), stackVariables.end(), name);
@@ -589,6 +596,7 @@ SuperCombinator& GCompiler::getGlobal(const std::string& name)
 	if (found == globals.end())
 	{
 		auto& ptr = globals[name] = std::unique_ptr<SuperCombinator>(new SuperCombinator());
+		ptr->name = name;
 		globalIndices[ptr.get()] = index++;
 		return *ptr;
 	}
@@ -627,7 +635,18 @@ void PrimOP::compile(GCompiler& env, std::vector<GInstruction>& instructions)
 }
 void Let::compile(GCompiler& env, std::vector<GInstruction>& instructions)
 {
-	assert(0);
+	if (isRecursive)
+		instructions.push_back(GInstruction(GOP::ALLOC, bindings.size()));
+
+	for (auto& bind : bindings)
+	{
+		env.newStackVariable(bind.name);
+		bind.expression->compile(env, instructions);
+		if (isRecursive)
+			instructions.push_back(GInstruction(GOP::UPDATE, env.stackVariables.size()));
+	}
+	expression->compile(env, instructions);
+	instructions.push_back(GInstruction(GOP::SLIDE, bindings.size()));
 }
 void Lambda::compile(GCompiler& env, std::vector<GInstruction>& instructions)
 {

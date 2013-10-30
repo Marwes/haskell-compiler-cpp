@@ -28,3 +28,18 @@ main = const 10 5\n";
 	REQUIRE(result.getNode()->number == 10);
 
 }
+
+TEST_CASE("gmachine/let", "")
+{
+	GMachine machine;
+	const char* str =
+"const x y = x\n\
+main = let three = 3 in const three 2\n";
+	std::stringstream expr(str);
+	machine.compile(expr);
+
+	Address result = machine.executeMain();
+	REQUIRE(result.getType() == NUMBER);
+	REQUIRE(result.getNode()->number == 3);
+
+}
