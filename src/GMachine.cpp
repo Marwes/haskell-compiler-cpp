@@ -111,6 +111,13 @@ void GMachine::execute(GEnvironment& environment)
 		switch (instruction.op)
 		{
 		case GOP::ALLOC:
+			{
+				for (int i = 0; i < instruction.value; i++)
+				{
+					heap.push_back(Node(nullptr));
+					environment.stack.push(Address::indirection(&heap.back()));
+				}
+			}
 			break;
 		case GOP::EVAL:
 			break;
