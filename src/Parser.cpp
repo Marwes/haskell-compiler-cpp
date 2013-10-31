@@ -465,7 +465,7 @@ std::unique_ptr<Type> Parser::type()
 				--tokenizer;
 				--tokenizer;
 				auto arg = type();
-				const Token& rParens = *tokenizer;
+				const Token& rParens = tokenizer.nextToken();
 				if (rParens.type == SymbolEnum::RPARENS)
 				{
 					const Token& arrow = tokenizer.nextToken();
