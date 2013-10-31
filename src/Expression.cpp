@@ -685,38 +685,4 @@ void Case::compile(GCompiler& env, std::vector<GInstruction>& instructions)
 {
 	assert(0);
 }
-
-std::unique_ptr<Object> Rational::eval(EvalEnvironment& env)
-{
-	return std::unique_ptr<Object>(new Object);
-}
-
-std::unique_ptr<Object> Number::eval(EvalEnvironment& env)
-{
-	return std::unique_ptr<Object>(new Object);
-}
-std::unique_ptr<Object> Name::eval(EvalEnvironment& env)
-{
-	return std::unique_ptr<Object>(new Object);
-}
-std::unique_ptr<Object> PrimOP::eval(EvalEnvironment& env)
-{
-	return std::unique_ptr<Object>(new Object);
-}
-std::unique_ptr<Object> Apply::eval(EvalEnvironment& env)
-{
-	return std::unique_ptr<Object>(new Object);
-}
-std::unique_ptr<Object> Lambda::eval(EvalEnvironment& env)
-{
-	return std::unique_ptr<Object>(new Object);
-}
-std::unique_ptr<Object> Case::eval(EvalEnvironment& env)
-{
-	return std::unique_ptr<Object>(new Object);
-}
-std::unique_ptr<Object> Let::eval(EvalEnvironment& env)
-{
-	return std::unique_ptr<Object>(new Object);
-}
 }
