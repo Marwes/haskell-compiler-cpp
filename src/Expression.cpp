@@ -629,9 +629,27 @@ void Rational::compile(GCompiler& env, std::vector<GInstruction>& instructions)
 {
 	assert(0);
 }
+
+GOP toGOP(PrimOps op)
+{
+    switch(op)
+    {
+		case PrimOps::ADD: return GOP::ADD;
+		case PrimOps::SUBTRACT: return GOP::SUBTRACT;
+		case PrimOps::MULTIPLY: return GOP::MULTIPLY;
+		case PrimOps::DIVIDE: return GOP::DIVIDE;
+		case PrimOps::REMAINDER: return GOP::REMAINDER;
+    }
+    throw std::runtime_error("Unknown op");
+}
+
 void PrimOP::compile(GCompiler& env, std::vector<GInstruction>& instructions)
 {
-	assert(0);
+    lhs->compile(env, instructions);
+	instructions.push_back(GInstruction(GOP::EVAL));
+	rhs->compile(env, instructions);
+	instructions.push_back(GInstruction(GOP::EVAL));
+	instructions.push_back(GInstruction(toGOP(op)));
 }
 void Let::compile(GCompiler& env, std::vector<GInstruction>& instructions)
 {

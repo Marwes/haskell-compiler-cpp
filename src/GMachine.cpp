@@ -96,7 +96,7 @@ Address GMachine::executeMain()
 	SuperCombinator sc;
 	sc.name == "__main";
 	sc.arity = 0;
-	sc.instructions = std::vector<GInstruction> { GInstruction(GOP::PUSH_GLOBAL, mainIndex), GInstruction(GOP::UNWIND) };
+	sc.instructions = std::vector<GInstruction> { GInstruction(GOP::PUSH_GLOBAL, mainIndex), GInstruction(GOP::EVAL) };
 	GEnvironment env(baseStack(), &sc);
 	execute(env);
 	return env.stack.top();
@@ -121,6 +121,13 @@ void GMachine::execute(GEnvironment& environment)
 			}
 			break;
 		case GOP::EVAL:
+			{
+				static SuperCombinator unwind { "__uniwnd", 0, std::vector<GInstruction>{ GInstruction(GOP::UNWIND) } };
+				GEnvironment child = environment.child(&unwind);
+				child.stack.push(environment.stack.top());
+				execute(child);
+				environment.stack.top() = child.stack.top();
+			}
 			break;
 		case GOP::MKAP:
 			{
@@ -179,7 +186,7 @@ void GMachine::execute(GEnvironment& environment)
 						SuperCombinator* comb = top.getNode()->global;
 						//Before calling the function, replace all applications on the stack with the actual arguments
 						//This gives faster access to a functions arguments when using PUSH
-						int ii = environment.stack.stackSize() - comb->arity - 1;
+						size_t ii = environment.stack.stackSize() - comb->arity - 1;
 						for (; ii < environment.stack.stackSize() - 1; ii++)
 						{
 							Address& addr = environment.stack[ii];
@@ -189,8 +196,10 @@ void GMachine::execute(GEnvironment& environment)
 
 						GEnvironment child = environment.child(comb);
 						execute(child);
+						Address result = child.stack.top();
 						for (int i = 0; i < comb->arity; i++)
 							environment.stack.pop();
+						environment.stack.push(result);
 					}
 					break;
 				case INDIRECTION:
@@ -211,6 +220,24 @@ void GMachine::execute(GEnvironment& environment)
 				environment.stack[instruction.value] = Address::indirection(&heap.back());
 			}
 			break;
+#define ARITH(op, opname) \
+		case GOP::##opname:\
+			{\
+			Address rhs = environment.stack.pop(); \
+			Address lhs = environment.stack.top(); \
+			int result = lhs.getNode()->number op rhs.getNode()->number; \
+			heap.push_back(Node(result)); \
+			environment.stack.top() = Address::number(&heap.back()); \
+			}\
+            break;
+
+            ARITH(+,ADD)
+            ARITH(-,SUBTRACT)
+            ARITH(*,MULTIPLY)
+            ARITH(/,DIVIDE)
+            ARITH(%,REMAINDER)
+
+#undef ARITH
 
 		default:
 			std::cout << "Unimplemented instruction " << int(code[index].op) << std::endl;

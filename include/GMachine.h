@@ -16,7 +16,13 @@ enum class GOP : unsigned char
 	PUSH_INT,
 	PUSH,
 	MKAP,
-	EVAL
+	EVAL,
+
+    ADD,
+    SUBTRACT,
+    MULTIPLY,
+    DIVIDE,
+    REMAINDER
 };
 
 class GInstruction
