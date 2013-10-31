@@ -22,7 +22,14 @@ enum class GOP : unsigned char
     SUBTRACT,
     MULTIPLY,
     DIVIDE,
-    REMAINDER
+    REMAINDER,
+	NEGATE,
+
+	COMPARE_EQ,
+	COMPARE_GT,
+	COMPARE_GE,
+	COMPARE_LT,
+	COMPARE_LE
 };
 
 class GInstruction

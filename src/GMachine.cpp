@@ -220,7 +220,7 @@ void GMachine::execute(GEnvironment& environment)
 				environment.stack[instruction.value] = Address::indirection(&heap.back());
 			}
 			break;
-#define ARITH(op, opname) \
+#define BINOP(op, opname) \
 		case GOP::##opname:\
 			{\
 			Address rhs = environment.stack.pop(); \
@@ -231,13 +231,27 @@ void GMachine::execute(GEnvironment& environment)
 			}\
             break;
 
-            ARITH(+,ADD)
-            ARITH(-,SUBTRACT)
-            ARITH(*,MULTIPLY)
-            ARITH(/,DIVIDE)
-            ARITH(%,REMAINDER)
+			BINOP(+, ADD)
+			BINOP(-, SUBTRACT)
+			BINOP(*, MULTIPLY)
+			BINOP(/ , DIVIDE)
+			BINOP(%, REMAINDER)
 
-#undef ARITH
+		case GOP::NEGATE:
+			{
+				Address x = environment.stack.top();
+				heap.push_back(Node(-x.getNode()->number));
+				environment.stack.top() = Address::number(&heap.back());
+			}
+			break;
+
+			BINOP(==, COMPARE_EQ)
+			BINOP(> , COMPARE_GT)
+			BINOP(>=, COMPARE_GE)
+			BINOP(< , COMPARE_LT)
+			BINOP(<=, COMPARE_LE)
+
+#undef BINOP
 
 		default:
 			std::cout << "Unimplemented instruction " << int(code[index].op) << std::endl;
