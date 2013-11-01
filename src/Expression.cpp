@@ -653,6 +653,7 @@ void PrimOP::compile(GCompiler& env, std::vector<GInstruction>& instructions)
 }
 void Let::compile(GCompiler& env, std::vector<GInstruction>& instructions)
 {
+	isRecursive = true;
 	if (isRecursive)
 		instructions.push_back(GInstruction(GOP::ALLOC, bindings.size()));
 
@@ -661,7 +662,7 @@ void Let::compile(GCompiler& env, std::vector<GInstruction>& instructions)
 		env.newStackVariable(bind.name);
 		bind.expression->compile(env, instructions);
 		if (isRecursive)
-			instructions.push_back(GInstruction(GOP::UPDATE, env.stackVariables.size()));
+			instructions.push_back(GInstruction(GOP::UPDATE, env.stackVariables.size() - 1));
 	}
 	expression->compile(env, instructions);
 	instructions.push_back(GInstruction(GOP::SLIDE, bindings.size()));
