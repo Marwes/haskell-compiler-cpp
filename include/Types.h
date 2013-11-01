@@ -3,6 +3,7 @@
 #include <vector>
 #include <memory>
 #include <string>
+#include <stdexcept>
 
 
 template<typename T, typename... Args>
@@ -211,11 +212,8 @@ union StackObject
 
 
 template<class T>
-inline T& getObject(StackObject& o)
-{
-	static_assert(0, "Invalid type for StackObject");
-	return o.intValue;
-}
+inline T& getObject(StackObject& o);
+
 template<>
 inline VMInt& getObject(StackObject& o)
 {

@@ -1,4 +1,5 @@
 #pragma once
+#include <stddef.h>
 
 namespace MyVMNamespace
 {
@@ -11,7 +12,6 @@ public:
         : dataPtr(new T[initialSize])
         , dataSize(initialSize)
     {
-        memset(dataPtr, 0, dataSize * sizeof(T));
     }
     ~Array() { delete[] dataPtr; }
 

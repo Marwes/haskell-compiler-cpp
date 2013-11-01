@@ -116,7 +116,7 @@ public:
 
 	VM_Function getNativeFunction(const std::string& name)
 	{
-		auto& found = nativeFunctionIndexes.find(name);
+		auto found = nativeFunctionIndexes.find(name);
 		if (found == nativeFunctionIndexes.end())
 		{
 			return nullptr;

@@ -29,7 +29,7 @@ TypeEnvironment TypeEnvironment::child()
 
 void TypeEnvironment::addType(const std::string& name, const Type& type)
 {
-	types.insert({ name, std::unique_ptr<Type>(type.copy()) });
+	types.insert(std::make_pair(name, std::unique_ptr<Type>(type.copy())));
 }
 
 Type* TypeEnvironment::getType(const std::string& name)
@@ -161,11 +161,11 @@ const Type* PrimOP::getType() const
 OP translatePrimOp(PrimOps op, const Type& type)
 {
 #define OP_CASE(op) \
-	case PrimOps::##op:\
+	case PrimOps:: op:\
 	if (type.isCompatibleWith(intType))\
-	return OP::##op##_INT; \
+	return OP:: op##_INT; \
 	if (type.isCompatibleWith(doubleType))\
-		return OP::##op##_DOUBLE; \
+		return OP:: op##_DOUBLE; \
 	break;
 
 	switch (op)
@@ -250,7 +250,7 @@ const Type& Let::evaluate(Environment& env, const Type& inferred, std::vector<In
 		else
 		{
 			env.newLocal(bind.name, &PolymorphicType::any);
-			auto t = bind.expression->evaluate(env, PolymorphicType::any, instructions);
+			auto& t = bind.expression->evaluate(env, PolymorphicType::any, instructions);
 		}
 	}
 	return expression->evaluate(env, inferred, instructions);

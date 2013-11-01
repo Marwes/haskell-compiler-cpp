@@ -13,7 +13,7 @@ Environment::Environment(Assembly& assembly)
 
 Environment::Environment(Environment&& other)
 	: parent(other.parent)
-	, assembly(std::move(other.assembly))
+	, assembly(other.assembly)
 	, stackTypes(std::move(other.stackTypes))
 	, stackValues(std::move(other.stackValues))
 { }

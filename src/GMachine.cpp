@@ -221,7 +221,7 @@ void GMachine::execute(GEnvironment& environment)
 			}
 			break;
 #define BINOP(op, opname) \
-		case GOP::##opname:\
+		case GOP:: opname:\
 			{\
 			Address rhs = environment.stack.pop(); \
 			Address lhs = environment.stack.top(); \

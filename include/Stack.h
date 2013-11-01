@@ -1,5 +1,6 @@
 #pragma once
 #include <vector>
+#include <stdarg.h>
 #include "Types.h"
 #include "Array.h"
 
@@ -17,7 +18,7 @@ class StackFrame : public Slice<T>
 {
 public:
 	StackFrame(T* stackBase, size_t maxSize, size_t currentSize = 0)
-		: Slice(stackBase, maxSize)
+		: Slice<T>(stackBase, maxSize)
 		, currentSize(currentSize)
 	{
 	}
@@ -51,7 +52,7 @@ public:
 
     void push(const T& obj)
     {
-        assert(currentSize < size() - 1);
+        assert(currentSize < Slice<T>::size() - 1);
         (*this)[currentSize] = obj;
         currentSize++;
     }
@@ -94,8 +95,8 @@ public:
 
     StackFrame<StackObject> makeChildFrame(size_t numParameters)
     {
-		StackObject* newBase = data() + currentSize - numParameters;
-		return StackFrame<StackObject>(newBase, size() - (currentSize - numParameters), numParameters);
+		StackObject* newBase = Slice<T>::data() + currentSize - numParameters;
+		return StackFrame<StackObject>(newBase, Slice<T>::size() - (currentSize - numParameters), numParameters);
     }
 
 	size_t stackSize() const
