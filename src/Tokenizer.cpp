@@ -213,7 +213,7 @@ const Token& Tokenizer::tokenizeModule()
 		}
 		if (newline)
 		{
-			unprocessedTokens.push_back(Token(SymbolEnum::INDENTLEVEL, "<n>", indentLevel - tok.name.size() + 1));
+			unprocessedTokens.push_back(Token(SymbolEnum::INDENTLEVEL, "<n>", tok.indent));
 		}
 		success = true;
 	}
@@ -239,7 +239,7 @@ bool Tokenizer::tokenize(bool (*parseError)(const Token&))
 		}
 		if (newline)
 		{
-			unprocessedTokens.push_back(Token(SymbolEnum::INDENTLEVEL, "<n>", indentLevel - tok.name.size() + 1));
+			unprocessedTokens.push_back(Token(SymbolEnum::INDENTLEVEL, "<n>", tok.indent));
 		}
 		success = true;
 	}

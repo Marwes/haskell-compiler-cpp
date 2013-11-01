@@ -579,7 +579,7 @@ Variable GCompiler::getVariable(const std::string& name)
 	{
 		size_t index = std::distance(stackVariables.begin(), found);
 		size_t distanceFromStackTop = stackVariables.size() - index - 1;
-		return Variable { VariableType::STACK, PolymorphicType::any, distanceFromStackTop };
+		return Variable { VariableType::STACK, PolymorphicType::any, index };
 	}
 	auto foundGlobal = globals.find(name);
 	if (foundGlobal != globals.end())

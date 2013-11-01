@@ -38,9 +38,9 @@ void GMachine::compile(std::istream& input)
 		std::vector<GInstruction> instructions;
 		if (Lambda* lambda = dynamic_cast<Lambda*>(bind.expression.get()))
 		{
-			for (auto& arg : lambda->arguments)
+			for (auto arg = lambda->arguments.rbegin(); arg != lambda->arguments.rend(); ++arg)
 			{
-				comp.stackVariables.push_back(arg);
+				comp.stackVariables.push_back(*arg);
 			}
 			SuperCombinator& sc = comp.getGlobal(bind.name);
 			sc.arity = lambda->arguments.size();
