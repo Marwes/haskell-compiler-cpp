@@ -44,7 +44,7 @@ void GMachine::compile(std::istream& input)
 			}
 			SuperCombinator& sc = comp.getGlobal(bind.name);
 			sc.arity = lambda->arguments.size();
-			lambda->expression->compile(comp, sc.instructions);
+			lambda->expression->compile(comp, sc.instructions, true);
 			sc.instructions.push_back(GInstruction(GOP::UPDATE, 0));
 			sc.instructions.push_back(GInstruction(GOP::POP, sc.arity));
 			sc.instructions.push_back(GInstruction(GOP::UNWIND));
@@ -53,7 +53,7 @@ void GMachine::compile(std::istream& input)
 		{
 			SuperCombinator& sc = comp.getGlobal(bind.name);
 			sc.arity = 0;
-			bind.expression->compile(comp, comp.getGlobal(bind.name).instructions);
+			bind.expression->compile(comp, comp.getGlobal(bind.name).instructions, true);
 			sc.instructions.push_back(GInstruction(GOP::UPDATE, 0));
 			//sc.instructions.push_back(GInstruction(GOP::POP, 0));
 			sc.instructions.push_back(GInstruction(GOP::UNWIND));
@@ -184,22 +184,25 @@ void GMachine::execute(GEnvironment& environment)
 				case GLOBAL:
 					{
 						SuperCombinator* comb = top.getNode()->global;
-						//Before calling the function, replace all applications on the stack with the actual arguments
-						//This gives faster access to a functions arguments when using PUSH
-						size_t ii = environment.stack.stackSize() - comb->arity - 1;
-						for (; ii < environment.stack.stackSize() - 1; ii++)
+						if (environment.stack.stackSize() >= comb->arity)
 						{
-							Address& addr = environment.stack[ii];
-							assert(addr.getType() == APPLICATION);
-							addr = addr.getNode()->apply.arg;
-						}
+							//Before calling the function, replace all applications on the stack with the actual arguments
+							//This gives faster access to a functions arguments when using PUSH
+							size_t ii = environment.stack.stackSize() - comb->arity - 1;
+							for (; ii < environment.stack.stackSize() - 1; ii++)
+							{
+								Address& addr = environment.stack[ii];
+								assert(addr.getType() == APPLICATION);
+								addr = addr.getNode()->apply.arg;
+							}
 
-						GEnvironment child = environment.child(comb);
-						execute(child);
-						Address result = child.stack.top();
-						for (int i = 0; i < comb->arity; i++)
-							environment.stack.pop();
-						environment.stack.push(result);
+							GEnvironment child = environment.child(comb);
+							execute(child);
+							Address result = child.stack.top();
+							for (int i = 0; i < comb->arity; i++)
+								environment.stack.pop();
+							environment.stack.push(result);
+						}
 					}
 					break;
 				case INDIRECTION:

@@ -604,7 +604,7 @@ SuperCombinator& GCompiler::getGlobal(const std::string& name)
 }
 
 
-void Name::compile(GCompiler& env, std::vector<GInstruction>& instructions)
+void Name::compile(GCompiler& env, std::vector<GInstruction>& instructions, bool strict)
 {
 	Variable var = env.getVariable(this->name);
 	switch (var.accessType)
@@ -619,13 +619,15 @@ void Name::compile(GCompiler& env, std::vector<GInstruction>& instructions)
 		assert(0 && "Could not find the variable");
 		break;
 	}
+	if (strict)
+		instructions.push_back(GInstruction(GOP::EVAL));
 }
 
-void Number::compile(GCompiler& env, std::vector<GInstruction>& instructions)
+void Number::compile(GCompiler& env, std::vector<GInstruction>& instructions, bool strict)
 {
 	instructions.push_back(GInstruction(GOP::PUSH_INT, this->value));
 }
-void Rational::compile(GCompiler& env, std::vector<GInstruction>& instructions)
+void Rational::compile(GCompiler& env, std::vector<GInstruction>& instructions, bool strict)
 {
 	assert(0);
 }
@@ -643,15 +645,13 @@ GOP toGOP(PrimOps op)
     throw std::runtime_error("Unknown op");
 }
 
-void PrimOP::compile(GCompiler& env, std::vector<GInstruction>& instructions)
+void PrimOP::compile(GCompiler& env, std::vector<GInstruction>& instructions, bool)
 {
-    lhs->compile(env, instructions);
-	instructions.push_back(GInstruction(GOP::EVAL));
-	rhs->compile(env, instructions);
-	instructions.push_back(GInstruction(GOP::EVAL));
+    lhs->compile(env, instructions, true);
+	rhs->compile(env, instructions, true);
 	instructions.push_back(GInstruction(toGOP(op)));
 }
-void Let::compile(GCompiler& env, std::vector<GInstruction>& instructions)
+void Let::compile(GCompiler& env, std::vector<GInstruction>& instructions, bool strict)
 {
 	isRecursive = true;
 	if (isRecursive)
@@ -660,29 +660,33 @@ void Let::compile(GCompiler& env, std::vector<GInstruction>& instructions)
 	for (auto& bind : bindings)
 	{
 		env.newStackVariable(bind.name);
-		bind.expression->compile(env, instructions);
+		bind.expression->compile(env, instructions, false);
 		if (isRecursive)
 			instructions.push_back(GInstruction(GOP::UPDATE, env.stackVariables.size() - 1));
 	}
-	expression->compile(env, instructions);
+	expression->compile(env, instructions, strict);
 	instructions.push_back(GInstruction(GOP::SLIDE, bindings.size()));
+	if (strict)
+		instructions.push_back(GInstruction(GOP::EVAL));
 }
-void Lambda::compile(GCompiler& env, std::vector<GInstruction>& instructions)
+void Lambda::compile(GCompiler& env, std::vector<GInstruction>& instructions, bool strict)
 {
 	assert(0);
 }
-void Apply::compile(GCompiler& env, std::vector<GInstruction>& instructions)
+void Apply::compile(GCompiler& env, std::vector<GInstruction>& instructions, bool strict)
 {
 	for (int ii = arguments.size() - 1; ii >= 0; --ii)
 	{
 		//TODO
-		arguments[ii]->compile(env, instructions);
+		arguments[ii]->compile(env, instructions, false);
 	}
-	function->compile(env, instructions);
+	function->compile(env, instructions, strict);
 	for (size_t ii = 0; ii < arguments.size(); ++ii)
 		instructions.push_back(GInstruction(GOP::MKAP));
+	if (strict)
+		instructions.push_back(GInstruction(GOP::EVAL));
 }	
-void Case::compile(GCompiler& env, std::vector<GInstruction>& instructions)
+void Case::compile(GCompiler& env, std::vector<GInstruction>& instructions, bool strict)
 {
 	assert(0);
 }

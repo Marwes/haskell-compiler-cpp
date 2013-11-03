@@ -83,7 +83,7 @@ public:
 	virtual void typecheck(TypeEnvironment& env, const Type& self) = 0;
 
 	virtual const Type& evaluate(Environment& env, const Type& inferred, std::vector<Instruction>& instructions) = 0;
-	virtual void compile(GCompiler& env, std::vector<GInstruction>& instructions) = 0;
+	virtual void compile(GCompiler& env, std::vector<GInstruction>& instructions, bool strict) = 0;
 
 	virtual const Type* getType() const = 0;
 };
@@ -97,7 +97,7 @@ public:
 
 	virtual const Type& evaluate(Environment& env, const Type& inferred, std::vector<Instruction>& instructions);
 
-	virtual void compile(GCompiler& env, std::vector<GInstruction>& instructions);
+	virtual void compile(GCompiler& env, std::vector<GInstruction>& instructions, bool strict);
 
 	virtual const Type* getType() const;
 
@@ -115,7 +115,7 @@ public:
 
 	virtual const Type& evaluate(Environment& env, const Type& inferred, std::vector<Instruction>& instructions);
 
-	virtual void compile(GCompiler& env, std::vector<GInstruction>& instructions);
+	virtual void compile(GCompiler& env, std::vector<GInstruction>& instructions, bool strict);
 
 	virtual const Type* getType() const;
 
@@ -131,7 +131,7 @@ public:
 
 	virtual const Type& evaluate(Environment& env, const Type& inferred, std::vector<Instruction>& instructions);
 
-	virtual void compile(GCompiler& env, std::vector<GInstruction>& instructions);
+	virtual void compile(GCompiler& env, std::vector<GInstruction>& instructions, bool strict);
 
 	virtual const Type* getType() const;
 
@@ -147,7 +147,7 @@ public:
 
 	virtual const Type& evaluate(Environment& env, const Type& inferred, std::vector<Instruction>& instructions);
 
-	virtual void compile(GCompiler& env, std::vector<GInstruction>& instructions);
+	virtual void compile(GCompiler& env, std::vector<GInstruction>& instructions, bool strict);
 
 	virtual const Type* getType() const;
 
@@ -164,7 +164,7 @@ public:
 
 	virtual const Type& evaluate(Environment& env, const Type& inferred, std::vector<Instruction>& instructions);
 
-	virtual void compile(GCompiler& env, std::vector<GInstruction>& instructions);
+	virtual void compile(GCompiler& env, std::vector<GInstruction>& instructions, bool strict);
 
 	virtual const Type* getType() const;
 
@@ -182,7 +182,7 @@ public:
 
 	virtual const Type& evaluate(Environment& env, const Type& inferred, std::vector<Instruction>& instructions);
 
-	virtual void compile(GCompiler& env, std::vector<GInstruction>& instructions);
+	virtual void compile(GCompiler& env, std::vector<GInstruction>& instructions, bool strict);
 
 	virtual const Type* getType() const;
 
@@ -201,7 +201,7 @@ public:
 
 	virtual const Type& evaluate(Environment& env, const Type& inferred, std::vector<Instruction>& instructions);
 
-	virtual void compile(GCompiler& env, std::vector<GInstruction>& instructions);
+	virtual void compile(GCompiler& env, std::vector<GInstruction>& instructions, bool strict);
 
 	virtual const Type* getType() const;
 
@@ -291,7 +291,7 @@ public:
 
 	virtual const Type& evaluate(Environment& env, const Type& inferred, std::vector<Instruction>& instructions);
 
-	virtual void compile(GCompiler& env, std::vector<GInstruction>& instructions);
+	virtual void compile(GCompiler& env, std::vector<GInstruction>& instructions, bool strict);
 
 	virtual const Type* getType() const;
 
