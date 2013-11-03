@@ -48,20 +48,24 @@ public:
 
     T& first()
     {
+		assert(size() != 0);
         return *start;
     }
 
     T& last()
     {
+		assert(size() != 0);
         return *(start + maxSize - 1);
     }
 
     T& operator[](size_t index)
     {
+		assert(index < size());
         return start[index];
     }
     const T& operator[](size_t index) const
-    {
+	{
+		assert(index < size());
         return start[index];
     }
 

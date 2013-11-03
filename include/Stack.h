@@ -64,6 +64,7 @@ public:
 
     T& top()
     {
+		assert(currentSize != 0);
 		T& x = *(Slice<T>::begin() + currentSize - 1);
         return x;
     }
