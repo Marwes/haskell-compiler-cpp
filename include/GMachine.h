@@ -2,59 +2,11 @@
 #include <vector>
 #include <map>
 #include "Stack.h"
+#include "Parser.h"
+#include "SuperCombinator.h"
 
 namespace MyVMNamespace
 {
-enum class GOP : unsigned char
-{
-	SLIDE,
-	ALLOC,
-	UPDATE,
-	POP,
-	UNWIND,
-	PUSH_GLOBAL,
-	PUSH_INT,
-	PUSH,
-	MKAP,
-	EVAL,
-	PACK,
-	SPLIT,
-	CASEJUMP,
-	JUMP,
-
-    ADD,
-    SUBTRACT,
-    MULTIPLY,
-    DIVIDE,
-    REMAINDER,
-	NEGATE,
-
-	COMPARE_EQ,
-	COMPARE_GT,
-	COMPARE_GE,
-	COMPARE_LT,
-	COMPARE_LE
-};
-
-class GInstruction
-{
-public:
-	GInstruction(GOP op, int value = 0)
-		: op(op)
-		, value(value)
-	{}
-
-	GOP op;
-	int value;
-};
-
-class SuperCombinator
-{
-public:
-	std::string name;
-	int arity;
-	std::vector<GInstruction> instructions;
-};
 
 enum NodeType
 {
@@ -120,7 +72,7 @@ private:
 	Node* node;
 };
 
-struct Constructor
+struct ConstructorNode
 {
 	int tag;
 	Address* arguments;
@@ -160,7 +112,7 @@ public:
 			Address arg;
 		} apply;
 		Address indirection;
-		Constructor constructor;
+		ConstructorNode constructor;
 		SuperCombinator* global;
 	};
 };
@@ -175,14 +127,6 @@ public:
 
 	StackFrame<Address> stack;
 	SuperCombinator* combinator;
-};
-
-class DataDefinition
-{
-public:
-	std::string name;
-	int tag;
-	int arity;
 };
 
 class GMachine
@@ -211,7 +155,7 @@ private:
 	std::vector<Address> globals;
 	std::vector<Node> heap;
 
-	std::vector<DataDefinition> dataDefinitions;
+	std::vector<Constructor> dataDefinitions;
 
 	std::map<std::string, std::unique_ptr<SuperCombinator>> superCombinators;
 };

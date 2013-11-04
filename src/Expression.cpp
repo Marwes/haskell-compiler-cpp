@@ -576,7 +576,7 @@ const Type* Case::getType() const
 GCompiler::GCompiler()
 	: index(0)
 {
-	DataDefinition def;
+	Constructor def;
 	def.name = "(,)";
 	def.tag = 0;
 	def.arity = 2;
@@ -611,7 +611,7 @@ Variable GCompiler::getVariable(const std::string& name)
 		return Variable { VariableType::TOPLEVEL, PolymorphicType::any, i };
 	}
 	auto foundCtor = std::find_if(dataDefinitions.begin(), dataDefinitions.end(),
-		[&name](const DataDefinition& def)
+		[&name](const Constructor& def)
 	{
 		return def.name == name;
 	});

@@ -143,7 +143,7 @@ void GMachine::execute(GEnvironment& environment)
 		case GOP::PACK:
 			{
 				int globalTag = instruction.value;
-				DataDefinition def = dataDefinitions[globalTag];
+				Constructor& def = dataDefinitions[globalTag];
 				heap.push_back(Node(def.tag, new Address[def.arity]));
 				Node& ctor = heap.back();
 				for (int ii = 0; ii < def.arity; ii++)
@@ -157,7 +157,7 @@ void GMachine::execute(GEnvironment& environment)
 			{
 				Address top = stack.pop();
 				assert(top.getType() == CONSTRUCTOR);
-				Constructor& ctor = top.getNode()->constructor;
+				ConstructorNode& ctor = top.getNode()->constructor;
 				for (int ii = 0; ii < instruction.value; ii++)
 				{
 					stack.push(ctor.arguments[ii]);
@@ -168,7 +168,7 @@ void GMachine::execute(GEnvironment& environment)
 			{
 				Address top = stack.top();
 				assert(top.getType() == CONSTRUCTOR);
-				Constructor& ctor = top.getNode()->constructor;
+				ConstructorNode& ctor = top.getNode()->constructor;
 				if (ctor.tag != instruction.value)
 					index++;//Skip the next instruction which is the jump instruction
 			}

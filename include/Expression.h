@@ -4,7 +4,7 @@
 #include <memory>
 #include <map>
 #include "Instruction.h"
-#include "GMachine.h"
+#include "SuperCombinator.h"
 
 
 namespace MyVMNamespace
@@ -71,7 +71,7 @@ public:
 	std::vector<std::string> stackVariables;
 	std::map<std::string, std::unique_ptr<SuperCombinator>> globals;
 	std::map<SuperCombinator*, int> globalIndices;
-	std::vector<DataDefinition> dataDefinitions;
+	std::vector<Constructor> dataDefinitions;
 private:
 	int index;
 };

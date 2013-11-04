@@ -5,11 +5,13 @@
 #include "Expression.h"
 #include "Tokenizer.h"
 #include "Module.h"
+#include "SuperCombinator.h"
 
 namespace MyVMNamespace
 {
 class Token;
 class Tokenizer;
+
 
 class Parser
 {
