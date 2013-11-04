@@ -61,6 +61,7 @@ void GMachine::compile(std::istream& input)
 	}
 	superCombinators = std::move(comp.globals);
 	globals.resize(superCombinators.size());
+	dataDefinitions = std::move(comp.dataDefinitions);
 	for (auto& sc : superCombinators)
 	{
 		int index = comp.globalIndices[sc.second.get()];
@@ -105,6 +106,7 @@ Address GMachine::executeMain()
 void GMachine::execute(GEnvironment& environment)
 {
 	const std::vector<GInstruction>& code = environment.combinator->instructions;
+	StackFrame<Address>& stack = environment.stack;
 
 	for (size_t index = 0; index < code.size(); index++)
 	{
@@ -137,6 +139,42 @@ void GMachine::execute(GEnvironment& environment)
 				heap.push_back(Node(func, arg));
 				environment.stack.top() = Address::application(&heap.back());
 			}
+			break;
+		case GOP::PACK:
+			{
+				int globalTag = instruction.value;
+				DataDefinition def = dataDefinitions[globalTag];
+				heap.push_back(Node(def.tag, new Address[def.arity]));
+				Node& ctor = heap.back();
+				for (int ii = 0; ii < def.arity; ii++)
+				{
+					ctor.constructor.arguments[ii] = stack.pop();
+				}
+				stack.push(Address::constructor(&ctor));
+			}
+			break;
+		case GOP::SPLIT:
+			{
+				Address top = stack.pop();
+				assert(top.getType() == CONSTRUCTOR);
+				Constructor& ctor = top.getNode()->constructor;
+				for (int ii = 0; ii < instruction.value; ii++)
+				{
+					stack.push(ctor.arguments[ii]);
+				}
+			}
+			break;
+		case GOP::CASEJUMP:
+			{
+				Address top = stack.top();
+				assert(top.getType() == CONSTRUCTOR);
+				Constructor& ctor = top.getNode()->constructor;
+				if (ctor.tag != instruction.value)
+					index++;//Skip the next instruction which is the jump instruction
+			}
+			break;
+		case GOP::JUMP:
+			index = instruction.value - 1;
 			break;
 		case GOP::POP:
 			for (int i = 0; i < instruction.value; i++)
@@ -184,7 +222,7 @@ void GMachine::execute(GEnvironment& environment)
 				case GLOBAL:
 					{
 						SuperCombinator* comb = top.getNode()->global;
-						if (environment.stack.stackSize() >= comb->arity)
+						if (environment.stack.stackSize() >= size_t(comb->arity))
 						{
 							//Before calling the function, replace all applications on the stack with the actual arguments
 							//This gives faster access to a functions arguments when using PUSH

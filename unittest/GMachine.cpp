@@ -85,3 +85,31 @@ TEST_CASE("gmachine/arithmetic/2", "")
 	REQUIRE(result.getType() == NUMBER);
 	REQUIRE(result.getNode()->number == 16);
 }
+
+TEST_CASE("gmachine/tuple", "")
+{
+	GMachine machine;
+	const char* str =
+		"main = case (1, 2) of { (x, y) -> x + y }";
+	std::stringstream expr(str);
+	machine.compile(expr);
+
+	Address result = machine.executeMain();
+	REQUIRE(result.getType() == NUMBER);
+	REQUIRE(result.getNode()->number == 3);
+}
+TEST_CASE("gmachine/tuple2", "")
+{
+	GMachine machine;
+	const char* str =
+"main =\n\
+	let\n\
+		ten = 10\n\
+	in case (ten, 5) of { (x, y) -> x + y }";
+	std::stringstream expr(str);
+	machine.compile(expr);
+
+	Address result = machine.executeMain();
+	REQUIRE(result.getType() == NUMBER);
+	REQUIRE(result.getNode()->number == 15);
+}

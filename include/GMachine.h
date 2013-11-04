@@ -17,6 +17,10 @@ enum class GOP : unsigned char
 	PUSH,
 	MKAP,
 	EVAL,
+	PACK,
+	SPLIT,
+	CASEJUMP,
+	JUMP,
 
     ADD,
     SUBTRACT,
@@ -57,7 +61,8 @@ enum NodeType
 	NUMBER,
 	APPLICATION,
 	GLOBAL,
-	INDIRECTION
+	INDIRECTION,
+	CONSTRUCTOR,
 };
 
 class Node;
@@ -103,9 +108,22 @@ public:
 		a.type = INDIRECTION;
 		return a;
 	}
+	static Address constructor(Node* node)
+	{
+		Address a;
+		a.node = node;
+		a.type = CONSTRUCTOR;
+		return a;
+	}
 
 private:
 	Node* node;
+};
+
+struct Constructor
+{
+	int tag;
+	Address* arguments;
 };
 
 class Node
@@ -128,6 +146,11 @@ public:
 	Node(SuperCombinator* global)
 		: global(global)
 	{}
+	Node(int tag, Address* arguments)
+	{
+		constructor.tag = tag;
+		constructor.arguments = arguments;
+	}
 	union
 	{
 		int number;
@@ -137,6 +160,7 @@ public:
 			Address arg;
 		} apply;
 		Address indirection;
+		Constructor constructor;
 		SuperCombinator* global;
 	};
 };
@@ -153,6 +177,13 @@ public:
 	SuperCombinator* combinator;
 };
 
+class DataDefinition
+{
+public:
+	std::string name;
+	int tag;
+	int arity;
+};
 
 class GMachine
 {
@@ -179,6 +210,8 @@ private:
 	Array<Address> stack;
 	std::vector<Address> globals;
 	std::vector<Node> heap;
+
+	std::vector<DataDefinition> dataDefinitions;
 
 	std::map<std::string, std::unique_ptr<SuperCombinator>> superCombinators;
 };

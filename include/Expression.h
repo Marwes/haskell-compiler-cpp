@@ -31,7 +31,8 @@ enum class VariableType
 {
 	NONE,
 	STACK,
-	TOPLEVEL
+	TOPLEVEL,
+	CONSTRUCTOR
 };
 struct Variable
 {
@@ -59,11 +60,10 @@ private:
 class GCompiler
 {
 public:
-	GCompiler()
-		: index(0)
-	{}
+	GCompiler();
 
 	void newStackVariable(const std::string& name);
+	void popStack(size_t n);
 	Variable getVariable(const std::string& name);
 	SuperCombinator& getGlobal(const std::string& name);
 
@@ -71,6 +71,7 @@ public:
 	std::vector<std::string> stackVariables;
 	std::map<std::string, std::unique_ptr<SuperCombinator>> globals;
 	std::map<SuperCombinator*, int> globalIndices;
+	std::vector<DataDefinition> dataDefinitions;
 private:
 	int index;
 };
@@ -219,6 +220,11 @@ public:
 	virtual void compile(size_t stackTop, std::vector<size_t>& branches, std::vector<Instruction>& instructions) const = 0;
 	virtual void match(size_t stackTop, std::vector<size_t>& branches, std::vector<Instruction>& instructions) const = 0;
 	virtual void addLocals(Environment& env, int fieldIndex, std::vector<Instruction>& instructions) const = 0;
+
+	virtual void compileGCode(GCompiler& env, std::vector<size_t>& branches, std::vector<GInstruction>& instructions) const
+	{
+		assert(0);
+	}
 };
 
 class PatternName : public Pattern
@@ -252,18 +258,27 @@ public:
 class ConstructorPattern : public Pattern
 {
 public:
+	ConstructorPattern(int tag, std::vector<std::unique_ptr<Pattern>> &&patterns)
+		: patterns(std::move(patterns))
+		, tag(tag)
+	{}
 	ConstructorPattern(std::vector<std::unique_ptr<Pattern>>&& patterns)
 		: patterns(std::move(patterns))
+		, tag(0)
 	{}
 	ConstructorPattern(ConstructorPattern&& other)
 		: patterns(std::move(other.patterns))
+		, tag(other.tag)
 	{}
 
 	virtual void compile(size_t stackTop, std::vector<size_t>& branches, std::vector<Instruction>& instructions) const;
 	virtual void match(size_t stackTop, std::vector<size_t>& branches, std::vector<Instruction>& instructions) const;
 	virtual void addLocals(Environment& env, int fieldIndex, std::vector<Instruction>& instructions) const;
 
+	virtual void compileGCode(GCompiler& env, std::vector<size_t>& branches, std::vector<GInstruction>& instructions) const;
+
 	std::vector<std::unique_ptr<Pattern>> patterns;
+	int tag;
 };
 
 class Alternative

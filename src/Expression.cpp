@@ -444,6 +444,13 @@ void ConstructorPattern::compile(size_t stackTop, std::vector<size_t>& branches,
 	instructions.push_back(Instruction(OP::POP));
 }
 
+void ConstructorPattern::compileGCode(GCompiler& env, std::vector<size_t>& branches, std::vector<GInstruction>& instructions) const
+{
+	instructions.push_back(GInstruction(GOP::CASEJUMP, tag));
+	branches.push_back(instructions.size());
+	instructions.push_back(GInstruction(GOP::JUMP));
+}
+
 void ConstructorPattern::addLocals(Environment& env, int fieldIndex, std::vector<Instruction>& instructions) const
 {
 	if (fieldIndex >= 0)
@@ -566,10 +573,26 @@ const Type* Case::getType() const
 	return expression->getType();
 }
 
+GCompiler::GCompiler()
+	: index(0)
+{
+	DataDefinition def;
+	def.name = "(,)";
+	def.tag = 0;
+	def.arity = 2;
+	dataDefinitions.push_back(def);
+}
 
 void GCompiler::newStackVariable(const std::string& name)
 {
 	stackVariables.push_back(name);
+}
+void GCompiler::popStack(size_t n)
+{
+	for (size_t i = 0; i < n; i++)
+	{
+		stackVariables.pop_back();
+	}
 }
 
 Variable GCompiler::getVariable(const std::string& name)
@@ -586,6 +609,16 @@ Variable GCompiler::getVariable(const std::string& name)
 	{
 		int i = globalIndices[foundGlobal->second.get()];
 		return Variable { VariableType::TOPLEVEL, PolymorphicType::any, i };
+	}
+	auto foundCtor = std::find_if(dataDefinitions.begin(), dataDefinitions.end(),
+		[&name](const DataDefinition& def)
+	{
+		return def.name == name;
+	});
+	if (foundCtor != dataDefinitions.end())
+	{
+		int index = std::distance(dataDefinitions.begin(), foundCtor);
+		return Variable { VariableType::CONSTRUCTOR, PolymorphicType::any, index };
 	}
 	return Variable { VariableType::STACK, PolymorphicType::any, -1 };
 }
@@ -607,6 +640,8 @@ SuperCombinator& GCompiler::getGlobal(const std::string& name)
 void Name::compile(GCompiler& env, std::vector<GInstruction>& instructions, bool strict)
 {
 	Variable var = env.getVariable(this->name);
+	if (var.index == -1)
+		throw std::runtime_error("Did not find variable " + name);
 	switch (var.accessType)
 	{
 	case VariableType::STACK:
@@ -614,6 +649,9 @@ void Name::compile(GCompiler& env, std::vector<GInstruction>& instructions, bool
 		break;
 	case VariableType::TOPLEVEL:
 		instructions.push_back(GInstruction(GOP::PUSH_GLOBAL, var.index));
+		break;
+	case VariableType::CONSTRUCTOR:
+		instructions.push_back(GInstruction(GOP::PACK, var.index));
 		break;
 	default:
 		assert(0 && "Could not find the variable");
@@ -662,12 +700,19 @@ void Let::compile(GCompiler& env, std::vector<GInstruction>& instructions, bool 
 		env.newStackVariable(bind.name);
 		bind.expression->compile(env, instructions, false);
 		if (isRecursive)
+		{
 			instructions.push_back(GInstruction(GOP::UPDATE, env.stackVariables.size() - 1));
+			env.newStackVariable("");//Add an extra variable since there will also be an indirection on the stack
+		}
 	}
 	expression->compile(env, instructions, strict);
 	instructions.push_back(GInstruction(GOP::SLIDE, bindings.size()));
+	env.popStack(bindings.size());
 	if (strict)
+	{
 		instructions.push_back(GInstruction(GOP::EVAL));
+		env.popStack(bindings.size());
+	}
 }
 void Lambda::compile(GCompiler& env, std::vector<GInstruction>& instructions, bool strict)
 {
@@ -679,8 +724,12 @@ void Apply::compile(GCompiler& env, std::vector<GInstruction>& instructions, boo
 	{
 		//TODO
 		arguments[ii]->compile(env, instructions, false);
+		env.newStackVariable("");
 	}
 	function->compile(env, instructions, strict);
+	env.popStack(arguments.size());
+	if (instructions[instructions.size() - 2].op == GOP::PACK)
+		return;
 	for (size_t ii = 0; ii < arguments.size(); ++ii)
 		instructions.push_back(GInstruction(GOP::MKAP));
 	if (strict)
@@ -688,6 +737,36 @@ void Apply::compile(GCompiler& env, std::vector<GInstruction>& instructions, boo
 }	
 void Case::compile(GCompiler& env, std::vector<GInstruction>& instructions, bool strict)
 {
-	assert(0);
+	expression->compile(env, instructions, strict);
+	env.newStackVariable("");
+	std::vector<size_t> branches;
+	for (Alternative& alt : alternatives)
+	{
+		alt.pattern->compileGCode(env, branches, instructions);
+	}
+	for (size_t ii = 0; ii < alternatives.size(); ii++)
+	{
+		Alternative& alt = alternatives[ii];
+		instructions[branches[ii]].value = instructions.size();
+
+		auto& pattern = dynamic_cast<ConstructorPattern&>(*alt.pattern);
+		instructions.push_back(GInstruction(GOP::SPLIT, pattern.patterns.size()));
+		env.popStack(1);
+
+		for (auto& varName : pattern.patterns)
+		{
+			auto& name = dynamic_cast<PatternName&>(*varName);
+			env.newStackVariable(name.name);
+		}
+
+		alt.expression->compile(env, instructions, strict);
+
+		for (auto& varName : pattern.patterns)
+		{
+			env.stackVariables.pop_back();
+		}
+	}
+	if (strict)
+		instructions.push_back(GInstruction(GOP::EVAL));
 }
 }

@@ -303,12 +303,14 @@ std::unique_ptr<Expression> Parser::parseOperatorExpression(std::unique_ptr<Expr
 bool applicationError(const Token& t)
 {
 	return t.type != SymbolEnum::LPARENS
+		&& t.type != SymbolEnum::RPARENS
 		&& t.type != SymbolEnum::LET
 		&& t.type != SymbolEnum::OF
 		&& t.type != SymbolEnum::NAME
 		&& t.type != SymbolEnum::NUMBER
 		&& t.type != SymbolEnum::OPERATOR
-		&& t.type != SymbolEnum::SEMICOLON;
+		&& t.type != SymbolEnum::SEMICOLON
+		&& t.type != SymbolEnum::COMMA;
 }
 
 std::unique_ptr<Expression> Parser::application()
