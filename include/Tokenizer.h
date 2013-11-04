@@ -31,6 +31,7 @@ namespace MyVMNamespace
 	XX(t,OF) \
 	XX(t,ARROW) \
 	XX(t,TYPEDECL) \
+	XX(t,DATA)
 
 DECLARE_ENUM(SymbolEnum, SYMBOLENUM);
 

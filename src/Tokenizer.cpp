@@ -16,7 +16,8 @@ const std::map<std::string, SymbolEnum> keywords = {
 	std::make_pair("in", SymbolEnum::IN),
 	std::make_pair("case", SymbolEnum::CASE),
 	std::make_pair("of", SymbolEnum::OF),
-	std::make_pair("->", SymbolEnum::ARROW)
+	std::make_pair("->", SymbolEnum::ARROW),
+	std::make_pair("data", SymbolEnum::DATA)
 };
 
 SymbolEnum nameOrKeyWord(const std::string& name)
