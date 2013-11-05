@@ -64,7 +64,8 @@ bool toplevelError(const Token& t)
 {
 	return t.type != SymbolEnum::NAME
 		&& t.type != SymbolEnum::RBRACKET
-		&& t.type != SymbolEnum::SEMICOLON;
+		&& t.type != SymbolEnum::SEMICOLON
+		&& t.type != SymbolEnum::DATA;
 }
 
 bool toplevelNewBindError(const Token& t)
@@ -112,6 +113,11 @@ Module Parser::toplevel()
 				auto bind = binding();
 				module.bindings.push_back(std::move(bind));
 			}
+		}
+		else if (token.type == SymbolEnum::DATA)
+		{
+			--tokenizer;
+			module.dataDefinitions.push_back(dataDefinition());
 		}
 		else
 		{
@@ -420,6 +426,51 @@ TypeDeclaration Parser::typeDeclaration()
 	--tokenizer;
 
 	return TypeDeclaration(nameToken.name, std::move(t));
+}
+
+Constructor Parser::constructor()
+{
+	const Token& nameToken = tokenizer.nextToken();
+	Constructor ctor;
+	ctor.name = nameToken.name;
+	const Token* tok = &tokenizer.nextToken();
+	while (tok->type == SymbolEnum::NAME)
+	{
+		ctor.arity += 1;
+		tok = &tokenizer.nextToken();
+	}
+	--tokenizer;
+	return std::move(ctor);
+}
+
+DataDefinition Parser::dataDefinition()
+{
+	const Token& dataToken = tokenizer.nextToken();
+	if (dataToken.type != SymbolEnum::DATA)
+	{
+		throw std::runtime_error("Expected DATA token");
+	}
+	const Token& dataName = tokenizer.nextToken();
+	if (dataName.type != SymbolEnum::NAME)
+	{
+		throw std::runtime_error("Expected NAME token");
+	}
+	const Token& equalToken = tokenizer.nextToken();
+	if (equalToken.type != SymbolEnum::EQUALSSIGN)
+	{
+		throw std::runtime_error("Expected EQUAL token");
+	}
+	DataDefinition definition;
+	definition.name = dataName.name;
+	definition.constructors = many1(&Parser::constructor, [](const Token& t)
+	{
+		return t.type == SymbolEnum::OPERATOR && t.name == "|";
+	});
+	for (size_t ii = 0; ii < definition.constructors.size(); ii++)
+	{
+		definition.constructors[ii].tag = ii;
+	}
+	return std::move(definition);
 }
 
 bool typeParseError(const Token& t)

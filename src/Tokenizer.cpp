@@ -41,7 +41,7 @@ bool isTokenSeparator(char c)
 
 bool isOperator(char c)
 {
-	static std::string operators("+-*/.$:=<>");
+	static std::string operators("+-*/.$:=<>|&");
 	return operators.find(c) != -1;
 }
 

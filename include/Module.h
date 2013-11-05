@@ -35,6 +35,7 @@ public:
 	Module(Module && other)
 		: bindings(std::move(other.bindings))
 		, typeDeclaration(std::move(other.typeDeclaration))
+		, dataDefinitions(std::move(other.dataDefinitions))
 	{
 	}
 	Module(std::vector<Binding> && bindings, std::vector<TypeDeclaration> && typeDeclaration)
@@ -45,6 +46,7 @@ public:
 
 	std::vector<Binding> bindings;
 	std::vector<TypeDeclaration> typeDeclaration;
+	std::vector<DataDefinition> dataDefinitions;
 };
 
 }

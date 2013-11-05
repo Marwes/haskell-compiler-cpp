@@ -65,3 +65,60 @@ f x y = x + y\n";
 	REQUIRE(bindings[1].name == "f");
 	REQUIRE(typeid(*bindings[0].expression) == typeid(Lambda));
 }
+
+
+TEST_CASE("module/datadefinition/simple", "")
+{
+	const char* file =
+		"data Test = Test";
+	std::stringstream stream(file);
+	Tokenizer tokenizer(stream);
+	Parser parser(tokenizer);
+
+	Module module = parser.toplevel();
+
+	REQUIRE(module.dataDefinitions.size() == 1);
+	DataDefinition& def = module.dataDefinitions[0];
+	REQUIRE(def.name == "Test");
+	REQUIRE(def.constructors[0].name == "Test");
+	REQUIRE(def.constructors[0].arity == 0);
+}
+
+TEST_CASE("module/datadefinition/multiple", "")
+{
+	const char* file =
+		"data Bool = True | False";
+	std::stringstream stream(file);
+	Tokenizer tokenizer(stream);
+	Parser parser(tokenizer);
+
+	Module module = parser.toplevel();
+
+	REQUIRE(module.dataDefinitions.size() == 1);
+	DataDefinition& def = module.dataDefinitions[0];
+	REQUIRE(def.name == "Bool");
+	REQUIRE(def.constructors[0].name == "True");
+	REQUIRE(def.constructors[0].arity == 0);
+	REQUIRE(def.constructors[1].name == "False");
+	REQUIRE(def.constructors[1].arity == 0);
+}
+
+TEST_CASE("module/datadefinition/arguments", "")
+{
+	const char* file =
+"data List = Cons Int List\n\
+	       | Nil";
+	std::stringstream stream(file);
+	Tokenizer tokenizer(stream);
+	Parser parser(tokenizer);
+
+	Module module = parser.toplevel();
+
+	REQUIRE(module.dataDefinitions.size() == 1);
+	DataDefinition& def = module.dataDefinitions[0];
+	REQUIRE(def.name == "List");
+	REQUIRE(def.constructors[0].name == "Cons");
+	REQUIRE(def.constructors[0].arity == 2);
+	REQUIRE(def.constructors[1].name == "Nil");
+	REQUIRE(def.constructors[1].arity == 0);
+}

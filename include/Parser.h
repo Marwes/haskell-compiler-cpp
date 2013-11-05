@@ -29,10 +29,14 @@ public:
 	Binding binding();
 	std::unique_ptr<Pattern> pattern();
 	TypeDeclaration typeDeclaration();
+	Constructor constructor();
+	DataDefinition dataDefinition();
 	std::unique_ptr<Type> type();
 
 	template<class TResult>
-	std::vector<TResult> many1(TResult (Parser::*parse)() , SymbolEnum delim);
+	std::vector<TResult> many1(TResult(Parser::*parse)(), SymbolEnum delim);
+	template<class TResult, class F>
+	std::vector<TResult> many1(TResult(Parser::*parse)(), F delim);
 
 	std::unique_ptr<Expression> parseOperatorExpression(std::unique_ptr<Expression> lhs, int minPrecedence);
 private:
@@ -50,6 +54,19 @@ inline std::vector<TResult> Parser::many1(TResult (Parser::*parse)(), SymbolEnum
 		result.push_back(std::move(x));
 		tokenDelim = &tokenizer.nextToken();
 	} while (tokenDelim->type == delim);
+	return std::move(result);
+}
+template<class TResult, class F>
+inline std::vector<TResult> Parser::many1(TResult(Parser::*parse)(), F delim)
+{
+	const Token* tokenDelim;
+	std::vector<TResult> result;
+	do
+	{
+		TResult x = (this->*parse)();
+		result.push_back(std::move(x));
+		tokenDelim = &tokenizer.nextToken();
+	} while (delim(*tokenDelim));
 	return std::move(result);
 }
 

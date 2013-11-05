@@ -58,6 +58,10 @@ public:
 class Constructor
 {
 public:
+	Constructor()
+		: tag(0)
+		, arity(0)
+	{}
 	std::string name;
 	int tag;
 	int arity;
