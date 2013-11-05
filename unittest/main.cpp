@@ -2,7 +2,6 @@
 #include <assert.h>
 #include <direct.h>
 #include "Catch/include/catch.hpp"
-#include <VM.h>
 
 int main(int argc, char* const argv [])
 {

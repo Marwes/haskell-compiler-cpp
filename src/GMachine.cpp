@@ -2,7 +2,6 @@
 #include "GMachine.h"
 #include "Tokenizer.h"
 #include "Parser.h"
-#include "Compiler.h"
 
 namespace MyVMNamespace
 {
@@ -30,6 +29,13 @@ void GMachine::compile(std::istream& input)
 	Tokenizer tokens(input);
 	Parser parser(tokens);
 	Module module = parser.toplevel();
+	
+	TypeEnvironment typeEnvironment(&module);
+	for (Binding& bind : module.bindings)
+	{
+		bind.expression->typecheck(typeEnvironment, PolymorphicType::any);
+	}
+
 
 	GCompiler comp;
 	for (Binding& bind : module.bindings)
@@ -272,7 +278,15 @@ void GMachine::execute(GEnvironment& environment)
 			}\
             break;
 
-			BINOP(+, ADD)
+		case GOP::ADD:
+						 {
+						 Address rhs = environment.stack.pop(); 
+						 Address lhs = environment.stack.top(); 
+						 int result = lhs.getNode()->number + rhs.getNode()->number; 
+						 heap.push_back(Node(result)); 
+						 environment.stack.top() = Address::number(&heap.back()); 
+						 }
+						 break;
 			BINOP(-, SUBTRACT)
 			BINOP(*, MULTIPLY)
 			BINOP(/ , DIVIDE)
