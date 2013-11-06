@@ -59,7 +59,7 @@ f x y = x + y\n";
 	REQUIRE(test.name == "test");
 	const Lambda& testLambda = dynamic_cast<Lambda&>(*test.expression);
 	REQUIRE(testLambda.arguments.size() == 1);
-	const Let& letExpr = dynamic_cast<Let&>(*testLambda.expression);
+	const Let& letExpr = dynamic_cast<Let&>(*testLambda.body);
 	REQUIRE(letExpr.bindings[0].name == "id");
 
 	REQUIRE(bindings[1].name == "f");

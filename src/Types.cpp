@@ -7,7 +7,7 @@ namespace MyVMNamespace
 int TypeVariable::nextId;
 
 
-TypeOperator functionType(const Type& arg, const Type& result)
+Type functionType(const Type& arg, const Type& result)
 {
 	return TypeOperator("->", { arg, result });
 }

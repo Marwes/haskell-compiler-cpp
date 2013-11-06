@@ -50,7 +50,7 @@ void GMachine::compile(std::istream& input)
 			}
 			SuperCombinator& sc = comp.getGlobal(bind.name);
 			sc.arity = lambda->arguments.size();
-			lambda->expression->compile(comp, sc.instructions, true);
+			lambda->body->compile(comp, sc.instructions, true);
 			sc.instructions.push_back(GInstruction(GOP::UPDATE, 0));
 			sc.instructions.push_back(GInstruction(GOP::POP, sc.arity));
 			sc.instructions.push_back(GInstruction(GOP::UNWIND));

@@ -52,9 +52,10 @@ public:
 
 	TypeEnvironment child();
 
+	Type& newTypeFor(const std::string& name);
 	Type& addType(const std::string& name, const Type& type);
 
-	Type* getType(const std::string& name);
+	Type& getType(const std::string& name);
 private:
 	Module* module;
 	TypeEnvironment* parent;
@@ -85,11 +86,11 @@ class Expression
 public:
     virtual ~Expression() { }
 
-	virtual void typecheck(TypeEnvironment& env, const Type& self) = 0;
+	virtual Type& typecheck(TypeEnvironment& env, const Type& self) = 0;
 	
 	virtual void compile(GCompiler& env, std::vector<GInstruction>& instructions, bool strict) = 0;
 
-	virtual Type* getType() const = 0;
+	virtual Type* getType() = 0;
 };
 
 class Name : public Expression
@@ -97,11 +98,11 @@ class Name : public Expression
 public:
     Name(std::string name);
 
-	virtual void typecheck(TypeEnvironment& env, const Type& self);
+	virtual Type& typecheck(TypeEnvironment& env, const Type& self);
 
 	virtual void compile(GCompiler& env, std::vector<GInstruction>& instructions, bool strict);
 
-	virtual Type* getType() const;
+	virtual Type* getType();
 
 	std::string name;
 private:
@@ -113,11 +114,11 @@ class Rational : public Expression
 public:
 	Rational(double value);
 
-	virtual void typecheck(TypeEnvironment& env, const Type& self);
+	virtual Type& typecheck(TypeEnvironment& env, const Type& self);
 
 	virtual void compile(GCompiler& env, std::vector<GInstruction>& instructions, bool strict);
 
-	virtual Type* getType() const;
+	virtual Type* getType();
 
 	double value;
 };
@@ -127,11 +128,11 @@ class Number : public Rational
 public:
     Number(int value);
 
-	virtual void typecheck(TypeEnvironment& env, const Type& self);
+	virtual Type& typecheck(TypeEnvironment& env, const Type& self);
 
 	virtual void compile(GCompiler& env, std::vector<GInstruction>& instructions, bool strict);
 
-	virtual Type* getType() const;
+	virtual Type* getType();
 
     int value;
 };
@@ -141,11 +142,11 @@ class PrimOP : public Expression
 public:
 	PrimOP(PrimOps op, std::unique_ptr<Expression> && lhs, std::unique_ptr<Expression> && rhs);
 
-	virtual void typecheck(TypeEnvironment& env, const Type& self);
+	virtual Type& typecheck(TypeEnvironment& env, const Type& self);
 
 	virtual void compile(GCompiler& env, std::vector<GInstruction>& instructions, bool strict);
 
-	virtual Type* getType() const;
+	virtual Type* getType();
 
     std::unique_ptr<Expression> lhs, rhs;
     PrimOps op;
@@ -156,11 +157,11 @@ class Let : public Expression
 public:
 	Let(std::vector<Binding> && arguments, std::unique_ptr<Expression>&& expression);
 
-	virtual void typecheck(TypeEnvironment& env, const Type& self);
+	virtual Type& typecheck(TypeEnvironment& env, const Type& self);
 
 	virtual void compile(GCompiler& env, std::vector<GInstruction>& instructions, bool strict);
 
-	virtual Type* getType() const;
+	virtual Type* getType();
 
 	bool isRecursive;
 	std::vector<Binding> bindings;
@@ -172,16 +173,16 @@ class Lambda : public Expression
 public:
 	Lambda(std::vector<std::string> && arguments, std::unique_ptr<Expression> && expression);
 
-	virtual void typecheck(TypeEnvironment& env, const Type& self);
+	virtual Type& typecheck(TypeEnvironment& env, const Type& self);
 
 	virtual void compile(GCompiler& env, std::vector<GInstruction>& instructions, bool strict);
 
-	virtual Type* getType() const;
+	virtual Type* getType();
 
 	std::vector<std::string> arguments;
-	std::unique_ptr<Expression> expression;
+	std::unique_ptr<Expression> body;
 private:
-	std::unique_ptr<Type> type;
+	Type type;
 };
 
 class Apply : public Expression
@@ -189,16 +190,16 @@ class Apply : public Expression
 public:
 	Apply(std::unique_ptr<Expression> && function, std::vector<std::unique_ptr<Expression>> && arguments);
 
-	virtual void typecheck(TypeEnvironment& env, const Type& self);
+	virtual Type& typecheck(TypeEnvironment& env, const Type& self);
 
 	virtual void compile(GCompiler& env, std::vector<GInstruction>& instructions, bool strict);
 
-	virtual Type* getType() const;
+	virtual Type* getType();
 
 	std::unique_ptr<Expression> function;
 	std::vector<std::unique_ptr<Expression>> arguments;
 private:
-	std::unique_ptr<Type> type;
+	Type type;
 };
 
 class Pattern
@@ -275,11 +276,11 @@ class Case : public Expression
 public:
 	Case(std::unique_ptr<Expression> && expr, std::vector<Alternative> && alternatives);
 
-	virtual void typecheck(TypeEnvironment& env, const Type& self);
+	virtual Type& typecheck(TypeEnvironment& env, const Type& self);
 
 	virtual void compile(GCompiler& env, std::vector<GInstruction>& instructions, bool strict);
 
-	virtual Type* getType() const;
+	virtual Type* getType();
 
 	std::unique_ptr<Expression> expression;
 	std::vector<Alternative> alternatives;

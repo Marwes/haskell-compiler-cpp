@@ -67,14 +67,13 @@ public:
 	{
 	}
 
-	bool operator==(const TypeVariable& o) const { return id == o.id; }
-	bool operator!=(const TypeVariable& o) const { return !(*this == o); }
-
 	int id;
 private:
 	static int nextId;
 };
 
+inline bool operator==(const TypeVariable& l, const TypeVariable& r) { return l.id == r.id; }
+inline bool operator!=(const TypeVariable& l, const TypeVariable& r) { return !(l == r); }
 
 template<class Stream>
 Stream& operator<<(Stream& s, const TypeVariable& type)
@@ -92,13 +91,11 @@ public:
 		, types(std::move(types))
 	{}
 
-	bool operator==(const TypeOperator& o) const { return name == o.name && types == o.types; }
-	bool operator!=(const TypeOperator& o) const { return !(*this == o); }
-
-
 	std::string name;
 	std::vector<Type> types;
 };
+inline bool operator==(const TypeOperator& l, const TypeOperator& r) { return l.name == r.name && l.types == r.types; }
+inline bool operator!=(const TypeOperator& l, const TypeOperator& r) { return !(l == r); }
 
 template<class Stream>
 Stream& operator<<(Stream& s, const TypeOperator& type)
@@ -111,7 +108,7 @@ Stream& operator<<(Stream& s, const TypeOperator& type)
 	return s;
 }
 
-TypeOperator functionType(const Type& arg, const Type& result);
+Type functionType(const Type& arg, const Type& result);
 
 class TypeError : public std::runtime_error
 {
