@@ -1,4 +1,5 @@
 #pragma once
+#include <boost/variant.hpp>
 #include <assert.h>
 #include <vector>
 #include <memory>
@@ -53,146 +54,64 @@ inline size_t sizeofType(TypeEnum  e)
     }
 }
 
-class Type
+
+
+
+class TypeOperator;
+
+class TypeVariable
 {
 public:
-    Type(TypeEnum e)
-        : type(e)
-	{}
-	Type(std::string name, TypeEnum e)
-		: type(e)
-		, name(std::move(name))
-	{}
-	Type(Type && other)
-		: type(other.type)
-		, name(std::move(other.name))
+	TypeVariable()
+		: id(nextId++)
 	{
 	}
 
-	virtual ~Type()
-	{
-	}
+	bool operator==(const TypeVariable& o) const { return id == o.id; }
+	bool operator!=(const TypeVariable& o) const { return !(*this == o); }
 
-	virtual const std::string& toString() const
-	{
-		return name;
-	}
-
-	virtual Type* copy() const;
-
-	virtual bool isCompatibleWith(const Type& other) const
-	{
-		return type == other.type && name == other.name;
-	}
-
-	virtual bool operator==(const Type& other) const
-	{
-		return type == other.type && name == other.name;
-	}
-	bool operator!=(const Type& other) const
-	{
-		return !(*this == other);
-	}
-
-	TypeEnum type;
-protected:
-	std::string name;
-};
-
-class RecursiveType : public Type
-{
-public:
-	RecursiveType()
-		: Type(TypeEnum::TYPE_METHOD)
-	{}
-
-	virtual const Type& getArgumentType() const = 0;
-	virtual const Type& getReturnType() const = 0;
-	virtual RecursiveType* copy() const = 0;
-};
-
-class PolymorphicType : public RecursiveType
-{
-public:
-
-	virtual const Type& getArgumentType() const;
-	virtual const Type& getReturnType() const;
-
-
-	virtual bool isCompatibleWith(const Type& other) const;
-
-	virtual PolymorphicType* copy() const;
-
-	static const PolymorphicType any;
-};
-
-
-
-class FunctionType : public RecursiveType
-{
-public:
-
-	FunctionType(std::shared_ptr<Type> && argumentType, std::shared_ptr<Type> && returnType)
-		: argumentType(std::move(argumentType))
-		, returnType(std::move(returnType))
-		, typeNameCorrect(false)
-	{
-		assert(this->argumentType != nullptr);
-		assert(this->returnType != nullptr);
-	}
-	FunctionType(FunctionType&& other)
-		: argumentType(std::move(other.argumentType))
-		, returnType(std::move(other.returnType))
-		, typeNameCorrect(other.typeNameCorrect)
-	{}
-
-	virtual const Type& getArgumentType() const
-	{
-		return *argumentType;
-	}
-	virtual const Type& getReturnType() const
-	{
-		return *returnType;
-	}
-
-	virtual const std::string& toString() const
-	{
-		if (!typeNameCorrect)
-		{
-			if (typeid(*argumentType) == typeid(FunctionType))
-				functionName = "(" + argumentType->toString() + ") -> " + returnType->toString();
-			else
-				functionName = argumentType->toString() + " -> " + returnType->toString();
-		}
-		return functionName;
-	}
-
-	virtual bool isCompatibleWith(const Type& other) const;
-
-	virtual FunctionType* copy() const;
-
-	virtual bool operator==(const Type& o) const
-	{
-		if (typeid(*this) != typeid(o))
-		{
-			return false;
-		}
-		const FunctionType& other = static_cast<const FunctionType&>(o);
-		bool equal = (argumentType != nullptr && other.argumentType != nullptr && *argumentType == *other.argumentType)
-			|| argumentType == other.argumentType;
-		if (!equal)
-			return false;
-		return (returnType != nullptr && other.argumentType != nullptr && *argumentType == *other.argumentType)
-			|| argumentType == other.argumentType;
-	}
-
-	static std::unique_ptr<FunctionType> create(const std::vector<const Type*>& types);
+	int id;
 private:
-	std::shared_ptr<Type> argumentType;
-	std::shared_ptr<Type> returnType;
-	mutable std::string functionName;
-	bool typeNameCorrect;
+	static int nextId;
 };
+
+
+template<class Stream>
+Stream& operator<<(Stream& s, const TypeVariable& type)
+{
+	return s << type.id;
+}
+
+typedef boost::variant<TypeVariable, boost::recursive_wrapper<TypeOperator>> Type;
+
+class TypeOperator
+{
+public:
+	TypeOperator(std::string name, std::vector<Type> types)
+		: name(std::move(name))
+		, types(std::move(types))
+	{}
+
+	bool operator==(const TypeOperator& o) const { return name == o.name && types == o.types; }
+	bool operator!=(const TypeOperator& o) const { return !(*this == o); }
+
+
+	std::string name;
+	std::vector<Type> types;
+};
+
+template<class Stream>
+Stream& operator<<(Stream& s, const TypeOperator& type)
+{
+	s << type.name;
+	for (auto& type : type.types)
+	{
+		s << type;
+	}
+	return s;
+}
+
+TypeOperator functionType(const Type& arg, const Type& result);
 
 class TypeError : public std::runtime_error
 {

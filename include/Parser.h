@@ -31,7 +31,7 @@ public:
 	TypeDeclaration typeDeclaration();
 	Constructor constructor();
 	DataDefinition dataDefinition();
-	std::unique_ptr<Type> type();
+	Type type();
 
 	template<class TResult>
 	std::vector<TResult> many1(TResult(Parser::*parse)(), SymbolEnum delim);

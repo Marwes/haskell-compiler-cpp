@@ -19,11 +19,11 @@ public:
 class TypeDeclaration
 {
 public:
-	TypeDeclaration(std::string name, std::unique_ptr<Type> type);
+	TypeDeclaration(std::string name, Type type);
 	TypeDeclaration(TypeDeclaration && binding);
 
 	std::string name;
-	std::unique_ptr<Type> type;
+	Type type;
 };
 
 class Module

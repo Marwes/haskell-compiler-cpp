@@ -35,12 +35,14 @@ enum class VariableType
 	TOPLEVEL,
 	CONSTRUCTOR
 };
+
 struct Variable
 {
 	VariableType accessType;
-	const Type& type;
+	Type type;
 	int index;
 };
+
 
 class TypeEnvironment
 {
@@ -50,13 +52,13 @@ public:
 
 	TypeEnvironment child();
 
-	void addType(const std::string& name, const Type& type);
+	Type& addType(const std::string& name, const Type& type);
 
-	const Type* getType(const std::string& name);
+	Type* getType(const std::string& name);
 private:
 	Module* module;
 	TypeEnvironment* parent;
-	std::map<std::string, std::unique_ptr<Type>> types;
+	std::map<std::string, Type> types;
 };
 
 class GCompiler
@@ -87,7 +89,7 @@ public:
 	
 	virtual void compile(GCompiler& env, std::vector<GInstruction>& instructions, bool strict) = 0;
 
-	virtual const Type* getType() const = 0;
+	virtual Type* getType() const = 0;
 };
 
 class Name : public Expression
@@ -99,7 +101,7 @@ public:
 
 	virtual void compile(GCompiler& env, std::vector<GInstruction>& instructions, bool strict);
 
-	virtual const Type* getType() const;
+	virtual Type* getType() const;
 
 	std::string name;
 private:
@@ -115,7 +117,7 @@ public:
 
 	virtual void compile(GCompiler& env, std::vector<GInstruction>& instructions, bool strict);
 
-	virtual const Type* getType() const;
+	virtual Type* getType() const;
 
 	double value;
 };
@@ -129,7 +131,7 @@ public:
 
 	virtual void compile(GCompiler& env, std::vector<GInstruction>& instructions, bool strict);
 
-	virtual const Type* getType() const;
+	virtual Type* getType() const;
 
     int value;
 };
@@ -143,7 +145,7 @@ public:
 
 	virtual void compile(GCompiler& env, std::vector<GInstruction>& instructions, bool strict);
 
-	virtual const Type* getType() const;
+	virtual Type* getType() const;
 
     std::unique_ptr<Expression> lhs, rhs;
     PrimOps op;
@@ -158,7 +160,7 @@ public:
 
 	virtual void compile(GCompiler& env, std::vector<GInstruction>& instructions, bool strict);
 
-	virtual const Type* getType() const;
+	virtual Type* getType() const;
 
 	bool isRecursive;
 	std::vector<Binding> bindings;
@@ -174,7 +176,7 @@ public:
 
 	virtual void compile(GCompiler& env, std::vector<GInstruction>& instructions, bool strict);
 
-	virtual const Type* getType() const;
+	virtual Type* getType() const;
 
 	std::vector<std::string> arguments;
 	std::unique_ptr<Expression> expression;
@@ -191,7 +193,7 @@ public:
 
 	virtual void compile(GCompiler& env, std::vector<GInstruction>& instructions, bool strict);
 
-	virtual const Type* getType() const;
+	virtual Type* getType() const;
 
 	std::unique_ptr<Expression> function;
 	std::vector<std::unique_ptr<Expression>> arguments;
@@ -277,7 +279,7 @@ public:
 
 	virtual void compile(GCompiler& env, std::vector<GInstruction>& instructions, bool strict);
 
-	virtual const Type* getType() const;
+	virtual Type* getType() const;
 
 	std::unique_ptr<Expression> expression;
 	std::vector<Alternative> alternatives;

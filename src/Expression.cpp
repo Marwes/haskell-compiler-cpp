@@ -5,14 +5,31 @@
 
 namespace MyVMNamespace
 {
+class TypeCheck : boost::static_visitor<>
+{
+	void operator()(const TypeVariable& type)
+	{
+
+	}
+	void operator()(const TypeOperator& type)
+	{
+
+	}
+};
+
+void analyseTop()
+{
+
+}
+
+TypeVariable pair;
 
 TypeEnvironment::TypeEnvironment(Module* module)
 	: parent(nullptr)
 	, module(module)
 {
-	Type pair("(a,b", TypeEnum::TYPE_CLASS);
-	auto type = FunctionType::create({ &PolymorphicType::any, &PolymorphicType::any, &pair });
-	addType("(,)", *type);
+	auto type = functionType(TypeVariable(), functionType(TypeVariable(), pair));
+	addType("(,)", type);
 }
 
 TypeEnvironment::TypeEnvironment(TypeEnvironment&& env)
@@ -29,16 +46,17 @@ TypeEnvironment TypeEnvironment::child()
 	return std::move(c);
 }
 
-void TypeEnvironment::addType(const std::string& name, const Type& type)
+Type& TypeEnvironment::addType(const std::string& name, const Type& type)
 {
-	types.insert(std::make_pair(name, std::unique_ptr<Type>(type.copy())));
+	types.insert(std::make_pair(name, type));
+	return types[name];
 }
 
-const Type* TypeEnvironment::getType(const std::string& name)
+Type* TypeEnvironment::getType(const std::string& name)
 {
 	auto found = types.find(name);
 	if (found != types.end())
-		return found->second.get();
+		return &found->second;
 	if (parent != nullptr)
 		return parent->getType(name);
 	if (module != nullptr)
@@ -62,21 +80,15 @@ Name::Name(std::string name)
 
 void Name::typecheck(TypeEnvironment& env, const Type& self)
 {
-	const Type* t = env.getType(name);
-	if (t == nullptr)
-		throw std::runtime_error("Could not find type for name '" + name + "'");
-	if (!self.isCompatibleWith(*t))
-		throw TypeError(self, *t);
-	this->type = std::unique_ptr<Type>(t->copy());
 }
 
-const Type* Name::getType() const
+Type* Name::getType() const
 {
 	return type.get();
 }
 
-const Type intType("Int", TypeEnum::TYPE_CLASS);
-const Type doubleType("Double", TypeEnum::TYPE_CLASS);
+Type intType;
+Type doubleType;
 
 Rational::Rational(double value)
 	: value(value)
@@ -85,11 +97,9 @@ Rational::Rational(double value)
 
 void Rational::typecheck(TypeEnvironment& env, const Type& self)
 {
-	if (!self.isCompatibleWith(doubleType))
-		throw TypeError(self, doubleType);
 }
 
-const Type* Rational::getType() const
+Type* Rational::getType() const
 {
 	return &doubleType;
 }
@@ -102,11 +112,9 @@ Number::Number(int value)
 
 void Number::typecheck(TypeEnvironment& env, const Type& self)
 {
-	if (!self.isCompatibleWith(intType) && !self.isCompatibleWith(doubleType))
-		throw TypeError(self, intType);
 }
 
-const Type* Number::getType() const
+Type* Number::getType() const
 {
 	return &intType;
 }
@@ -119,24 +127,14 @@ PrimOP::PrimOP(PrimOps op, std::unique_ptr<Expression> && lhs, std::unique_ptr<E
 {
 }
 
-void throwNotCompatible(const Type& inferred, const Type& actual)
-{
-	if (!inferred.isCompatibleWith(actual))
-		throw TypeError(inferred, actual);
-}
-
 void PrimOP::typecheck(TypeEnvironment& env, const Type& inferred)
 {
 	lhs->typecheck(env, inferred);
 	rhs->typecheck(env, inferred);
-	throwNotCompatible(inferred, *lhs->getType());
-	throwNotCompatible(inferred, *rhs->getType());
-
-	const Type& selfType = lhs->getType()->isCompatibleWith(*rhs->getType()) ? *rhs->getType() : *lhs->getType();
 }
 
 
-const Type* PrimOP::getType() const
+Type* PrimOP::getType() const
 {
 	return lhs->getType();
 }
@@ -153,12 +151,12 @@ void Let::typecheck(TypeEnvironment& env, const Type& self)
 	TypeEnvironment child = env.child();
 	for (auto& bind : bindings)
 	{
-		child.addType(bind.name, PolymorphicType::any);
-		bind.expression->typecheck(child, PolymorphicType::any);
+		child.addType(bind.name, TypeVariable());
+		bind.expression->typecheck(child, TypeVariable());
 	}
 }
 
-const Type* Let::getType() const
+Type* Let::getType() const
 {
 	return expression->getType();
 }
@@ -171,33 +169,9 @@ Lambda::Lambda(std::vector<std::string> && arguments, std::unique_ptr<Expression
 
 void Lambda::typecheck(TypeEnvironment& env, const Type& inferred)
 {
-	const RecursiveType* funcType = dynamic_cast<const RecursiveType*>(&inferred);
-	if (funcType == nullptr)
-		throw TypeError("Expected: Function type", inferred);
-
-	TypeEnvironment childEnv = env.child();
-	childEnv.addType(arguments[0], funcType->getArgumentType());
-	std::vector<const Type*> argTypes;
-	argTypes.push_back(&funcType->getArgumentType());
-	const Type* returnType = &funcType->getReturnType();
-	for (size_t ii = 1; ii < arguments.size(); ii++)
-	{
-		if (auto t = dynamic_cast<const RecursiveType*>(returnType))
-		{
-			childEnv.addType(arguments[ii], t->getArgumentType());
-			argTypes.push_back(&t->getArgumentType());
-			returnType = &t->getReturnType();
-		}
-		else
-			throw TypeError("To few arguments", inferred);
-	}
-	assert(returnType != nullptr);
-	expression->typecheck(childEnv, *returnType);
-	argTypes.push_back(expression->getType());
-	this->type = FunctionType::create(argTypes);
 }
 
-const Type* Lambda::getType() const
+Type* Lambda::getType() const
 {
 	return this->type.get();
 }
@@ -210,34 +184,11 @@ Apply::Apply(std::unique_ptr<Expression> && function, std::vector<std::unique_pt
 
 void Apply::typecheck(TypeEnvironment& env, const Type& self)
 {
-	function->typecheck(env, PolymorphicType::any);
-	const FunctionType* funcType = dynamic_cast<const FunctionType*>(function->getType());
-	if (funcType == nullptr)
-		throw TypeError("Expected: function type", *function->getType());
-
-	const Type* returnType = nullptr;
-	for (auto& arg : arguments)
-	{
-		if (returnType == nullptr)
-		{
-			returnType = &funcType->getReturnType();
-			arg->typecheck(env, funcType->getArgumentType());
-		}
-		else if (auto t = dynamic_cast<const RecursiveType*>(returnType))
-		{
-			returnType = &t->getReturnType();
-			arg->typecheck(env, funcType->getArgumentType());
-		}
-		else
-			throw std::runtime_error("Function was called with more arguments that the type has, Type: " + function->getType()->toString());
-	}
-	if (returnType == nullptr)
-		throw std::runtime_error("Not enough arguments to function");
-	this->type = std::unique_ptr<Type>(returnType->copy());
+	function->typecheck(env, TypeVariable());
 }
 
 
-const Type* Apply::getType() const
+Type* Apply::getType() const
 {
 	return type.get();
 }
@@ -256,7 +207,7 @@ Case::Case(std::unique_ptr<Expression> && expr, std::vector<Alternative> && alte
 
 void Case::typecheck(TypeEnvironment& env, const Type& self)
 {
-	expression->typecheck(env, PolymorphicType::any);
+	expression->typecheck(env, TypeVariable());
 
 	const Type* returnType = nullptr;
 	for (Alternative& alt : alternatives)
@@ -272,20 +223,13 @@ void Case::typecheck(TypeEnvironment& env, const Type& self)
 				returnType = &t;
 			else
 			{
-				bool nextIsCompatible = t.isCompatibleWith(*returnType);
-				if (!nextIsCompatible && !returnType->isCompatibleWith(t))
-				{
-					throw std::runtime_error("All case alternatives must have the same type");
-				}
-				if (!nextIsCompatible)
-					returnType = &t;
 			}
 		}
 		else if (NumberLiteral* pattern = dynamic_cast<NumberLiteral*>(alt.pattern.get()))
 		{
 			alt.expression->typecheck(env, self);
 			const Type& t = *alt.expression->getType();
-			if (returnType != nullptr && t != *returnType)
+			if (returnType != nullptr && !(t == *returnType))
 			{
 				throw std::runtime_error("All case alternatives must have the same type");
 			}
@@ -294,7 +238,7 @@ void Case::typecheck(TypeEnvironment& env, const Type& self)
 	}
 }
 
-const Type* Case::getType() const
+Type* Case::getType() const
 {
 	return expression->getType();
 }
@@ -328,13 +272,13 @@ Variable GCompiler::getVariable(const std::string& name)
 	{
 		size_t index = std::distance(stackVariables.begin(), found);
 		size_t distanceFromStackTop = stackVariables.size() - index - 1;
-		return Variable { VariableType::STACK, PolymorphicType::any, index };
+		return Variable { VariableType::STACK, TypeVariable(), index };
 	}
 	auto foundGlobal = globals.find(name);
 	if (foundGlobal != globals.end())
 	{
 		int i = globalIndices[foundGlobal->second.get()];
-		return Variable { VariableType::TOPLEVEL, PolymorphicType::any, i };
+		return Variable { VariableType::TOPLEVEL, TypeVariable(), i };
 	}
 	auto foundCtor = std::find_if(dataDefinitions.begin(), dataDefinitions.end(),
 		[&name](const Constructor& def)
@@ -344,9 +288,9 @@ Variable GCompiler::getVariable(const std::string& name)
 	if (foundCtor != dataDefinitions.end())
 	{
 		int index = std::distance(dataDefinitions.begin(), foundCtor);
-		return Variable { VariableType::CONSTRUCTOR, PolymorphicType::any, index };
+		return Variable { VariableType::CONSTRUCTOR, TypeVariable(), index };
 	}
-	return Variable { VariableType::STACK, PolymorphicType::any, -1 };
+	return Variable { VariableType::STACK, TypeVariable(), -1 };
 }
 
 SuperCombinator& GCompiler::getGlobal(const std::string& name)

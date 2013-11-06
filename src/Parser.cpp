@@ -422,7 +422,7 @@ TypeDeclaration Parser::typeDeclaration()
 	{
 		throw std::runtime_error("Expected '::' in binding, got " + std::string(enumToString(tokenizer->type)));
 	}
-	std::unique_ptr<Type> t = type();
+	Type t = type();
 	--tokenizer;
 
 	return TypeDeclaration(nameToken.name, std::move(t));
@@ -481,9 +481,18 @@ bool typeParseError(const Token& t)
 		&& t.type != SymbolEnum::RPARENS;
 }
 
-std::unique_ptr<Type> Parser::type()
+
+Type tupleType(const std::vector<Type>& types)
 {
-	Type result(TypeEnum::TYPE_METHOD);
+	std::string name(types.size() + 1, ',');
+	name.front() = '(';
+	name.back() = ')';
+	return TypeOperator(std::move(name), types);
+}
+
+Type Parser::type()
+{
+	Type result;
 	const Token& token = tokenizer.nextToken();
 	switch (token.type)
 	{
@@ -496,20 +505,15 @@ std::unique_ptr<Type> Parser::type()
 				--tokenizer;
 				--tokenizer;
 				auto tupleArgs = many1(&Parser::type, SymbolEnum::COMMA);
-				std::vector<const Type*> args;
-				for (auto& a : tupleArgs)
-				{
-					args.push_back(a.get());
-				}
 				const Token& rParens = *tokenizer;
 				if (rParens.type == SymbolEnum::RPARENS)
 				{
 					const Token& arrow = tokenizer.nextToken();
 					if (arrow.type == SymbolEnum::ARROW)
 					{
-						return std::unique_ptr<Type>(new FunctionType(FunctionType::create(args), type()));
+						return functionType(tupleType(tupleArgs), type());
 					}
-					return FunctionType::create(args);
+					return tupleType(tupleArgs);
 				}
 				throw std::runtime_error("Expected ')' to end tuple type");
 			}
@@ -524,7 +528,7 @@ std::unique_ptr<Type> Parser::type()
 					const Token& arrow = tokenizer.nextToken();
 					if (arrow.type == SymbolEnum::ARROW)
 					{
-						return std::unique_ptr<Type>(new FunctionType(std::move(arg), type()));
+						return functionType(std::move(arg), type());
 					}
 					return std::move(arg);
 				}
@@ -534,20 +538,20 @@ std::unique_ptr<Type> Parser::type()
 	case SymbolEnum::NAME:
 		{
 			const Token& arrow = tokenizer.nextToken(typeParseError);
+			//TODO include find the correct type for the type variable
 			if (arrow.type == SymbolEnum::ARROW)
 			{
-				std::unique_ptr<Type> arg(new Type(token.name, TypeEnum::TYPE_CLASS));
-				return std::unique_ptr<Type>(new FunctionType(std::move(arg), type()));
+				return functionType(TypeVariable(), type());
 			}
 			if (arrow.type == SymbolEnum::COMMA || arrow.type == SymbolEnum::RPARENS)//in tuple type
 				--tokenizer;
-			return std::unique_ptr<Type>(new Type(token.name, TypeEnum::TYPE_CLASS));
+			return TypeVariable();
 		}
 		break;
 	default:
 		break;
 	}
-	return nullptr;
+	return Type();
 }
 
 }

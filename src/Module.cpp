@@ -17,7 +17,7 @@ Binding::Binding(Binding&& other)
 {
 }
 
-TypeDeclaration::TypeDeclaration(std::string name, std::unique_ptr<Type> type)
+TypeDeclaration::TypeDeclaration(std::string name, Type type)
 	: name(std::move(name))
 	, type(std::move(type))
 {
