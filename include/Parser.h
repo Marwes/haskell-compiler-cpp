@@ -24,22 +24,34 @@ public:
 
 	//Parse the tokens from the tokenizer as a haskell module (file)
 	Module module();
+	//Top level expression parsing function
     std::unique_ptr<Expression> expression();
+	//Parse a expression which can be passed as an argument to a function application
 	std::unique_ptr<Expression> subExpression(bool (*parseError)(const Token&) = nullptr);
+	//Parse a function application
 	std::unique_ptr<Expression> application();
+	//Parse an alternative in 'case' expression (pattern -> expr;)
 	Alternative alternative();
+	//Parse a variable binding in 'let' expressions
 	Binding binding();
+	//Parse pattern matching in alternative
 	std::unique_ptr<Pattern> pattern();
+
 	TypeDeclaration typeDeclaration();
-	Constructor constructor();
-	DataDefinition dataDefinition();
 	std::unique_ptr<Type> type();
 
+	//Parse a data definition, data NAME = many1 constructor
+	DataDefinition dataDefinition();
+	Constructor constructor();
+
+	//Parse 1 to N occurances of the argument parse, each seperated by 'delim'
 	template<class TResult>
 	std::vector<TResult> many1(TResult(Parser::*parse)(), SymbolEnum delim);
+	//Parse 1 to N occurances of the argument parse, each seperated by tokens giving a true result from the delim function
 	template<class TResult, class F>
 	std::vector<TResult> many1(TResult(Parser::*parse)(), F delim);
 
+	//Parse a binary operator expression, taking into account the precedence of the operators
 	std::unique_ptr<Expression> parseOperatorExpression(std::unique_ptr<Expression> lhs, int minPrecedence);
 private:
     Tokenizer& tokenizer;
