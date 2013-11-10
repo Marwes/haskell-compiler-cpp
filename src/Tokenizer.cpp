@@ -33,18 +33,13 @@ SymbolEnum nameOrKeyWord(const std::string& name)
 	}
 }
 
-bool isTokenSeparator(char c)
-{
-	return isspace(c) || c == '(' || c == ')' || c == '[' || c == ']' || c == ',';
-}
-
-
 bool isOperator(char c)
 {
 	static std::string operators("+-*/.$:=<>|&");
 	return operators.find(c) != -1;
 }
 
+//Gets the next char from the input stream and updates the current indentation level
 bool Tokenizer::getChar(char& c)
 {
 	if (input.get(c))
@@ -60,6 +55,7 @@ bool Tokenizer::getChar(char& c)
 }
 
 
+//Check if the previously parse token was a LET or OF
 bool Tokenizer::previousTokenWasKeyword()
 {
 	if (!tokens.empty())
@@ -70,9 +66,12 @@ bool Tokenizer::previousTokenWasKeyword()
 	return false;
 }
 
+//read in the next token and if a newline were found before finding the token
+//Returns if the token was succesfully parsed
 bool Tokenizer::readToken(Token& token, bool& newline)
 {
 	char c = '\0';
+	//Skipe all whitespace before the token
 	while (getChar(c) && isspace(c))
 	{
 		if (indentLevel == 0)//newline detected
@@ -179,6 +178,7 @@ bool Tokenizer::readToken(Token& token, bool& newline)
 
 const Token& Tokenizer::nextToken(bool (*parseError)(const Token&))
 {
+	//Check if the tokenizer has backtracked
 	if (offset < 0)
 	{
 		offset++;
@@ -186,7 +186,7 @@ const Token& Tokenizer::nextToken(bool (*parseError)(const Token&))
 	}
 	else if (!unprocessedTokens.empty())
 	{
-		tokenize2(parseError);
+		nextLayoutIndependentToken(parseError);
 		return **this;
 	}
 	tokenize(parseError);
@@ -218,7 +218,7 @@ const Token& Tokenizer::tokenizeModule()
 		}
 		success = true;
 	}
-	tokenize2();
+	nextLayoutIndependentToken();
 	return **this;
 }
 
@@ -244,7 +244,7 @@ bool Tokenizer::tokenize(bool (*parseError)(const Token&))
 		}
 		success = true;
 	}
-	tokenize2(parseError);
+	nextLayoutIndependentToken(parseError);
 	return success;
 }
 
@@ -253,7 +253,9 @@ bool parseError(const Token& tok)
 	return tok.type == SymbolEnum::IN || tok.type == SymbolEnum::OF;//???
 }
 
-bool Tokenizer::tokenize2(bool (*parseError)(const Token&))
+//Convert the next unprocessed token into the layout independent form (by inserting '{', ';' and '}')
+//See the Haskell 98 report on syntax
+bool Tokenizer::nextLayoutIndependentToken(bool (*parseError)(const Token&))
 {
 	if (!unprocessedTokens.empty())
 	{
@@ -281,7 +283,7 @@ bool Tokenizer::tokenize2(bool (*parseError)(const Token&))
 			if (unprocessedTokens.empty())
 				return tokenize();
 			else
-				return tokenize2(parseError);
+				return nextLayoutIndependentToken(parseError);
 		}
 		else if (tok.type == SymbolEnum::INDENTSTART)//{n} token
 		{
@@ -371,34 +373,6 @@ Token::Token(SymbolEnum type, const std::string& name, int indent)
 	, name(name)
 	, indent(indent)
 {
-}
-
-void Token::tokenize()
-{
-	if (name.empty())
-	{
-		type = SymbolEnum::NONE;
-	}
-	else if (name == "(")
-	{
-		type = SymbolEnum::LPARENS;
-	}
-	else if (name == ")")
-	{
-		type = SymbolEnum::RPARENS;
-	}
-	else if (std::all_of(name.begin(), name.end(), isOperator))
-	{
-		type = SymbolEnum::OPERATOR;
-	}
-	else if (std::all_of(name.begin(), name.end(), isdigit))
-	{
-		type = SymbolEnum::NUMBER;
-	}
-	else
-	{
-		type = SymbolEnum::NAME;
-	}
 }
 
 }

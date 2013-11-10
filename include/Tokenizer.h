@@ -7,6 +7,10 @@
 
 namespace MyVMNamespace
 {
+/*
+	Enum defining all the possible tokens that can occur in a haskell file
+	INDENTSTART and INDENTLEVEL are used internally to tokenize indentation based code but are never returned as a valid token
+*/
 #define SYMBOLENUM(t, XX) \
 	XX(t,NONE) \
 	XX(t,NAME) \
@@ -41,7 +45,6 @@ class Token
 public:
 	Token();
 	Token(SymbolEnum type, const std::string& name, int indent = 0);
-	void tokenize();
 
 	SymbolEnum type;
 	std::string name;
@@ -51,6 +54,7 @@ public:
 
 class Tokenizer
 {
+	//This class takes an istream and outputs converts it into a stream of tokens
 public:
 	Tokenizer(std::istream& input, size_t backTrack = 10)
 		: input(input)
@@ -62,6 +66,10 @@ public:
 
 	const Token& tokenizeModule();
 
+	/*
+	Takes a parseError function which returns true if the token is not a valid token
+	Returns SymbolEnum::NONE if end of stream, otherwise the token found
+	*/
 	const Token& nextToken(bool (*parseError)(const Token&) = nullptr);
 
 	bool tokenize(bool (*parseError)(const Token&) = nullptr);
@@ -77,6 +85,7 @@ public:
 		return &**this;
 	}
 
+	//Moves the tokenizer to the next token
 	Tokenizer& operator++();
 
 	Tokenizer& operator--()
@@ -99,7 +108,7 @@ private:
 	bool readToken(Token& token, bool& newline);
 	bool getChar(char& c);
 	bool previousTokenWasKeyword();
-	bool tokenize2(bool (*parseError)(const Token&) = nullptr);
+	bool nextLayoutIndependentToken(bool (*parseError)(const Token&) = nullptr);
 
 	std::istream& input;
 	boost::circular_buffer<Token> tokens;
