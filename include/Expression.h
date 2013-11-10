@@ -13,6 +13,8 @@ class Environment;
 class Binding;
 class Module;
 
+class Expression;
+
 enum class PrimOps
 {
 	ADD,
@@ -53,13 +55,15 @@ public:
 	TypeEnvironment child();
 
 	Type& newTypeFor(const std::string& name);
-	Type& addType(const std::string& name, const Type& type);
+	Type& addType(const std::string& name, const Type& expr);
+	void registerName(const std::string& name, Type* type);
 
 	Type& getType(const std::string& name);
 private:
 	Module* module;
 	TypeEnvironment* parent;
 	std::map<std::string, Type> types;
+	std::map<std::string, Type*> borrowedTypes;
 };
 
 class GCompiler
@@ -90,7 +94,7 @@ public:
 	
 	virtual void compile(GCompiler& env, std::vector<GInstruction>& instructions, bool strict) = 0;
 
-	virtual Type* getType() = 0;
+	virtual Type& getType() = 0;
 };
 
 class Name : public Expression
@@ -102,11 +106,11 @@ public:
 
 	virtual void compile(GCompiler& env, std::vector<GInstruction>& instructions, bool strict);
 
-	virtual Type* getType();
+	virtual Type& getType();
 
 	std::string name;
 private:
-	std::unique_ptr<Type> type;
+	Type type;
 };
 
 class Rational : public Expression
@@ -118,7 +122,7 @@ public:
 
 	virtual void compile(GCompiler& env, std::vector<GInstruction>& instructions, bool strict);
 
-	virtual Type* getType();
+	virtual Type& getType();
 
 	double value;
 };
@@ -132,7 +136,7 @@ public:
 
 	virtual void compile(GCompiler& env, std::vector<GInstruction>& instructions, bool strict);
 
-	virtual Type* getType();
+	virtual Type& getType();
 
     int value;
 };
@@ -146,7 +150,7 @@ public:
 
 	virtual void compile(GCompiler& env, std::vector<GInstruction>& instructions, bool strict);
 
-	virtual Type* getType();
+	virtual Type& getType();
 
     std::unique_ptr<Expression> lhs, rhs;
     PrimOps op;
@@ -161,7 +165,7 @@ public:
 
 	virtual void compile(GCompiler& env, std::vector<GInstruction>& instructions, bool strict);
 
-	virtual Type* getType();
+	virtual Type& getType();
 
 	bool isRecursive;
 	std::vector<Binding> bindings;
@@ -177,7 +181,7 @@ public:
 
 	virtual void compile(GCompiler& env, std::vector<GInstruction>& instructions, bool strict);
 
-	virtual Type* getType();
+	virtual Type& getType();
 
 	std::vector<std::string> arguments;
 	std::unique_ptr<Expression> body;
@@ -194,7 +198,7 @@ public:
 
 	virtual void compile(GCompiler& env, std::vector<GInstruction>& instructions, bool strict);
 
-	virtual Type* getType();
+	virtual Type& getType();
 
 	std::unique_ptr<Expression> function;
 	std::vector<std::unique_ptr<Expression>> arguments;
@@ -280,7 +284,7 @@ public:
 
 	virtual void compile(GCompiler& env, std::vector<GInstruction>& instructions, bool strict);
 
-	virtual Type* getType();
+	virtual Type& getType();
 
 	std::unique_ptr<Expression> expression;
 	std::vector<Alternative> alternatives;

@@ -30,24 +30,77 @@ inline bool occurs(const TypeVariable& type, const Type& collection)
 	return false;
 }
 
+class TypeToString : public boost::static_visitor<std::string>
+{
+public:
+	std::string operator()(const TypeVariable& x) const
+	{
+		std::stringstream str;
+		str << x.id;
+		return str.str();
+	}
+	std::string operator()(const TypeOperator& x) const
+	{
+		std::stringstream str;
+		str << x.name << " { ";
+		for (const Type& type : x.types)
+		{
+			str << boost::apply_visitor(*this, type);
+			if (&type != &x.types.back())
+				str << ", ";
+		}
+		str << " }";
+		return str.str();
+	}
+};
+
+class RecursiveUnification : public std::runtime_error
+{
+public:
+	RecursiveUnification(const Type& lhs, const Type& rhs)
+		: std::runtime_error("Recursive unification.")
+		, error("Recursive unification between: ")
+	{
+		error += boost::apply_visitor(TypeToString(), lhs);
+		error += " and ";
+		error += boost::apply_visitor(TypeToString(), rhs);
+	}
+
+	virtual const char* what() const
+	{
+		return error.c_str();
+	}
+
+private:
+	std::string error;
+};
+
 class Unify : public boost::static_visitor<>
 {
 public:
+	Unify(Type& lhs, Type& rhs)
+		: lhs(lhs)
+		, rhs(rhs)
+	{
+		boost::apply_visitor(*this, lhs, rhs);
+	}
+
 	void operator()(const TypeVariable& t1, const TypeVariable& t2) const
 	{
 		if (t1 != t2)
 		{
 			if (occurs(t1, t2))
-				throw std::runtime_error("Recursive unification");
+				throw RecursiveUnification(t1, t2);
 
 
-			//TODO  t1 = t2;
+			lhs = t2;
 		}
 	}
 	void operator()(const TypeVariable& t1, const TypeOperator& t2) const
 	{
 		if (occurs(t1, t2))
-			throw std::runtime_error("Recursive unification");
+			throw RecursiveUnification(t1, t2);
+		rhs = t1;
 	}
 	void operator()(const TypeOperator& t1, const TypeVariable& t2) const
 	{
@@ -64,6 +117,8 @@ public:
 		}
 	}
 
+	Type& lhs;
+	Type& rhs;
 };
 
 void analyseTop()
@@ -77,8 +132,6 @@ TypeEnvironment::TypeEnvironment(Module* module)
 	: parent(nullptr)
 	, module(module)
 {
-	auto type = functionType(TypeVariable(), functionType(TypeVariable(), pair));
-	addType("(,)", type);
 }
 
 TypeEnvironment::TypeEnvironment(TypeEnvironment&& env)
@@ -97,7 +150,7 @@ TypeEnvironment TypeEnvironment::child()
 
 Type& TypeEnvironment::newTypeFor(const std::string& name)
 {
-	return types[name] = Type();
+	return types[name] = TypeVariable();
 }
 
 Type& TypeEnvironment::addType(const std::string& name, const Type& type)
@@ -106,11 +159,20 @@ Type& TypeEnvironment::addType(const std::string& name, const Type& type)
 	return types[name];
 }
 
+
+void TypeEnvironment::registerName(const std::string& name, Type* type)
+{
+	borrowedTypes.insert(std::make_pair(name, type));
+}
+
 Type& TypeEnvironment::getType(const std::string& name)
 {
 	auto found = types.find(name);
 	if (found != types.end())
 		return found->second;
+	auto foundBorrowed = borrowedTypes.find(name);
+	if (foundBorrowed != borrowedTypes.end())
+		return *foundBorrowed->second;
 	if (parent != nullptr)
 		return parent->getType(name);
 	if (module != nullptr)
@@ -121,7 +183,7 @@ Type& TypeEnvironment::getType(const std::string& name)
 		});
 		if (found != module->bindings.end())
 		{
-			return *found->expression->getType();
+			return found->expression->getType();
 		}
 	}
 	return newTypeFor(name);
@@ -137,9 +199,9 @@ Type& Name::typecheck(TypeEnvironment& env, const Type& self)
 	return env.getType(this->name);
 }
 
-Type* Name::getType()
+Type& Name::getType()
 {
-	return type.get();
+	return type;
 }
 
 Type intType;
@@ -155,9 +217,9 @@ Type& Rational::typecheck(TypeEnvironment& env, const Type& self)
 	return doubleType;
 }
 
-Type* Rational::getType()
+Type& Rational::getType()
 {
-	return &doubleType;
+	return doubleType;
 }
 
 Number::Number(int value)
@@ -171,9 +233,9 @@ Type& Number::typecheck(TypeEnvironment& env, const Type& self)
 	return intType;
 }
 
-Type* Number::getType()
+Type& Number::getType()
 {
-	return &intType;
+	return intType;
 }
 
 
@@ -194,7 +256,7 @@ Type& PrimOP::typecheck(TypeEnvironment& env, const Type& inferred)
 }
 
 
-Type* PrimOP::getType()
+Type& PrimOP::getType()
 {
 	return lhs->getType();
 }
@@ -211,13 +273,13 @@ Type& Let::typecheck(TypeEnvironment& env, const Type& self)
 	TypeEnvironment child = env.child();
 	for (auto& bind : bindings)
 	{
-		child.addType(bind.name, TypeVariable());
-		bind.expression->typecheck(child, TypeVariable());
+		Type t = bind.expression->typecheck(child, TypeVariable());
+		child.addType(bind.name, t);
 	}
-	return expression->typecheck(env, self);
+	return expression->typecheck(child, self);
 }
 
-Type* Let::getType()
+Type& Let::getType()
 {
 	return expression->getType();
 }
@@ -228,15 +290,31 @@ Lambda::Lambda(std::vector<std::string> && arguments, std::unique_ptr<Expression
 {
 }
 
-Type& Lambda::typecheck(TypeEnvironment& env, const Type& inferred)
+Type createFunctionType(TypeEnvironment& env, const std::vector<std::string>& arguments, Expression& body, size_t index)
 {
-	//TODO dont return the body silly
-	return body->typecheck(env, inferred);
+	if (index < arguments.size())
+	{
+		Type func = functionType(TypeVariable(), createFunctionType(env, arguments, body, index + 1));
+		auto& op = boost::get<TypeOperator>(func);
+		env.registerName(arguments[index], &op.types[0]);
+		return std::move(func);
+	}
+	else
+	{
+		return body.typecheck(env, TypeVariable());
+	}
 }
 
-Type* Lambda::getType()
+Type& Lambda::typecheck(TypeEnvironment& env, const Type& inferred)
 {
-	return &this->type;
+	TypeEnvironment child = env.child();
+	type = createFunctionType(env, arguments, *body, 0);
+	return type;
+}
+
+Type& Lambda::getType()
+{
+	return this->type;
 }
 
 Apply::Apply(std::unique_ptr<Expression> && function, std::vector<std::unique_ptr<Expression>> && arguments)
@@ -245,25 +323,47 @@ Apply::Apply(std::unique_ptr<Expression> && function, std::vector<std::unique_pt
 {
 }
 
+Type typeCheckApply(TypeEnvironment& env, Apply& apply, int index)
+{
+	if (index >= 0)
+	{
+		Expression& arg = *apply.arguments[index];
+		Type funcType = typeCheckApply(env, apply, index - 1);
+		Type& argType = arg.typecheck(env, TypeVariable());
+		Type funcReturn = functionType(argType, TypeVariable());
+		Unify(funcReturn, funcType);
+		return std::move(funcReturn);
+	}
+	else
+	{
+		return;
+	}
+}
+
 Type& Apply::typecheck(TypeEnvironment& env, const Type& self)
 {
-	Type funcType = function->typecheck(env, TypeVariable());
-	for (auto& arg : arguments)
+	for (auto arg = arguments.rend(); arg != arguments.rbegin(); ++arg)
 	{
-		Type resultType;
-		Type& argType = arg->typecheck(env, resultType);
-		boost::apply_visitor(Unify(), functionType(argType, resultType), funcType);
+		Type& argType = (*arg)->typecheck(env, TypeVariable());
+		TypeVariable next = TypeVariable();
+		Type temp = functionType(argType, next);
+		Unify(temp, resultType);
+		resultType = next;
 	}
+	Type funcType = function->typecheck(env, TypeVariable());
+	Type& argType = arguments[0]->typecheck(env, TypeVariable());
+	Type iterativeFuncType = functionType(funcType, argType);
+	Type resultType = TypeVariable();
+	Unify(iterativeFuncType, resultType);
 
-	type = funcType;
-
+	type = resultType;
 	return type;//TODO
 }
 
 
-Type* Apply::getType()
+Type& Apply::getType()
 {
-	return &type;
+	return type;
 }
 
 void ConstructorPattern::compileGCode(GCompiler& env, std::vector<size_t>& branches, std::vector<GInstruction>& instructions) const
@@ -289,9 +389,9 @@ Type& Case::typecheck(TypeEnvironment& env, const Type& self)
 		if (PatternName* pattern = dynamic_cast<PatternName*>(alt.pattern.get()))
 		{
 			TypeEnvironment caseEnv = env.child();
-			caseEnv.addType(pattern->name, *expression->getType());
+			caseEnv.registerName(pattern->name, &expression->getType());
 			alt.expression->typecheck(caseEnv, self);
-			const Type& t = *alt.expression->getType();
+			const Type& t = alt.expression->getType();
 			if (returnType == nullptr)//First alternative
 				returnType = &t;
 			else
@@ -301,7 +401,7 @@ Type& Case::typecheck(TypeEnvironment& env, const Type& self)
 		else if (NumberLiteral* pattern = dynamic_cast<NumberLiteral*>(alt.pattern.get()))
 		{
 			alt.expression->typecheck(env, self);
-			const Type& t = *alt.expression->getType();
+			const Type& t = alt.expression->getType();
 			if (returnType != nullptr && !(t == *returnType))
 			{
 				throw std::runtime_error("All case alternatives must have the same type");
@@ -311,7 +411,7 @@ Type& Case::typecheck(TypeEnvironment& env, const Type& self)
 	}
 }
 
-Type* Case::getType()
+Type& Case::getType()
 {
 	return expression->getType();
 }
