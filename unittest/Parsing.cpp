@@ -347,7 +347,7 @@ TEST_CASE("parser/typedeclaration", "")
 	Tokenizer tokenizer(stream);
 	Parser parser(tokenizer);
 
-	Module module = parser.toplevel();
+	Module module = parser.module();
 	TypeDeclaration& type = module.typeDeclaration[0];
 	REQUIRE(type.name == "test");
 	REQUIRE(type.type->toString() == "Int");
@@ -360,7 +360,7 @@ TEST_CASE("parser/typedeclaration2", "Function")
 	Tokenizer tokenizer(stream);
 	Parser parser(tokenizer);
 
-	Module module = parser.toplevel();
+	Module module = parser.module();
 	TypeDeclaration& type = module.typeDeclaration[0];
 	REQUIRE(type.name == "double");
 	REQUIRE(type.type->toString() == "Int -> Int");
@@ -373,7 +373,7 @@ TEST_CASE("parser/typedeclaration3", "Function")
 	Tokenizer tokenizer(stream);
 	Parser parser(tokenizer);
 
-	Module module = parser.toplevel();
+	Module module = parser.module();
 	TypeDeclaration& type = module.typeDeclaration[0];
 	REQUIRE(type.name == "add");
 	REQUIRE(type.type->toString() == "(Int -> Double) -> Int");
@@ -388,7 +388,7 @@ add x y = x + y\n";
 	Tokenizer tokenizer(stream);
 	Parser parser(tokenizer);
 
-	Module module = parser.toplevel();
+	Module module = parser.module();
 	TypeDeclaration& type = module.typeDeclaration[0];
 	REQUIRE(type.name == "add");
 	REQUIRE(type.type->toString() == "Int -> Int -> Int");

@@ -15,13 +15,15 @@ class Tokenizer;
 
 class Parser
 {
+	//Recursive descent parser for the parsing haskell files
 public:
     Parser(Tokenizer& tokenizer);
 
     
 	std::unique_ptr<Expression> run();
 
-	Module toplevel();
+	//Parse the tokens from the tokenizer as a haskell module (file)
+	Module module();
     std::unique_ptr<Expression> expression();
 	std::unique_ptr<Expression> subExpression(bool (*parseError)(const Token&) = nullptr);
 	std::unique_ptr<Expression> application();

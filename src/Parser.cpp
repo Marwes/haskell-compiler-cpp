@@ -82,7 +82,7 @@ bool bindingError(const Token& t)
 }
 
 
-Module Parser::toplevel()
+Module Parser::module()
 {
 	const Token& lBracket = tokenizer.tokenizeModule();
 	if (lBracket.type != SymbolEnum::LBRACE)
