@@ -163,7 +163,7 @@ Name::Name(std::string name)
 {
 }
 
-Type& Name::typecheck(TypeEnvironment& env, const Type& self)
+Type& Name::typecheck(TypeEnvironment& env)
 {
 	return env.getType(this->name);
 }
@@ -181,7 +181,7 @@ Rational::Rational(double value)
 {
 }
 
-Type& Rational::typecheck(TypeEnvironment& env, const Type& self)
+Type& Rational::typecheck(TypeEnvironment& env)
 {
 	return doubleType;
 }
@@ -197,7 +197,7 @@ Number::Number(int value)
 {
 }
 
-Type& Number::typecheck(TypeEnvironment& env, const Type& self)
+Type& Number::typecheck(TypeEnvironment& env)
 {
 	return intType;
 }
@@ -214,15 +214,15 @@ Let::Let(std::vector<Binding>&& bindings, std::unique_ptr<Expression>&& expressi
 {
 }
 
-Type& Let::typecheck(TypeEnvironment& env, const Type& self)
+Type& Let::typecheck(TypeEnvironment& env)
 {
 	TypeEnvironment child = env.child();
 	for (auto& bind : bindings)
 	{
 		Type& t = child.newTypeFor(bind.name);
-		t = bind.expression->typecheck(child, TypeVariable());
+		t = bind.expression->typecheck(child);
 	}
-	return expression->typecheck(child, self);
+	return expression->typecheck(child);
 }
 
 Type& Let::getType()
@@ -237,10 +237,10 @@ Lambda::Lambda(std::vector<std::string> && arguments, std::unique_ptr<Expression
 }
 
 
-Type& Lambda::typecheck(TypeEnvironment& env, const Type& inferred)
+Type& Lambda::typecheck(TypeEnvironment& env)
 {
 	TypeEnvironment child = env.child();
-	Type* returnType = &body->typecheck(env, TypeVariable());
+	Type* returnType = &body->typecheck(env);
 	std::cerr << *returnType << std::endl;
 	for (auto arg = arguments.rbegin(); arg != arguments.rend(); ++arg)
 	{
@@ -264,27 +264,10 @@ Apply::Apply(std::unique_ptr<Expression> && function, std::vector<std::unique_pt
 {
 }
 
-Type typeCheckApply(TypeEnvironment& env, Apply& apply, int index)
+Type& Apply::typecheck(TypeEnvironment& env)
 {
-	if (index >= 0)
-	{
-		Expression& arg = *apply.arguments[index];
-		Type funcType = typeCheckApply(env, apply, index - 1);
-		Type& argType = arg.typecheck(env, TypeVariable());
-		Type funcReturn = functionType(argType, TypeVariable());
-		Unify(funcReturn, funcType);
-		return std::move(funcReturn);
-	}
-	else
-	{
-		return TypeVariable();//TODO
-	}
-}
-
-Type& Apply::typecheck(TypeEnvironment& env, const Type& self)
-{
-	Type& funcType = function->typecheck(env, TypeVariable());
-	Type& argType = arguments[0]->typecheck(env, TypeVariable());
+	Type& funcType = function->typecheck(env);
+	Type& argType = arguments[0]->typecheck(env);
 	Type* resultType = &env.newType();
 	Type& iterativeFuncType = env.newType();
 	iterativeFuncType = functionType(funcType, argType);
@@ -292,7 +275,7 @@ Type& Apply::typecheck(TypeEnvironment& env, const Type& self)
 	for (size_t ii = 1; ii < arguments.size(); ii++)
 	{
 		auto& arg = arguments[ii];
-		Type& argType = arg->typecheck(env, TypeVariable());
+		Type& argType = arg->typecheck(env);
 		Type& next = env.newType();
 		Type& temp = env.newType();
 		temp = functionType(argType, next);
@@ -351,15 +334,15 @@ Case::Case(std::unique_ptr<Expression> && expr, std::vector<Alternative> && alte
 	, alternatives(std::move(alternatives))
 {}
 
-Type& Case::typecheck(TypeEnvironment& env, const Type& self)
+Type& Case::typecheck(TypeEnvironment& env)
 {
-	expression->typecheck(env, TypeVariable());
+	expression->typecheck(env);
 
 	Type* returnType = nullptr;
 	for (Alternative& alt : alternatives)
 	{
 		TypeEnvironment caseEnv = env.child();
-		Type& t = alt.expression->typecheck(caseEnv, self);
+		Type& t = alt.expression->typecheck(caseEnv);
 		if (returnType == nullptr)//First alternative
 			returnType = &t;
 		else if (returnType != nullptr && !(t == *returnType))

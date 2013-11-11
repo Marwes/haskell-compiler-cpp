@@ -89,7 +89,7 @@ class Expression
 public:
     virtual ~Expression() { }
 
-	virtual Type& typecheck(TypeEnvironment& env, const Type& self) = 0;
+	virtual Type& typecheck(TypeEnvironment& env) = 0;
 	
 	virtual void compile(GCompiler& env, std::vector<GInstruction>& instructions, bool strict) = 0;
 
@@ -101,7 +101,7 @@ class Name : public Expression
 public:
     Name(std::string name);
 
-	virtual Type& typecheck(TypeEnvironment& env, const Type& self);
+	virtual Type& typecheck(TypeEnvironment& env);
 
 	virtual void compile(GCompiler& env, std::vector<GInstruction>& instructions, bool strict);
 
@@ -117,7 +117,7 @@ class Rational : public Expression
 public:
 	Rational(double value);
 
-	virtual Type& typecheck(TypeEnvironment& env, const Type& self);
+	virtual Type& typecheck(TypeEnvironment& env);
 
 	virtual void compile(GCompiler& env, std::vector<GInstruction>& instructions, bool strict);
 
@@ -131,7 +131,7 @@ class Number : public Rational
 public:
     Number(int value);
 
-	virtual Type& typecheck(TypeEnvironment& env, const Type& self);
+	virtual Type& typecheck(TypeEnvironment& env);
 
 	virtual void compile(GCompiler& env, std::vector<GInstruction>& instructions, bool strict);
 
@@ -145,7 +145,7 @@ class Let : public Expression
 public:
 	Let(std::vector<Binding> && arguments, std::unique_ptr<Expression>&& expression);
 
-	virtual Type& typecheck(TypeEnvironment& env, const Type& self);
+	virtual Type& typecheck(TypeEnvironment& env);
 
 	virtual void compile(GCompiler& env, std::vector<GInstruction>& instructions, bool strict);
 
@@ -161,7 +161,7 @@ class Lambda : public Expression
 public:
 	Lambda(std::vector<std::string> && arguments, std::unique_ptr<Expression> && expression);
 
-	virtual Type& typecheck(TypeEnvironment& env, const Type& self);
+	virtual Type& typecheck(TypeEnvironment& env);
 
 	virtual void compile(GCompiler& env, std::vector<GInstruction>& instructions, bool strict);
 
@@ -178,7 +178,7 @@ class Apply : public Expression
 public:
 	Apply(std::unique_ptr<Expression> && function, std::vector<std::unique_ptr<Expression>> && arguments);
 
-	virtual Type& typecheck(TypeEnvironment& env, const Type& self);
+	virtual Type& typecheck(TypeEnvironment& env);
 
 	virtual void compile(GCompiler& env, std::vector<GInstruction>& instructions, bool strict);
 
@@ -272,7 +272,7 @@ class Case : public Expression
 public:
 	Case(std::unique_ptr<Expression> && expr, std::vector<Alternative> && alternatives);
 
-	virtual Type& typecheck(TypeEnvironment& env, const Type& self);
+	virtual Type& typecheck(TypeEnvironment& env);
 
 	virtual void compile(GCompiler& env, std::vector<GInstruction>& instructions, bool strict);
 

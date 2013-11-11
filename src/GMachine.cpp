@@ -33,7 +33,7 @@ void GMachine::compile(std::istream& input)
 	TypeEnvironment typeEnvironment(&module);
 	for (Binding& bind : module.bindings)
 	{
-		bind.expression->typecheck(typeEnvironment, TypeVariable());
+		bind.expression->typecheck(typeEnvironment);
 	}
 
 
