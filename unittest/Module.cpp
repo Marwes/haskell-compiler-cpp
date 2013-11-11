@@ -11,7 +11,7 @@ TEST_CASE("module/function", "")
     Tokenizer tokenizer(stream);
     Parser parser(tokenizer);
 
-	Module module = parser.toplevel();
+	Module module = parser.module();
 	std::vector<Binding>& bindings = module.bindings;
 
 	REQUIRE(bindings.size() == 1);
@@ -30,7 +30,7 @@ f x y = x + y\n";
 	Tokenizer tokenizer(stream);
 	Parser parser(tokenizer);
 
-	Module module = parser.toplevel();
+	Module module = parser.module();
 	std::vector<Binding>& bindings = module.bindings;
 
 	REQUIRE(bindings.size() == 2);
@@ -51,7 +51,7 @@ f x y = x + y\n";
 	Tokenizer tokenizer(stream);
 	Parser parser(tokenizer);
 
-	Module module = parser.toplevel();
+	Module module = parser.module();
 	std::vector<Binding>& bindings = module.bindings;
 
 	REQUIRE(bindings.size() == 2);
@@ -75,7 +75,7 @@ TEST_CASE("module/datadefinition/simple", "")
 	Tokenizer tokenizer(stream);
 	Parser parser(tokenizer);
 
-	Module module = parser.toplevel();
+	Module module = parser.module();
 
 	REQUIRE(module.dataDefinitions.size() == 1);
 	DataDefinition& def = module.dataDefinitions[0];
@@ -92,7 +92,7 @@ TEST_CASE("module/datadefinition/multiple", "")
 	Tokenizer tokenizer(stream);
 	Parser parser(tokenizer);
 
-	Module module = parser.toplevel();
+	Module module = parser.module();
 
 	REQUIRE(module.dataDefinitions.size() == 1);
 	DataDefinition& def = module.dataDefinitions[0];
@@ -112,7 +112,7 @@ TEST_CASE("module/datadefinition/arguments", "")
 	Tokenizer tokenizer(stream);
 	Parser parser(tokenizer);
 
-	Module module = parser.toplevel();
+	Module module = parser.module();
 
 	REQUIRE(module.dataDefinitions.size() == 1);
 	DataDefinition& def = module.dataDefinitions[0];

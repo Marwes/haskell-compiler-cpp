@@ -28,7 +28,7 @@ void GMachine::compile(std::istream& input)
 {
 	Tokenizer tokens(input);
 	Parser parser(tokens);
-	Module module = parser.toplevel();
+	Module module = parser.module();
 	
 	TypeEnvironment typeEnvironment(&module);
 	for (Binding& bind : module.bindings)

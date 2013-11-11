@@ -82,7 +82,7 @@ bool bindingError(const Token& t)
 }
 
 
-Module Parser::toplevel()
+Module Parser::module()
 {
 	const Token& lBracket = tokenizer.tokenizeModule();
 	if (lBracket.type != SymbolEnum::LBRACE)
@@ -95,6 +95,7 @@ Module Parser::toplevel()
 	const Token* semicolon;
 	do
 	{
+		//Do a lookahead to see what the next top level binding is
 		const Token& token = tokenizer.nextToken(toplevelError);
 		if (token.type == SymbolEnum::NAME)
 		{
@@ -147,6 +148,7 @@ std::unique_ptr<Expression> Parser::expression()
 	}
 }
 
+//Create a tuple with the constructor name inferred from the number of arguments passed in
 std::unique_ptr<Expression> newTuple(std::vector<std::unique_ptr<Expression>>&& arguments)
 {
 	std::string name(arguments.size() + 1, ',');
@@ -351,6 +353,9 @@ bool errorIfNotNameOrEqul(const Token& tok)
 
 Binding Parser::binding()
 {
+	//name1 = expr
+	//or
+	//name2 x y = expr
 	const Token nameToken = tokenizer.nextToken(errorIfNotName);
 	if (nameToken.type != SymbolEnum::NAME)
 	{
