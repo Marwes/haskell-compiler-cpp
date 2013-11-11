@@ -207,29 +207,6 @@ Type& Number::getType()
 	return intType;
 }
 
-
-PrimOP::PrimOP(PrimOps op, std::unique_ptr<Expression> && lhs, std::unique_ptr<Expression> && rhs)
-    : op(op)
-    , lhs(std::move(lhs))
-    , rhs(std::move(rhs))
-{
-}
-
-Type& PrimOP::typecheck(TypeEnvironment& env, const Type& inferred)
-{
-	Type& leftType = lhs->typecheck(env, inferred);
-	Type& rightType = rhs->typecheck(env, inferred);
-	//TODO
-
-	return leftType;
-}
-
-
-Type& PrimOP::getType()
-{
-	return lhs->getType();
-}
-
 Let::Let(std::vector<Binding>&& bindings, std::unique_ptr<Expression>&& expression)
 	: bindings(std::move(bindings))
 	, expression(std::move(expression))
@@ -329,6 +306,37 @@ Type& Apply::typecheck(TypeEnvironment& env, const Type& self)
 Type& Apply::getType()
 {
 	return type;
+}
+
+std::vector<std::unique_ptr<Expression>> argVector(std::unique_ptr<Expression> && lhs, std::unique_ptr<Expression> && rhs)
+{
+	std::vector<std::unique_ptr<Expression>> args(2);
+	args[0] = std::move(lhs);
+	args[1] = std::move(rhs);
+	return std::move(args);
+}
+
+PrimOP::PrimOP(std::string name, std::unique_ptr<Expression> && lhs, std::unique_ptr<Expression> && rhs)
+	: Apply(std::unique_ptr<Expression>(new Name(std::move(name))), argVector(std::move(lhs), std::move(rhs)))
+{
+}
+
+
+GOP toGOP(const std::string& op)
+{
+	if (op == "+") return GOP::ADD;
+	if (op == "-") return GOP::SUBTRACT;
+	if (op == "*") return GOP::MULTIPLY;
+	if (op == "/") return GOP::DIVIDE;
+	if (op == "%") return GOP::REMAINDER;
+	throw std::runtime_error("Unknown op" + op);
+}
+
+void PrimOP::compile(GCompiler& env, std::vector<GInstruction>& instructions, bool)
+{
+	arguments[0]->compile(env, instructions, true);
+	arguments[1]->compile(env, instructions, true);
+	instructions.push_back(GInstruction(toGOP(static_cast<Name&>(*function).name)));
 }
 
 void ConstructorPattern::compileGCode(GCompiler& env, std::vector<size_t>& branches, std::vector<GInstruction>& instructions) const
@@ -465,25 +473,6 @@ void Rational::compile(GCompiler& env, std::vector<GInstruction>& instructions, 
 	assert(0);
 }
 
-GOP toGOP(PrimOps op)
-{
-    switch(op)
-    {
-		case PrimOps::ADD: return GOP::ADD;
-		case PrimOps::SUBTRACT: return GOP::SUBTRACT;
-		case PrimOps::MULTIPLY: return GOP::MULTIPLY;
-		case PrimOps::DIVIDE: return GOP::DIVIDE;
-		case PrimOps::REMAINDER: return GOP::REMAINDER;
-    }
-    throw std::runtime_error("Unknown op");
-}
-
-void PrimOP::compile(GCompiler& env, std::vector<GInstruction>& instructions, bool)
-{
-    lhs->compile(env, instructions, true);
-	rhs->compile(env, instructions, true);
-	instructions.push_back(GInstruction(toGOP(op)));
-}
 void Let::compile(GCompiler& env, std::vector<GInstruction>& instructions, bool strict)
 {
 	isRecursive = true;

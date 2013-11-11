@@ -301,7 +301,7 @@ std::unique_ptr<Expression> Parser::parseOperatorExpression(std::unique_ptr<Expr
 		{
 			return nullptr;
 		}
-		lhs = std::unique_ptr<Expression>(new PrimOP(getOperand(op.name), std::move(lhs), std::move(rhs)));
+		lhs = std::unique_ptr<Expression>(new PrimOP(op.name, std::move(lhs), std::move(rhs)));
 	}
 	--tokenizer;
 	return lhs;

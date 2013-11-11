@@ -90,10 +90,10 @@ TEST_CASE("parser/3+2", "3 + 2")
     std::unique_ptr<Expression> maybeExpression = parser.run();
     REQUIRE (maybeExpression.get() != NULL);
 
-    PrimOP* func = dynamic_cast<PrimOP*>(maybeExpression.get());
+	Apply* func = dynamic_cast<Apply*>(maybeExpression.get());
     REQUIRE (func != NULL);
-    REQUIRE (*func->lhs == Number(3));
-    REQUIRE (*func->rhs == Number(2));
+    REQUIRE (*func->arguments[0] == Number(3));
+    REQUIRE (*func->arguments[1]== Number(2));
     
 }
 
@@ -106,14 +106,14 @@ TEST_CASE("parser/3", "3 + 2 + 4")
     auto maybeExpression = parser.run();
     REQUIRE (maybeExpression.get() != NULL);
 
-    PrimOP* func = dynamic_cast<PrimOP*>(maybeExpression.get());
+	Apply* func = dynamic_cast<Apply*>(maybeExpression.get());
     REQUIRE (func != NULL);
-    REQUIRE (*func->rhs == Number(4));
+    REQUIRE (*func->arguments[1] == Number(4));
 
-    const PrimOP* first = dynamic_cast<const PrimOP*>(func->lhs.get());
+	const Apply* first = dynamic_cast<const Apply*>(func->arguments[0].get());
     REQUIRE (first != NULL);
-    REQUIRE (*first->lhs == Number(3));
-    REQUIRE (*first->rhs == Number(2));
+    REQUIRE (*first->arguments[0] == Number(3));
+    REQUIRE (*first->arguments[1] == Number(2));
 }
 
 
@@ -126,16 +126,16 @@ TEST_CASE("parser/3 + (2 + 4)", "3 + ( 2 + 4 )")
     auto maybeExpression = parser.run();
     REQUIRE (maybeExpression.get() != NULL);
 
-    PrimOP* func = dynamic_cast<PrimOP*>(maybeExpression.get());
+	Apply* func = dynamic_cast<Apply*>(maybeExpression.get());
     REQUIRE (func != NULL);
-	REQUIRE(func->op == PrimOps::ADD);
-    REQUIRE (*func->lhs == Number(3));
+	REQUIRE (*func->function == Name("+"));
+    REQUIRE (*func->arguments[0] == Number(3));
 
-    const PrimOP* second = dynamic_cast<const PrimOP*>(func->rhs.get());
+	const Apply* second = dynamic_cast<const Apply*>(func->arguments[1].get());
     REQUIRE (second != NULL);
-	REQUIRE(second->op == PrimOps::ADD);
-    REQUIRE (*second->lhs == Number(2));
-    REQUIRE (*second->rhs == Number(4));
+	REQUIRE (*second->function == Name("+"));
+    REQUIRE (*second->arguments[0] == Number(2));
+    REQUIRE (*second->arguments[1] == Number(4));
 }
 
 
@@ -149,16 +149,16 @@ TEST_CASE("parser/three * 2 + 4", "three * 2 + 4")
 	auto maybeExpression = parser.run();
 	REQUIRE(maybeExpression.get() != NULL);
 
-	PrimOP* func = dynamic_cast<PrimOP*>(maybeExpression.get());
+	Apply* func = dynamic_cast<Apply*>(maybeExpression.get());
 	REQUIRE(func != NULL);
-	REQUIRE(func->op == PrimOps::ADD);
-	REQUIRE(*func->rhs == Number(4));
+	REQUIRE(*func->function == Name("+"));
+	REQUIRE(*func->arguments[1] == Number(4));
 
-	const PrimOP* second = dynamic_cast<const PrimOP*>(func->lhs.get());
+	const Apply* second = dynamic_cast<const Apply*>(func->arguments[0].get());
 	REQUIRE(second != NULL);
-	REQUIRE(second->op == PrimOps::MULTIPLY);
-	REQUIRE(*second->lhs == Name("three"));
-	REQUIRE(*second->rhs == Number(2));
+	REQUIRE(*second->function == Name("*"));
+	REQUIRE(*second->arguments[0] == Name("three"));
+	REQUIRE(*second->arguments[1] == Number(2));
 }
 
 
@@ -175,10 +175,10 @@ TEST_CASE("parser/let three = 3 in three + 4", "")
 	REQUIRE(let != NULL);
 	REQUIRE(let->bindings[0].name == "three");
 	REQUIRE(*let->bindings[0].expression == Number(3));
-	PrimOP* op = dynamic_cast<PrimOP*>(let->expression.get());
-	REQUIRE(op->op == PrimOps::ADD);
-	REQUIRE(*op->lhs == Name("three"));
-	REQUIRE(*op->rhs == Number(4));
+	Apply* op = dynamic_cast<Apply*>(let->expression.get());
+	REQUIRE(*op->function == Name("+"));
+	REQUIRE(*op->arguments[0] == Name("three"));
+	REQUIRE(*op->arguments[1] == Number(4));
 }
 
 
@@ -195,15 +195,15 @@ TEST_CASE("parser/let six = 3 * 2 in six + 4", "")
 	REQUIRE(let != NULL);
 	REQUIRE(let->bindings[0].name == "three");
 
-	PrimOP* letPrimOP = dynamic_cast<PrimOP*>(let->bindings[0].expression.get());
+	Apply* letPrimOP = dynamic_cast<Apply*>(let->bindings[0].expression.get());
 	REQUIRE(letPrimOP != NULL);
-	REQUIRE(*letPrimOP->lhs == Number(3));
-	REQUIRE(*letPrimOP->rhs == Number(2));
+	REQUIRE(*letPrimOP->arguments[0] == Number(3));
+	REQUIRE(*letPrimOP->arguments[1] == Number(2));
 
-	PrimOP* op = dynamic_cast<PrimOP*>(let->expression.get());
-	REQUIRE(op->op == PrimOps::ADD);
-	REQUIRE(*op->lhs == Name("three"));
-	REQUIRE(*op->rhs == Number(4));
+	Apply* op = dynamic_cast<Apply*>(let->expression.get());
+	REQUIRE(*op->function == Name("+"));
+	REQUIRE(*op->arguments[0] == Name("three"));
+	REQUIRE(*op->arguments[1] == Number(4));
 }
 
 TEST_CASE("parser/apply", "Function application")
@@ -233,9 +233,9 @@ TEST_CASE("parser/apply2", "Function application")
 	REQUIRE(*apply.function == Name("f"));
 	REQUIRE(*apply.arguments[0] == Number(3));
 
-	PrimOP& op = dynamic_cast<PrimOP&>(*apply.arguments[1]);
-	REQUIRE(*op.lhs == Number(3));
-	REQUIRE(*op.rhs == Name("two"));
+	Apply& op = dynamic_cast<Apply&>(*apply.arguments[1]);
+	REQUIRE(*op.arguments[0] == Number(3));
+	REQUIRE(*op.arguments[1] == Name("two"));
 }
 
 TEST_CASE("parser/applyOperator", "Function application")
@@ -248,14 +248,14 @@ TEST_CASE("parser/applyOperator", "Function application")
 	REQUIRE(maybeExpression.get() != NULL);
 
 
-	PrimOP& op = dynamic_cast<PrimOP&>(*maybeExpression);
+	Apply& op = dynamic_cast<Apply&>(*maybeExpression);
 
-	Apply& apply = dynamic_cast<Apply&>(*op.lhs);
+	Apply& apply = dynamic_cast<Apply&>(*op.arguments[0]);
 	REQUIRE(*apply.function == Name("f"));
 	REQUIRE(*apply.arguments[0] == Number(3));
 	REQUIRE(*apply.arguments[1] == Name("one"));
 
-	REQUIRE(*op.rhs == Name("two"));
+	REQUIRE(*op.arguments[1] == Name("two"));
 }
 
 TEST_CASE("parser/tuple", "Function application")

@@ -140,21 +140,6 @@ public:
     int value;
 };
 
-class PrimOP : public Expression
-{
-public:
-	PrimOP(PrimOps op, std::unique_ptr<Expression> && lhs, std::unique_ptr<Expression> && rhs);
-
-	virtual Type& typecheck(TypeEnvironment& env, const Type& self);
-
-	virtual void compile(GCompiler& env, std::vector<GInstruction>& instructions, bool strict);
-
-	virtual Type& getType();
-
-    std::unique_ptr<Expression> lhs, rhs;
-    PrimOps op;
-};
-
 class Let : public Expression
 {
 public:
@@ -203,6 +188,14 @@ public:
 	std::vector<std::unique_ptr<Expression>> arguments;
 private:
 	Type type;
+};
+
+class PrimOP : public Apply
+{
+public:
+	PrimOP(std::string name, std::unique_ptr<Expression> && lhs, std::unique_ptr<Expression> && rhs);
+
+	virtual void compile(GCompiler& env, std::vector<GInstruction>& instructions, bool strict);
 };
 
 class Pattern
