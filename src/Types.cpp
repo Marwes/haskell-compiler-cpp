@@ -11,14 +11,23 @@ std::ostream& operator<<(std::ostream& str, const TypeVariable& x)
 }
 std::ostream& operator<<(std::ostream& str, const TypeOperator& x)
 {
-	str << x.name << " { ";
-	for (const Type& type : x.types)
+	if (!x.types.empty())
 	{
-		str << type;
-		if (&type != &x.types.back())
-			str << ", ";
+		str << "(";
 	}
-	return str << " }";
+	str << x.name;
+	if (!x.types.empty())
+	{
+		for (auto& type : x.types)
+		{
+			str << " " << *type;
+		}
+	}
+	if (!x.types.empty())
+	{
+		str << ")";
+	}
+	return str;
 }
 
 Type functionType(const Type& arg, const Type& result)

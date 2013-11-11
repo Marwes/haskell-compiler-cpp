@@ -54,16 +54,15 @@ public:
 
 	TypeEnvironment child();
 
+	Type& newType();
 	Type& newTypeFor(const std::string& name);
-	Type& addType(const std::string& name, const Type& expr);
-	void registerName(const std::string& name, Type* type);
 
 	Type& getType(const std::string& name);
 private:
 	Module* module;
 	TypeEnvironment* parent;
-	std::map<std::string, Type> types;
-	std::map<std::string, Type*> borrowedTypes;
+	std::map<std::string, Type> namedTypes;
+	std::vector<std::unique_ptr<Type>> types;
 };
 
 class GCompiler

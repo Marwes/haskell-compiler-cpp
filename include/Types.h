@@ -76,7 +76,7 @@ private:
 inline bool operator==(const TypeVariable& l, const TypeVariable& r) { return l.id == r.id; }
 inline bool operator!=(const TypeVariable& l, const TypeVariable& r) { return !(l == r); }
 
-typedef boost::variant<TypeVariable, boost::recursive_wrapper<TypeOperator>> Type;
+typedef boost::variant<TypeVariable, TypeOperator> Type;
 
 std::ostream& operator<<(std::ostream& s, const TypeVariable& type);
 std::ostream& operator<<(std::ostream& str, const TypeOperator& type);
@@ -85,13 +85,20 @@ std::ostream& operator<<(std::ostream& str, const TypeOperator& type);
 class TypeOperator
 {
 public:
+	TypeOperator(std::string name)
+		: name(std::move(name))
+	{}
 	TypeOperator(std::string name, std::vector<Type> types)
 		: name(std::move(name))
-		, types(std::move(types))
-	{}
+	{
+		for (Type& t : types)
+		{
+			this->types.push_back(std::make_shared<Type>(t));
+		}
+	}
 
 	std::string name;
-	std::vector<Type> types;
+	std::vector<std::shared_ptr<Type>> types;
 };
 inline bool operator==(const TypeOperator& l, const TypeOperator& r) { return l.name == r.name && l.types == r.types; }
 inline bool operator!=(const TypeOperator& l, const TypeOperator& r) { return !(l == r); }
