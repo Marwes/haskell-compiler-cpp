@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <sstream>
+#include "Types.h"
 #include "Expression.h"
 #include "Module.h"
 
@@ -30,40 +31,16 @@ inline bool occurs(const TypeVariable& type, const Type& collection)
 	return false;
 }
 
-class TypeToString : public boost::static_visitor<std::string>
-{
-public:
-	std::string operator()(const TypeVariable& x) const
-	{
-		std::stringstream str;
-		str << x.id;
-		return str.str();
-	}
-	std::string operator()(const TypeOperator& x) const
-	{
-		std::stringstream str;
-		str << x.name << " { ";
-		for (const Type& type : x.types)
-		{
-			str << boost::apply_visitor(*this, type);
-			if (&type != &x.types.back())
-				str << ", ";
-		}
-		str << " }";
-		return str.str();
-	}
-};
-
 class RecursiveUnification : public std::runtime_error
 {
 public:
 	RecursiveUnification(const Type& lhs, const Type& rhs)
 		: std::runtime_error("Recursive unification.")
-		, error("Recursive unification between: ")
 	{
-		error += boost::apply_visitor(TypeToString(), lhs);
-		error += " and ";
-		error += boost::apply_visitor(TypeToString(), rhs);
+		std::stringstream str;
+		str << "Recursive unification between: ";
+		str << lhs << " and " << rhs;
+		error = str.str();
 	}
 
 	virtual const char* what() const
@@ -336,13 +313,14 @@ Type typeCheckApply(TypeEnvironment& env, Apply& apply, int index)
 	}
 	else
 	{
-		return;
+		return TypeVariable();//TODO
 	}
 }
 
 Type& Apply::typecheck(TypeEnvironment& env, const Type& self)
 {
-	for (auto arg = arguments.rend(); arg != arguments.rbegin(); ++arg)
+	Type resultType = TypeVariable();
+	for (auto arg = arguments.rbegin(); arg != arguments.rend(); ++arg)
 	{
 		Type& argType = (*arg)->typecheck(env, TypeVariable());
 		TypeVariable next = TypeVariable();
@@ -353,7 +331,6 @@ Type& Apply::typecheck(TypeEnvironment& env, const Type& self)
 	Type funcType = function->typecheck(env, TypeVariable());
 	Type& argType = arguments[0]->typecheck(env, TypeVariable());
 	Type iterativeFuncType = functionType(funcType, argType);
-	Type resultType = TypeVariable();
 	Unify(iterativeFuncType, resultType);
 
 	type = resultType;
@@ -382,7 +359,7 @@ Type& Case::typecheck(TypeEnvironment& env, const Type& self)
 {
 	expression->typecheck(env, TypeVariable());
 
-	const Type* returnType = nullptr;
+	Type* returnType = nullptr;
 	for (Alternative& alt : alternatives)
 	{
 		//TODO alt.pattern->typecheck(altType);
@@ -391,7 +368,7 @@ Type& Case::typecheck(TypeEnvironment& env, const Type& self)
 			TypeEnvironment caseEnv = env.child();
 			caseEnv.registerName(pattern->name, &expression->getType());
 			alt.expression->typecheck(caseEnv, self);
-			const Type& t = alt.expression->getType();
+			Type& t = alt.expression->getType();
 			if (returnType == nullptr)//First alternative
 				returnType = &t;
 			else
@@ -401,7 +378,7 @@ Type& Case::typecheck(TypeEnvironment& env, const Type& self)
 		else if (NumberLiteral* pattern = dynamic_cast<NumberLiteral*>(alt.pattern.get()))
 		{
 			alt.expression->typecheck(env, self);
-			const Type& t = alt.expression->getType();
+			Type& t = alt.expression->getType();
 			if (returnType != nullptr && !(t == *returnType))
 			{
 				throw std::runtime_error("All case alternatives must have the same type");
@@ -409,6 +386,8 @@ Type& Case::typecheck(TypeEnvironment& env, const Type& self)
 			returnType = &t;
 		}
 	}
+	assert(returnType != nullptr);
+	return *returnType;
 }
 
 Type& Case::getType()
@@ -443,8 +422,8 @@ Variable GCompiler::getVariable(const std::string& name)
 	auto found = std::find(stackVariables.begin(), stackVariables.end(), name);
 	if (found != stackVariables.end())
 	{
-		size_t index = std::distance(stackVariables.begin(), found);
-		size_t distanceFromStackTop = stackVariables.size() - index - 1;
+		int index = std::distance(stackVariables.begin(), found);
+		int distanceFromStackTop = stackVariables.size() - index - 1;
 		return Variable { VariableType::STACK, TypeVariable(), index };
 	}
 	auto foundGlobal = globals.find(name);

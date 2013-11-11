@@ -5,7 +5,21 @@ namespace MyVMNamespace
 {
 
 int TypeVariable::nextId;
-
+std::ostream& operator<<(std::ostream& str, const TypeVariable& x)
+{
+	return str << x.id;
+}
+std::ostream& operator<<(std::ostream& str, const TypeOperator& x)
+{
+	str << x.name << " { ";
+	for (const Type& type : x.types)
+	{
+		str << type;
+		if (&type != &x.types.back())
+			str << ", ";
+	}
+	return str << " }";
+}
 
 Type functionType(const Type& arg, const Type& result)
 {

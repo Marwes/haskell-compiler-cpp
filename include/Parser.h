@@ -38,7 +38,7 @@ public:
 	std::unique_ptr<Pattern> pattern();
 
 	TypeDeclaration typeDeclaration();
-	std::unique_ptr<Type> type();
+	Type type();
 
 	//Parse a data definition, data NAME = many1 constructor
 	DataDefinition dataDefinition();

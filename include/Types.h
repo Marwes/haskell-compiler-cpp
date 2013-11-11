@@ -1,5 +1,6 @@
 #pragma once
 #include <boost/variant.hpp>
+#include <iosfwd>
 #include <assert.h>
 #include <vector>
 #include <memory>
@@ -75,13 +76,11 @@ private:
 inline bool operator==(const TypeVariable& l, const TypeVariable& r) { return l.id == r.id; }
 inline bool operator!=(const TypeVariable& l, const TypeVariable& r) { return !(l == r); }
 
-template<class Stream>
-Stream& operator<<(Stream& s, const TypeVariable& type)
-{
-	return s << type.id;
-}
-
 typedef boost::variant<TypeVariable, boost::recursive_wrapper<TypeOperator>> Type;
+
+std::ostream& operator<<(std::ostream& s, const TypeVariable& type);
+std::ostream& operator<<(std::ostream& str, const TypeOperator& type);
+
 
 class TypeOperator
 {
@@ -96,17 +95,6 @@ public:
 };
 inline bool operator==(const TypeOperator& l, const TypeOperator& r) { return l.name == r.name && l.types == r.types; }
 inline bool operator!=(const TypeOperator& l, const TypeOperator& r) { return !(l == r); }
-
-template<class Stream>
-Stream& operator<<(Stream& s, const TypeOperator& type)
-{
-	s << type.name;
-	for (auto& type : type.types)
-	{
-		s << type;
-	}
-	return s;
-}
 
 Type functionType(const Type& arg, const Type& result);
 
