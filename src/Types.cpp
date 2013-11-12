@@ -20,7 +20,7 @@ std::ostream& operator<<(std::ostream& str, const TypeOperator& x)
 	{
 		for (auto& type : x.types)
 		{
-			str << " " << *type;
+			str << " " << type;
 		}
 	}
 	if (!x.types.empty())

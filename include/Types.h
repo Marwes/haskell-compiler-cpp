@@ -90,15 +90,12 @@ public:
 	{}
 	TypeOperator(std::string name, std::vector<Type> types)
 		: name(std::move(name))
+		, types(std::move(types))
 	{
-		for (Type& t : types)
-		{
-			this->types.push_back(std::make_shared<Type>(t));
-		}
 	}
 
 	std::string name;
-	std::vector<std::shared_ptr<Type>> types;
+	std::vector<Type> types;
 };
 inline bool operator==(const TypeOperator& l, const TypeOperator& r) { return l.name == r.name && l.types == r.types; }
 inline bool operator!=(const TypeOperator& l, const TypeOperator& r) { return !(l == r); }

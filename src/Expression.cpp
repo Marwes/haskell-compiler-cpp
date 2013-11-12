@@ -22,9 +22,9 @@ inline bool occurs(const TypeVariable& type, const Type& collection)
 
 			const TypeOperator& op = boost::get<const TypeOperator>(collection);
 			return std::any_of(op.types.begin(), op.types.end(),
-				[&type](const std::shared_ptr<Type>& elem)
+				[&type](const Type& elem)
 			{
-				return occurs(type, *elem);
+				return occurs(type, elem);
 			});
 		}
 		break;
@@ -56,60 +56,75 @@ private:
 class Unify : public boost::static_visitor<>
 {
 public:
-	Unify(Type& lhs, Type& rhs)
-		: lhs(lhs)
+	Unify(TypeEnvironment& env, Type& lhs, Type& rhs)
+		: env(env)
+		, lhs(lhs)
 		, rhs(rhs)
 	{
 		boost::apply_visitor(*this, lhs, rhs);
 	}
 
-	void operator()(const TypeVariable& t1, const TypeVariable& t2) const
+	void operator()(TypeVariable& t1, TypeVariable& t2) const
 	{
 		if (t1 != t2)
 		{
 			if (occurs(t1, t2))
 				throw RecursiveUnification(t1, t2);
 
-
-			lhs = t2;
+			env.replace(t1, rhs);
 		}
 	}
-	void operator()(const TypeVariable& t1, const TypeOperator& t2) const
+	void operator()(TypeVariable& t1, TypeOperator& t2) const
 	{
 		if (occurs(t1, t2))
 			throw RecursiveUnification(t1, t2);
-		rhs = t1;
+
+		env.replace(t1, rhs);
 	}
-	void operator()(const TypeOperator& t1, const TypeVariable& t2) const
+	void operator()(TypeOperator& t1, TypeVariable& t2) const
 	{
-		operator()(t2, t1);//swap the arguments
+		if (occurs(t2, t1))
+			throw RecursiveUnification(t2, t1);
+
+		env.replace(t2, lhs);
 	}
-	void operator()(const TypeOperator& t1, const TypeOperator& t2) const
+	void operator()(TypeOperator& t1, TypeOperator& t2) const
 	{
+
 		if (t1.name != t2.name || t1.types.size() != t2.types.size())
+		{
 			throw TypeError(t1, t2);
+		}
 
 		for (size_t ii = 0; ii < t1.types.size(); ii++)
 		{
-			boost::apply_visitor(*this, *t1.types[ii], *t2.types[ii]);
+			boost::apply_visitor(Unify(env, t1.types[ii], t2.types[ii]), t1.types[ii], t2.types[ii]);
 		}
 	}
 
+	TypeEnvironment& env;
 	Type& lhs;
 	Type& rhs;
 };
 
-void analyseTop()
-{
-
-}
-
-TypeVariable pair;
+Type intType(TypeOperator("Int"));
+Type doubleType(TypeOperator("Double"));
 
 TypeEnvironment::TypeEnvironment(Module* module)
 	: parent(nullptr)
 	, module(module)
 {
+	Type binop = functionType(intType, functionType(intType, intType));
+	newTypeFor("+") = binop;
+	newTypeFor("-") = binop;
+	newTypeFor("*") = binop;
+	newTypeFor("/") = binop;
+	newTypeFor("%") = binop;
+	std::vector<Type> args(2);
+	args[0] = TypeVariable();
+	args[1] = TypeVariable();
+	Type pair(TypeOperator("(,)", args));
+	newTypeFor("(,)") = functionType(args[0], functionType(args[1], pair));
 }
 
 TypeEnvironment::TypeEnvironment(TypeEnvironment&& env)
@@ -133,7 +148,7 @@ Type& TypeEnvironment::newTypeFor(const std::string& name)
 
 Type& TypeEnvironment::newType()
 {
-	types.push_back(std::unique_ptr<Type>(new Type));
+	types.push_back(std::unique_ptr<Type>(new Type()));
 	return *types.back();
 }
 
@@ -158,6 +173,64 @@ Type& TypeEnvironment::getType(const std::string& name)
 	return newTypeFor(name);
 }
 
+class Replacer : public boost::static_visitor<>
+{
+public:
+	Replacer(TypeVariable& replaceMe, const Type& replaceWith)
+		: replaceMe(replaceMe)
+		, replaceWith(replaceWith)
+	{}
+
+	void operator()(TypeVariable& replaced)
+	{
+		if (replaceMe == replaced)
+		{
+		}
+	}
+	void operator()(TypeOperator& replaced)
+	{
+		for (auto& t : replaced.types)
+		{
+			boost::apply_visitor(*this, t);
+		}
+	}
+private:
+	TypeVariable& replaceMe;
+	const Type& replaceWith;
+};
+
+void tryReplace(Type& toReplace, TypeVariable& replaceMe, const Type& replaceWith)
+{
+	if (toReplace.which() == 0)
+	{
+		TypeVariable& x = boost::get<TypeVariable>(toReplace);
+		if (x == replaceMe)
+		{
+			toReplace = replaceWith;
+		}
+	}
+	else
+	{
+		TypeOperator& x = boost::get<TypeOperator>(toReplace);
+		for (Type& type : x.types)
+		{
+			tryReplace(type, replaceMe, replaceWith);
+		}
+	}
+}
+
+void TypeEnvironment::replace(TypeVariable& replaceMe, const Type& replaceWith)
+{
+	for (auto& pair : namedTypes)
+	{
+		tryReplace(pair.second, replaceMe, replaceWith);
+	}
+	for (auto& type : types)
+	{
+		tryReplace(*type, replaceMe, replaceWith);
+	}
+}
+
 Name::Name(std::string name)
     : name(std::move(name))
 {
@@ -172,9 +245,6 @@ Type& Name::getType()
 {
 	return type;
 }
-
-Type intType(TypeOperator("Int"));
-Type doubleType(TypeOperator("Double"));
 
 Rational::Rational(double value)
 	: value(value)
@@ -270,8 +340,13 @@ Type& Apply::typecheck(TypeEnvironment& env)
 	Type& argType = arguments[0]->typecheck(env);
 	Type* resultType = &env.newType();
 	Type& iterativeFuncType = env.newType();
-	iterativeFuncType = functionType(funcType, argType);
-	Unify(iterativeFuncType, *resultType);
+	iterativeFuncType = functionType(argType, *resultType);
+
+	std::cerr << iterativeFuncType << std::endl;
+	std::cerr << *resultType << std::endl;
+	Unify(env, iterativeFuncType, funcType);
+	std::cerr << iterativeFuncType << std::endl;
+	std::cerr << *resultType << std::endl;
 	for (size_t ii = 1; ii < arguments.size(); ii++)
 	{
 		auto& arg = arguments[ii];
@@ -279,7 +354,11 @@ Type& Apply::typecheck(TypeEnvironment& env)
 		Type& next = env.newType();
 		Type& temp = env.newType();
 		temp = functionType(argType, next);
-		Unify(temp, *resultType);
+		std::cerr << temp << std::endl;
+		std::cerr << *resultType << std::endl;
+		Unify(env, temp, *resultType);
+		std::cerr << temp << std::endl;
+		std::cerr << *resultType << std::endl;
 		resultType = &next;
 	}
 	return *resultType;//TODO
