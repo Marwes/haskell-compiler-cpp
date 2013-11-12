@@ -59,7 +59,7 @@ public:
 
 	Type& getType(const std::string& name);
 
-	void replace(TypeVariable& replaceMe, const Type& replaceWith);
+	void replace(TypeVariable replaceMe, const Type& replaceWith);
 private:
 	Module* module;
 	TypeEnvironment* parent;

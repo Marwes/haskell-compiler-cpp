@@ -173,32 +173,6 @@ Type& TypeEnvironment::getType(const std::string& name)
 	return newTypeFor(name);
 }
 
-class Replacer : public boost::static_visitor<>
-{
-public:
-	Replacer(TypeVariable& replaceMe, const Type& replaceWith)
-		: replaceMe(replaceMe)
-		, replaceWith(replaceWith)
-	{}
-
-	void operator()(TypeVariable& replaced)
-	{
-		if (replaceMe == replaced)
-		{
-		}
-	}
-	void operator()(TypeOperator& replaced)
-	{
-		for (auto& t : replaced.types)
-		{
-			boost::apply_visitor(*this, t);
-		}
-	}
-private:
-	TypeVariable& replaceMe;
-	const Type& replaceWith;
-};
-
 void tryReplace(Type& toReplace, TypeVariable& replaceMe, const Type& replaceWith)
 {
 	if (toReplace.which() == 0)
@@ -219,7 +193,7 @@ void tryReplace(Type& toReplace, TypeVariable& replaceMe, const Type& replaceWit
 	}
 }
 
-void TypeEnvironment::replace(TypeVariable& replaceMe, const Type& replaceWith)
+void TypeEnvironment::replace(TypeVariable replaceMe, const Type& replaceWith)
 {
 	for (auto& pair : namedTypes)
 	{
@@ -338,6 +312,8 @@ Type& Apply::typecheck(TypeEnvironment& env)
 {
 	Type& funcType = function->typecheck(env);
 	Type& argType = arguments[0]->typecheck(env);
+	std::cerr << funcType << std::endl;
+	std::cerr << argType << std::endl;
 	Type* resultType = &env.newType();
 	Type& iterativeFuncType = env.newType();
 	iterativeFuncType = functionType(argType, *resultType);
