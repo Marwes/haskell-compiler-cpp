@@ -97,3 +97,21 @@ in case (1, x) of\n\
 
 	REQUIRE(type == Type(TypeOperator("Int")));
 }
+
+
+TEST_CASE("typecheck/case2", "")
+{
+	std::stringstream stream(
+		"let\n\
+		    x = undefined\n\
+			in case (1, x) of\n\
+			    (a, b) -> b + x\n");
+	Tokenizer tokenizer(stream);
+	Parser parser(tokenizer);
+
+	std::unique_ptr<Expression> expr = parser.expression();
+	TypeEnvironment env(nullptr);
+	Type& type = expr->typecheck(env);
+
+	REQUIRE(type == Type(TypeOperator("Int")));
+}
