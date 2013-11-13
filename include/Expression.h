@@ -54,8 +54,8 @@ public:
 
 	TypeEnvironment child();
 
-	Type& newType();
-	Type& newTypeFor(const std::string& name);
+	void bindName(const std::string& name, Type& type);
+	void registerType(Type& type);
 
 	Type& getType(const std::string& name);
 
@@ -63,8 +63,8 @@ public:
 private:
 	Module* module;
 	TypeEnvironment* parent;
-	std::map<std::string, Type> namedTypes;
-	std::vector<std::unique_ptr<Type>> types;
+	std::map<std::string, Type*> namedTypes;
+	std::vector<Type*> types;
 };
 
 class GCompiler
@@ -205,6 +205,8 @@ class Pattern
 public:
 	virtual ~Pattern() {}
 
+	virtual void addVariables(TypeEnvironment& env, Type& type) {}
+
 	virtual void compileGCode(GCompiler& env, std::vector<size_t>& branches, std::vector<GInstruction>& instructions) const
 	{
 		assert(0);
@@ -217,6 +219,8 @@ public:
 	PatternName(std::string name)
 		: name(std::move(name))
 	{}
+
+	virtual void addVariables(TypeEnvironment& env, Type& type);
 
 	std::string name;
 };
@@ -246,6 +250,9 @@ public:
 		: patterns(std::move(other.patterns))
 		, tag(other.tag)
 	{}
+
+
+	virtual void addVariables(TypeEnvironment& env, Type& type);
 
 	virtual void compileGCode(GCompiler& env, std::vector<size_t>& branches, std::vector<GInstruction>& instructions) const;
 

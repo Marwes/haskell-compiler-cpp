@@ -94,6 +94,27 @@ public:
 	{
 	}
 
+	TypeOperator(const TypeOperator& op)
+		: name(op.name)
+		, types(op.types.size())
+	{
+		for (size_t ii = 0; ii < op.types.size(); ++ii)
+		{
+			types[ii] = op.types[ii];
+		}
+	}
+
+	TypeOperator& operator=(const TypeOperator& op)
+	{
+		name = op.name;
+		types.resize(op.types.size());
+		for (size_t ii = 0; ii < op.types.size(); ++ii)
+		{
+			types[ii] = op.types[ii];
+		}
+		return *this;
+	}
+
 	std::string name;
 	std::vector<Type> types;
 };

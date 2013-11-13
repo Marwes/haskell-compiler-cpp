@@ -32,6 +32,112 @@ inline bool occurs(const TypeVariable& type, const Type& collection)
 	return false;
 }
 
+
+Type intType(TypeOperator("Int"));
+Type doubleType(TypeOperator("Double"));
+
+Type binop = functionType(intType, functionType(intType, intType));
+
+Type createPairCtor()
+{
+	std::vector<Type> args(2);
+	args[0] = TypeVariable();
+	args[1] = TypeVariable();
+	Type pair(TypeOperator("(,)", args));
+	return functionType(args[0], functionType(args[1], pair));
+}
+
+Type pairCtor = createPairCtor();
+Type undefinedType = TypeVariable();
+
+TypeEnvironment::TypeEnvironment(Module* module)
+	: parent(nullptr)
+	, module(module)
+{
+	bindName("+", binop);
+	bindName("-", binop);
+	bindName("*", binop);
+	bindName("/", binop);
+	bindName("%", binop);
+	bindName("(,)", pairCtor);
+	bindName("undefined", undefinedType);
+}
+
+TypeEnvironment::TypeEnvironment(TypeEnvironment && env)
+	: parent(env.parent)
+	, module(env.module)
+{
+}
+
+TypeEnvironment TypeEnvironment::child()
+{
+	TypeEnvironment c(module);
+	c.parent = this;
+	return c;
+}
+
+void TypeEnvironment::bindName(const std::string& name, Type& type)
+{
+	namedTypes.insert(std::make_pair(name, &type));
+}
+void TypeEnvironment::registerType(Type& type)
+{
+	types.push_back(&type);
+}
+
+Type& TypeEnvironment::getType(const std::string& name)
+{
+	auto found = namedTypes.find(name);
+	if (found != namedTypes.end())
+		return *found->second;
+	if (parent != nullptr)
+		return parent->getType(name);
+	if (module != nullptr)
+	{
+		auto found = std::find_if(module->bindings.begin(), module->bindings.end(), [&name](const Binding& bind)
+		{
+			return bind.name == name;
+		});
+		if (found != module->bindings.end())
+		{
+			return found->expression->getType();
+		}
+	}
+	throw std::runtime_error("Could not find the identifier " + name);
+}
+
+void tryReplace(Type& toReplace, TypeVariable& replaceMe, const Type& replaceWith)
+{
+	if (toReplace.which() == 0)
+	{
+		TypeVariable& x = boost::get<TypeVariable>(toReplace);
+		if (x == replaceMe)
+		{
+			toReplace = replaceWith;
+		}
+	}
+	else
+	{
+		TypeOperator& x = boost::get<TypeOperator>(toReplace);
+		for (Type& type : x.types)
+		{
+			tryReplace(type, replaceMe, replaceWith);
+		}
+	}
+}
+
+void TypeEnvironment::replace(TypeVariable replaceMe, const Type& replaceWith)
+{
+	for (auto& pair : namedTypes)
+	{
+		tryReplace(*pair.second, replaceMe, replaceWith);
+	}
+	for (Type* type : types)
+	{
+		tryReplace(*type, replaceMe, replaceWith);
+	}
+}
+
 class RecursiveUnification : public std::runtime_error
 {
 public:
@@ -72,6 +178,7 @@ public:
 				throw RecursiveUnification(t1, t2);
 
 			env.replace(t1, rhs);
+			tryReplace(lhs, t1, rhs);
 		}
 	}
 	void operator()(TypeVariable& t1, TypeOperator& t2) const
@@ -80,6 +187,7 @@ public:
 			throw RecursiveUnification(t1, t2);
 
 		env.replace(t1, rhs);
+		tryReplace(lhs, t1, rhs);
 	}
 	void operator()(TypeOperator& t1, TypeVariable& t2) const
 	{
@@ -87,6 +195,7 @@ public:
 			throw RecursiveUnification(t2, t1);
 
 		env.replace(t2, lhs);
+		tryReplace(rhs, t2, lhs);
 	}
 	void operator()(TypeOperator& t1, TypeOperator& t2) const
 	{
@@ -98,6 +207,7 @@ public:
 
 		for (size_t ii = 0; ii < t1.types.size(); ii++)
 		{
+			std::cerr << t1.types[ii] << "\n" << t2.types[ii] << std::endl;
 			boost::apply_visitor(Unify(env, t1.types[ii], t2.types[ii]), t1.types[ii], t2.types[ii]);
 		}
 	}
@@ -106,104 +216,6 @@ public:
 	Type& lhs;
 	Type& rhs;
 };
-
-Type intType(TypeOperator("Int"));
-Type doubleType(TypeOperator("Double"));
-
-TypeEnvironment::TypeEnvironment(Module* module)
-	: parent(nullptr)
-	, module(module)
-{
-	Type binop = functionType(intType, functionType(intType, intType));
-	newTypeFor("+") = binop;
-	newTypeFor("-") = binop;
-	newTypeFor("*") = binop;
-	newTypeFor("/") = binop;
-	newTypeFor("%") = binop;
-	std::vector<Type> args(2);
-	args[0] = TypeVariable();
-	args[1] = TypeVariable();
-	Type pair(TypeOperator("(,)", args));
-	newTypeFor("(,)") = functionType(args[0], functionType(args[1], pair));
-}
-
-TypeEnvironment::TypeEnvironment(TypeEnvironment&& env)
-	: types(std::move(env.types))
-	, parent(env.parent)
-	, module(env.module)
-{
-}
-
-TypeEnvironment TypeEnvironment::child()
-{
-	TypeEnvironment c(module);
-	c.parent = this;
-	return std::move(c);
-}
-
-Type& TypeEnvironment::newTypeFor(const std::string& name)
-{
-	return namedTypes[name] = TypeVariable();
-}
-
-Type& TypeEnvironment::newType()
-{
-	types.push_back(std::unique_ptr<Type>(new Type()));
-	return *types.back();
-}
-
-Type& TypeEnvironment::getType(const std::string& name)
-{
-	auto found = namedTypes.find(name);
-	if (found != namedTypes.end())
-		return found->second;
-	if (parent != nullptr)
-		return parent->getType(name);
-	if (module != nullptr)
-	{
-		auto found = std::find_if(module->bindings.begin(), module->bindings.end(), [&name](const Binding& bind)
-		{
-			return bind.name == name;
-		});
-		if (found != module->bindings.end())
-		{
-			return found->expression->getType();
-		}
-	}
-	return newTypeFor(name);
-}
-
-void tryReplace(Type& toReplace, TypeVariable& replaceMe, const Type& replaceWith)
-{
-	if (toReplace.which() == 0)
-	{
-		TypeVariable& x = boost::get<TypeVariable>(toReplace);
-		if (x == replaceMe)
-		{
-			toReplace = replaceWith;
-		}
-	}
-	else
-	{
-		TypeOperator& x = boost::get<TypeOperator>(toReplace);
-		for (Type& type : x.types)
-		{
-			tryReplace(type, replaceMe, replaceWith);
-		}
-	}
-}
-
-void TypeEnvironment::replace(TypeVariable replaceMe, const Type& replaceWith)
-{
-	for (auto& pair : namedTypes)
-	{
-		tryReplace(pair.second, replaceMe, replaceWith);
-	}
-	for (auto& type : types)
-	{
-		tryReplace(*type, replaceMe, replaceWith);
-	}
-}
 
 Name::Name(std::string name)
     : name(std::move(name))
@@ -260,11 +272,12 @@ Let::Let(std::vector<Binding>&& bindings, std::unique_ptr<Expression>&& expressi
 
 Type& Let::typecheck(TypeEnvironment& env)
 {
-	TypeEnvironment child = env.child();
+	TypeEnvironment& child = env.child();
 	for (auto& bind : bindings)
 	{
-		Type& t = child.newTypeFor(bind.name);
-		t = bind.expression->typecheck(child);
+		child.bindName(bind.name, bind.expression->getType());
+		Type& t = bind.expression->typecheck(child);
+		std::cerr << t << std::endl;
 	}
 	return expression->typecheck(child);
 }
@@ -284,15 +297,21 @@ Lambda::Lambda(std::vector<std::string> && arguments, std::unique_ptr<Expression
 Type& Lambda::typecheck(TypeEnvironment& env)
 {
 	TypeEnvironment child = env.child();
-	Type* returnType = &body->typecheck(env);
+	std::vector<Type> argTypes(arguments.size());
+	for (size_t ii = 0; ii < argTypes.size(); ++ii)
+	{
+		child.bindName(arguments[ii], argTypes[ii]);
+		std::cerr << argTypes[ii] << std::endl;
+	}
+	Type* returnType = &body->typecheck(child);
 	std::cerr << *returnType << std::endl;
+
 	for (auto arg = arguments.rbegin(); arg != arguments.rend(); ++arg)
 	{
-		Type& argType = env.getType(*arg);
-		Type& funcType = env.newType();
-		funcType = functionType(argType, *returnType);
+		Type& argType = child.getType(*arg);
+		this->type = functionType(argType, *returnType);
 		
-		returnType = &funcType;
+		returnType = &this->type;
 	}
 	return *returnType;
 }
@@ -310,34 +329,35 @@ Apply::Apply(std::unique_ptr<Expression> && function, std::vector<std::unique_pt
 
 Type& Apply::typecheck(TypeEnvironment& env)
 {
+	env.registerType(this->type);
 	Type& funcType = function->typecheck(env);
 	Type& argType = arguments[0]->typecheck(env);
 	std::cerr << funcType << std::endl;
 	std::cerr << argType << std::endl;
-	Type* resultType = &env.newType();
-	Type& iterativeFuncType = env.newType();
-	iterativeFuncType = functionType(argType, *resultType);
 
-	std::cerr << iterativeFuncType << std::endl;
-	std::cerr << *resultType << std::endl;
-	Unify(env, iterativeFuncType, funcType);
-	std::cerr << iterativeFuncType << std::endl;
-	std::cerr << *resultType << std::endl;
+	this->type = functionType(argType, TypeVariable());
+
+	std::cerr << this->type << std::endl;
+	std::cerr << funcType << std::endl;
+	Unify(env, this->type, funcType);
+	std::cerr << this->type << std::endl;
+	this->type = boost::get<TypeOperator>(this->type).types[1];
+	std::cerr << this->type << std::endl;
 	for (size_t ii = 1; ii < arguments.size(); ii++)
 	{
 		auto& arg = arguments[ii];
 		Type& argType = arg->typecheck(env);
-		Type& next = env.newType();
-		Type& temp = env.newType();
-		temp = functionType(argType, next);
+		Type temp = functionType(argType, TypeVariable());
+
+		std::cerr << temp << "\n" << type << std::endl;
+		Unify(env, temp, this->type);
+
+		std::cerr << this->type << std::endl;
 		std::cerr << temp << std::endl;
-		std::cerr << *resultType << std::endl;
-		Unify(env, temp, *resultType);
-		std::cerr << temp << std::endl;
-		std::cerr << *resultType << std::endl;
-		resultType = &next;
+
+		this->type = boost::get<TypeOperator>(temp).types[1];
 	}
-	return *resultType;//TODO
+	return this->type;//TODO
 }
 
 
@@ -377,6 +397,27 @@ void PrimOP::compile(GCompiler& env, std::vector<GInstruction>& instructions, bo
 	instructions.push_back(GInstruction(toGOP(static_cast<Name&>(*function).name)));
 }
 
+void PatternName::addVariables(TypeEnvironment& env, Type& type)
+{
+	env.bindName(name, type);
+}
+
+void ConstructorPattern::addVariables(TypeEnvironment& env, Type& type)
+{
+	TypeOperator& typeOp = boost::get<TypeOperator>(type);
+	if (typeOp.types.size() != patterns.size())
+	{
+		std::stringstream str;
+		str << "Cannot match " << type << " in case alternative" << std::endl;
+		throw std::runtime_error(str.str());
+	}
+
+	for (size_t ii = 0; ii < patterns.size(); ++ii)
+	{
+		patterns[ii]->addVariables(env, typeOp.types[ii]);
+	}
+}
+
 void ConstructorPattern::compileGCode(GCompiler& env, std::vector<size_t>& branches, std::vector<GInstruction>& instructions) const
 {
 	instructions.push_back(GInstruction(GOP::CASEJUMP, tag));
@@ -391,16 +432,17 @@ Case::Case(std::unique_ptr<Expression> && expr, std::vector<Alternative> && alte
 
 Type& Case::typecheck(TypeEnvironment& env)
 {
-	expression->typecheck(env);
+	Type& matchType = expression->typecheck(env);
 
 	Type* returnType = nullptr;
 	for (Alternative& alt : alternatives)
 	{
 		TypeEnvironment caseEnv = env.child();
+		alt.pattern->addVariables(caseEnv, matchType);
 		Type& t = alt.expression->typecheck(caseEnv);
 		if (returnType == nullptr)//First alternative
 			returnType = &t;
-		else if (returnType != nullptr && !(t == *returnType))
+		else if (!(t == *returnType))
 		{
 			throw std::runtime_error("All case alternatives must have the same type");
 		}

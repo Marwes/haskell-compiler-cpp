@@ -62,6 +62,38 @@ TEST_CASE("typecheck/tuple", "")
 	args[0] = TypeOperator("Int");
 	args[1] = TypeOperator("Int");
 	auto wanted = Type(TypeOperator("(,)", args));
-	std::cerr << wanted << std::endl;
+
 	REQUIRE(type == wanted);
+}
+
+
+TEST_CASE("typecheck/typevariable", "")
+{
+	std::stringstream stream("undefined");
+	Tokenizer tokenizer(stream);
+	Parser parser(tokenizer);
+
+	std::unique_ptr<Expression> expr = parser.expression();
+	TypeEnvironment env(nullptr);
+	Type& type = expr->typecheck(env);
+
+	
+	REQUIRE_NOTHROW(boost::get<TypeVariable>(type));
+}
+
+TEST_CASE("typecheck/case", "")
+{
+	std::stringstream stream(
+"let\n\
+    x = undefined\n\
+in case (1, x) of\n\
+    (a, b) -> a\n");
+	Tokenizer tokenizer(stream);
+	Parser parser(tokenizer);
+
+	std::unique_ptr<Expression> expr = parser.expression();
+	TypeEnvironment env(nullptr);
+	Type& type = expr->typecheck(env);
+
+	REQUIRE(type == Type(TypeOperator("Int")));
 }
