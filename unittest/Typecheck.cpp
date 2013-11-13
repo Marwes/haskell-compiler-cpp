@@ -97,7 +97,6 @@ in case (1, x) of\n\
 	REQUIRE(type == Type(TypeOperator("Int")));
 }
 
-
 TEST_CASE("typecheck/case2", "")
 {
 	std::stringstream stream(
@@ -113,4 +112,58 @@ TEST_CASE("typecheck/case2", "")
 	Type& type = expr->typecheck(env);
 
 	REQUIRE(type == Type(TypeOperator("Int")));
+}
+
+TEST_CASE("typecheck/module", "")
+{
+	std::stringstream stream(
+"main = add2 3 * add2 3\n\
+add2 x = x + 2\n");
+	Tokenizer tokenizer(stream);
+	Parser parser(tokenizer);
+
+	Module module = parser.module();
+	TypeEnvironment env(&module);
+	for (auto& bind : module.bindings)
+	{
+		bind.expression->typecheck(env);
+	}
+
+	REQUIRE(module.bindings[0].expression->getType() == Type(TypeOperator("Int")));
+	REQUIRE(module.bindings[1].expression->getType() == functionType(TypeOperator("Int"), TypeOperator("Int")));
+}
+
+TEST_CASE("typecheck/module/recursive", "")
+{
+	std::stringstream stream("fib n = n * fib (n-1)");
+	Tokenizer tokenizer(stream);
+	Parser parser(tokenizer);
+
+	Module module = parser.module();
+	TypeEnvironment env(&module);
+	for (auto& bind : module.bindings)
+	{
+		bind.expression->typecheck(env);
+	}
+
+	REQUIRE(module.bindings[0].expression->getType() == functionType(TypeOperator("Int"), TypeOperator("Int")));
+}
+
+TEST_CASE("typecheck/module/mutual_recursion", "")
+{
+	std::stringstream stream(
+"test1 x = 3 * test2 x\n\
+test2 y = 2 * test1 y\n");
+	Tokenizer tokenizer(stream);
+	Parser parser(tokenizer);
+
+	Module module = parser.module();
+	TypeEnvironment env(&module);
+	for (auto& bind : module.bindings)
+	{
+		bind.expression->typecheck(env);
+	}
+
+	REQUIRE(module.bindings[0].expression->getType() == functionType(TypeOperator("Int"), TypeOperator("Int")));
+	REQUIRE(module.bindings[1].expression->getType() == functionType(TypeOperator("Int"), TypeOperator("Int")));
 }
