@@ -7,6 +7,142 @@
 namespace MyVMNamespace
 {
 
+Name::Name(std::string name)
+    : name(std::move(name))
+{
+}
+
+Type& Name::getType()
+{
+	return type;
+}
+
+Rational::Rational(double value)
+	: value(value)
+{
+}
+
+Type& Rational::getType()
+{
+	return doubleType;
+}
+
+Number::Number(int value)
+	: Rational(0)
+	, value(value)
+{
+}
+
+Type& Number::getType()
+{
+	return intType;
+}
+
+Let::Let(std::vector<Binding>&& bindings, std::unique_ptr<Expression>&& expression)
+	: bindings(std::move(bindings))
+	, expression(std::move(expression))
+	, isRecursive(false)
+{
+}
+
+Type& Let::getType()
+{
+	return expression->getType();
+}
+
+Lambda::Lambda(std::vector<std::string> && arguments, std::unique_ptr<Expression> && body)
+	: arguments(std::move(arguments))
+	, body(std::move(body))
+{
+}
+
+Type& Lambda::getType()
+{
+	return this->type;
+}
+
+Apply::Apply(std::unique_ptr<Expression> && function, std::vector<std::unique_ptr<Expression>> && arguments)
+	: function(std::move(function))
+	, arguments(std::move(arguments))
+{
+}
+
+Type& Apply::getType()
+{
+	return type;
+}
+
+std::vector<std::unique_ptr<Expression>> argVector(std::unique_ptr<Expression> && lhs, std::unique_ptr<Expression> && rhs)
+{
+	std::vector<std::unique_ptr<Expression>> args(2);
+	args[0] = std::move(lhs);
+	args[1] = std::move(rhs);
+	return std::move(args);
+}
+
+PrimOP::PrimOP(std::string name, std::unique_ptr<Expression> && lhs, std::unique_ptr<Expression> && rhs)
+	: Apply(std::unique_ptr<Expression>(new Name(std::move(name))), argVector(std::move(lhs), std::move(rhs)))
+{
+}
+
+
+GOP toGOP(const std::string& op)
+{
+	if (op == "+") return GOP::ADD;
+	if (op == "-") return GOP::SUBTRACT;
+	if (op == "*") return GOP::MULTIPLY;
+	if (op == "/") return GOP::DIVIDE;
+	if (op == "%") return GOP::REMAINDER;
+	throw std::runtime_error("Unknown op" + op);
+}
+
+void PrimOP::compile(GCompiler& env, std::vector<GInstruction>& instructions, bool)
+{
+	arguments[0]->compile(env, instructions, true);
+	arguments[1]->compile(env, instructions, true);
+	instructions.push_back(GInstruction(toGOP(static_cast<Name&>(*function).name)));
+}
+
+void PatternName::addVariables(TypeEnvironment& env, Type& type)
+{
+	env.bindName(name, type);
+}
+
+void ConstructorPattern::addVariables(TypeEnvironment& env, Type& type)
+{
+	TypeOperator& typeOp = boost::get<TypeOperator>(type);
+	if (typeOp.types.size() != patterns.size())
+	{
+		std::stringstream str;
+		str << "Cannot match " << type << " in case alternative" << std::endl;
+		throw std::runtime_error(str.str());
+	}
+
+	for (size_t ii = 0; ii < patterns.size(); ++ii)
+	{
+		patterns[ii]->addVariables(env, typeOp.types[ii]);
+	}
+}
+
+void ConstructorPattern::compileGCode(GCompiler& env, std::vector<size_t>& branches, std::vector<GInstruction>& instructions) const
+{
+	instructions.push_back(GInstruction(GOP::CASEJUMP, tag));
+	branches.push_back(instructions.size());
+	instructions.push_back(GInstruction(GOP::JUMP));
+}
+
+Case::Case(std::unique_ptr<Expression> && expr, std::vector<Alternative> && alternatives)
+	: expression(std::move(expr))
+	, alternatives(std::move(alternatives))
+{}
+
+Type& Case::getType()
+{
+	return expression->getType();
+}
+
+//typecheck functions
+
 inline bool occurs(const TypeVariable& type, const Type& collection)
 {
 	switch (collection.which())
@@ -217,24 +353,9 @@ public:
 	Type& rhs;
 };
 
-Name::Name(std::string name)
-    : name(std::move(name))
-{
-}
-
 Type& Name::typecheck(TypeEnvironment& env)
 {
 	return env.getType(this->name);
-}
-
-Type& Name::getType()
-{
-	return type;
-}
-
-Rational::Rational(double value)
-	: value(value)
-{
 }
 
 Type& Rational::typecheck(TypeEnvironment& env)
@@ -242,32 +363,9 @@ Type& Rational::typecheck(TypeEnvironment& env)
 	return doubleType;
 }
 
-Type& Rational::getType()
-{
-	return doubleType;
-}
-
-Number::Number(int value)
-	: Rational(0)
-	, value(value)
-{
-}
-
 Type& Number::typecheck(TypeEnvironment& env)
 {
 	return intType;
-}
-
-Type& Number::getType()
-{
-	return intType;
-}
-
-Let::Let(std::vector<Binding>&& bindings, std::unique_ptr<Expression>&& expression)
-	: bindings(std::move(bindings))
-	, expression(std::move(expression))
-	, isRecursive(false)
-{
 }
 
 Type& Let::typecheck(TypeEnvironment& env)
@@ -281,18 +379,6 @@ Type& Let::typecheck(TypeEnvironment& env)
 	}
 	return expression->typecheck(child);
 }
-
-Type& Let::getType()
-{
-	return expression->getType();
-}
-
-Lambda::Lambda(std::vector<std::string> && arguments, std::unique_ptr<Expression> && body)
-	: arguments(std::move(arguments))
-	, body(std::move(body))
-{
-}
-
 
 Type& Lambda::typecheck(TypeEnvironment& env)
 {
@@ -310,21 +396,10 @@ Type& Lambda::typecheck(TypeEnvironment& env)
 	{
 		Type& argType = child.getType(*arg);
 		this->type = functionType(argType, *returnType);
-		
+
 		returnType = &this->type;
 	}
 	return *returnType;
-}
-
-Type& Lambda::getType()
-{
-	return this->type;
-}
-
-Apply::Apply(std::unique_ptr<Expression> && function, std::vector<std::unique_ptr<Expression>> && arguments)
-	: function(std::move(function))
-	, arguments(std::move(arguments))
-{
 }
 
 Type& Apply::typecheck(TypeEnvironment& env)
@@ -360,76 +435,6 @@ Type& Apply::typecheck(TypeEnvironment& env)
 	return this->type;//TODO
 }
 
-
-Type& Apply::getType()
-{
-	return type;
-}
-
-std::vector<std::unique_ptr<Expression>> argVector(std::unique_ptr<Expression> && lhs, std::unique_ptr<Expression> && rhs)
-{
-	std::vector<std::unique_ptr<Expression>> args(2);
-	args[0] = std::move(lhs);
-	args[1] = std::move(rhs);
-	return std::move(args);
-}
-
-PrimOP::PrimOP(std::string name, std::unique_ptr<Expression> && lhs, std::unique_ptr<Expression> && rhs)
-	: Apply(std::unique_ptr<Expression>(new Name(std::move(name))), argVector(std::move(lhs), std::move(rhs)))
-{
-}
-
-
-GOP toGOP(const std::string& op)
-{
-	if (op == "+") return GOP::ADD;
-	if (op == "-") return GOP::SUBTRACT;
-	if (op == "*") return GOP::MULTIPLY;
-	if (op == "/") return GOP::DIVIDE;
-	if (op == "%") return GOP::REMAINDER;
-	throw std::runtime_error("Unknown op" + op);
-}
-
-void PrimOP::compile(GCompiler& env, std::vector<GInstruction>& instructions, bool)
-{
-	arguments[0]->compile(env, instructions, true);
-	arguments[1]->compile(env, instructions, true);
-	instructions.push_back(GInstruction(toGOP(static_cast<Name&>(*function).name)));
-}
-
-void PatternName::addVariables(TypeEnvironment& env, Type& type)
-{
-	env.bindName(name, type);
-}
-
-void ConstructorPattern::addVariables(TypeEnvironment& env, Type& type)
-{
-	TypeOperator& typeOp = boost::get<TypeOperator>(type);
-	if (typeOp.types.size() != patterns.size())
-	{
-		std::stringstream str;
-		str << "Cannot match " << type << " in case alternative" << std::endl;
-		throw std::runtime_error(str.str());
-	}
-
-	for (size_t ii = 0; ii < patterns.size(); ++ii)
-	{
-		patterns[ii]->addVariables(env, typeOp.types[ii]);
-	}
-}
-
-void ConstructorPattern::compileGCode(GCompiler& env, std::vector<size_t>& branches, std::vector<GInstruction>& instructions) const
-{
-	instructions.push_back(GInstruction(GOP::CASEJUMP, tag));
-	branches.push_back(instructions.size());
-	instructions.push_back(GInstruction(GOP::JUMP));
-}
-
-Case::Case(std::unique_ptr<Expression> && expr, std::vector<Alternative> && alternatives)
-	: expression(std::move(expr))
-	, alternatives(std::move(alternatives))
-{}
-
 Type& Case::typecheck(TypeEnvironment& env)
 {
 	Type& matchType = expression->typecheck(env);
@@ -451,74 +456,7 @@ Type& Case::typecheck(TypeEnvironment& env)
 	return *returnType;
 }
 
-Type& Case::getType()
-{
-	return expression->getType();
-}
-
-GCompiler::GCompiler()
-	: index(0)
-{
-	Constructor def;
-	def.name = "(,)";
-	def.tag = 0;
-	def.arity = 2;
-	dataDefinitions.push_back(def);
-}
-
-void GCompiler::newStackVariable(const std::string& name)
-{
-	stackVariables.push_back(name);
-}
-void GCompiler::popStack(size_t n)
-{
-	for (size_t i = 0; i < n; i++)
-	{
-		stackVariables.pop_back();
-	}
-}
-
-Variable GCompiler::getVariable(const std::string& name)
-{
-	auto found = std::find(stackVariables.begin(), stackVariables.end(), name);
-	if (found != stackVariables.end())
-	{
-		int index = std::distance(stackVariables.begin(), found);
-		int distanceFromStackTop = stackVariables.size() - index - 1;
-		return Variable { VariableType::STACK, TypeVariable(), index };
-	}
-	auto foundGlobal = globals.find(name);
-	if (foundGlobal != globals.end())
-	{
-		int i = globalIndices[foundGlobal->second.get()];
-		return Variable { VariableType::TOPLEVEL, TypeVariable(), i };
-	}
-	auto foundCtor = std::find_if(dataDefinitions.begin(), dataDefinitions.end(),
-		[&name](const Constructor& def)
-	{
-		return def.name == name;
-	});
-	if (foundCtor != dataDefinitions.end())
-	{
-		int index = std::distance(dataDefinitions.begin(), foundCtor);
-		return Variable { VariableType::CONSTRUCTOR, TypeVariable(), index };
-	}
-	return Variable { VariableType::STACK, TypeVariable(), -1 };
-}
-
-SuperCombinator& GCompiler::getGlobal(const std::string& name)
-{
-	auto found = globals.find(name);
-	if (found == globals.end())
-	{
-		auto& ptr = globals[name] = std::unique_ptr<SuperCombinator>(new SuperCombinator());
-		ptr->name = name;
-		globalIndices[ptr.get()] = index++;
-		return *ptr;
-	}
-	return *found->second;
-}
-
+//compile functions
 
 void Name::compile(GCompiler& env, std::vector<GInstruction>& instructions, bool strict)
 {
