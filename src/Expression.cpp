@@ -6,6 +6,22 @@
 
 namespace MyVMNamespace
 {
+Type intType(TypeOperator("Int"));
+Type doubleType(TypeOperator("Double"));
+
+Type binop = functionType(intType, functionType(intType, intType));
+
+Type createPairCtor()
+{
+	std::vector<Type> args(2);
+	args[0] = TypeVariable();
+	args[1] = TypeVariable();
+	Type pair(TypeOperator("(,)", args));
+	return functionType(args[0], functionType(args[1], pair));
+}
+
+Type pairCtor = createPairCtor();
+Type undefinedType = TypeVariable();
 
 Name::Name(std::string name)
     : name(std::move(name))
@@ -168,24 +184,6 @@ inline bool occurs(const TypeVariable& type, const Type& collection)
 	return false;
 }
 
-
-Type intType(TypeOperator("Int"));
-Type doubleType(TypeOperator("Double"));
-
-Type binop = functionType(intType, functionType(intType, intType));
-
-Type createPairCtor()
-{
-	std::vector<Type> args(2);
-	args[0] = TypeVariable();
-	args[1] = TypeVariable();
-	Type pair(TypeOperator("(,)", args));
-	return functionType(args[0], functionType(args[1], pair));
-}
-
-Type pairCtor = createPairCtor();
-Type undefinedType = TypeVariable();
-
 TypeEnvironment::TypeEnvironment(Module* module)
 	: parent(nullptr)
 	, module(module)
@@ -343,7 +341,6 @@ public:
 
 		for (size_t ii = 0; ii < t1.types.size(); ii++)
 		{
-			std::cerr << t1.types[ii] << "\n" << t2.types[ii] << std::endl;
 			boost::apply_visitor(Unify(env, t1.types[ii], t2.types[ii]), t1.types[ii], t2.types[ii]);
 		}
 	}
@@ -375,7 +372,6 @@ Type& Let::typecheck(TypeEnvironment& env)
 	{
 		child.bindName(bind.name, bind.expression->getType());
 		Type& t = bind.expression->typecheck(child);
-		std::cerr << t << std::endl;
 	}
 	return expression->typecheck(child);
 }
@@ -387,10 +383,8 @@ Type& Lambda::typecheck(TypeEnvironment& env)
 	for (size_t ii = 0; ii < argTypes.size(); ++ii)
 	{
 		child.bindName(arguments[ii], argTypes[ii]);
-		std::cerr << argTypes[ii] << std::endl;
 	}
 	Type* returnType = &body->typecheck(child);
-	std::cerr << *returnType << std::endl;
 
 	for (auto arg = arguments.rbegin(); arg != arguments.rend(); ++arg)
 	{
@@ -407,28 +401,18 @@ Type& Apply::typecheck(TypeEnvironment& env)
 	env.registerType(this->type);
 	Type& funcType = function->typecheck(env);
 	Type& argType = arguments[0]->typecheck(env);
-	std::cerr << funcType << std::endl;
-	std::cerr << argType << std::endl;
 
 	this->type = functionType(argType, TypeVariable());
 
-	std::cerr << this->type << std::endl;
-	std::cerr << funcType << std::endl;
 	Unify(env, this->type, funcType);
-	std::cerr << this->type << std::endl;
 	this->type = boost::get<TypeOperator>(this->type).types[1];
-	std::cerr << this->type << std::endl;
 	for (size_t ii = 1; ii < arguments.size(); ii++)
 	{
 		auto& arg = arguments[ii];
 		Type& argType = arg->typecheck(env);
 		Type temp = functionType(argType, TypeVariable());
 
-		std::cerr << temp << "\n" << type << std::endl;
 		Unify(env, temp, this->type);
-
-		std::cerr << this->type << std::endl;
-		std::cerr << temp << std::endl;
 
 		this->type = boost::get<TypeOperator>(temp).types[1];
 	}

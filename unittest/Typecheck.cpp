@@ -56,7 +56,6 @@ TEST_CASE("typecheck/tuple", "")
 	std::unique_ptr<Expression> expr = parser.expression();
 	TypeEnvironment env(nullptr);
 	Type& type = expr->typecheck(env);
-	std::cerr << type << std::endl;
 
 	std::vector<Type> args(2);
 	args[0] = TypeOperator("Int");
