@@ -149,6 +149,46 @@ TEST_CASE("typecheck/module/recursive", "")
 	REQUIRE(module.bindings[0].expression->getType() == functionType(TypeOperator("Int"), TypeOperator("Int")));
 }
 
+TEST_CASE("typecheck/letrec", "")
+{
+	std::stringstream stream(
+"let\n\
+    f x = x + g x\n\
+    g y = y * f y\n\
+in f 2\n");
+	Tokenizer tokenizer(stream);
+	Parser parser(tokenizer);
+
+	auto expr = parser.expression();
+	TypeEnvironment env(nullptr);
+	Type& type = expr->typecheck(env);
+
+	REQUIRE(type == Type(TypeOperator("Int")));
+}
+
+
+//Check if the types are the same, ignoring which type variable they are
+bool sameTypes(const Type& lhs, const Type& rhs)
+{
+	if (lhs.which() == 0 && rhs.which() == 0)
+	{
+		return true;
+	}
+	else if (lhs.which() == rhs.which())
+	{
+		auto& l = boost::get<TypeOperator>(lhs);
+		auto& r = boost::get<TypeOperator>(lhs);
+		if (l.name != r.name || l.types.size() != r.types.size())
+			return false;
+
+		for (size_t ii = 0; ii < l.types.size(); ii++)
+		{
+			return sameTypes(l.types[ii], r.types[ii]);
+		}
+	}
+	return false;
+}
+
 TEST_CASE("typecheck/module/mutual_recursion", "")
 {
 	std::stringstream stream(
@@ -158,12 +198,9 @@ test2 y = 2 * test1 y\n");
 	Parser parser(tokenizer);
 
 	Module module = parser.module();
-	TypeEnvironment env(&module);
-	for (auto& bind : module.bindings)
-	{
-		bind.expression->typecheck(env);
-	}
+	module.typecheck();
 
-	REQUIRE(module.bindings[0].expression->getType() == functionType(TypeOperator("Int"), TypeOperator("Int")));
-	REQUIRE(module.bindings[1].expression->getType() == functionType(TypeOperator("Int"), TypeOperator("Int")));
+	Type x = functionType(TypeVariable(), TypeOperator("Int"));
+	REQUIRE(sameTypes(module.bindings[0].expression->getType(), x));
+	REQUIRE(sameTypes(module.bindings[1].expression->getType(), x));
 }

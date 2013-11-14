@@ -67,6 +67,9 @@ private:
 	std::vector<Type*> types;
 };
 
+
+void unify(TypeEnvironment& env, Type& lhs, Type& rhs);
+
 class GCompiler
 {
 public:

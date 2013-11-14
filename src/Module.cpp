@@ -28,4 +28,21 @@ TypeDeclaration::TypeDeclaration(TypeDeclaration && other)
 {
 }
 
+void Module::typecheck()
+{
+	TypeEnvironment env(this);
+	for (auto& bind : bindings)
+	{
+		env.bindName(bind.name, bind.expression->getType());
+	}
+	for (auto& bind : bindings)
+	{
+		Type newType = TypeVariable();
+		Type& actual = bind.expression->typecheck(env);
+		std::cerr << actual << "\n" << newType << std::endl;
+		unify(env, newType, actual);
+		std::cerr << actual << "\n" << newType << std::endl;
+	}
+}
+
 }

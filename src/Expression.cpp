@@ -350,6 +350,11 @@ public:
 	Type& rhs;
 };
 
+void unify(TypeEnvironment& env, Type& lhs, Type& rhs)
+{
+	Unify(env, lhs, rhs);
+}
+
 Type& Name::typecheck(TypeEnvironment& env)
 {
 	return env.getType(this->name);
@@ -367,11 +372,28 @@ Type& Number::typecheck(TypeEnvironment& env)
 
 Type& Let::typecheck(TypeEnvironment& env)
 {
+	isRecursive = true;
 	TypeEnvironment& child = env.child();
-	for (auto& bind : bindings)
+	if (isRecursive)
 	{
-		child.bindName(bind.name, bind.expression->getType());
-		Type& t = bind.expression->typecheck(child);
+		for (auto& bind : bindings)
+		{
+			child.bindName(bind.name, bind.expression->getType());
+		}
+		for (auto& bind : bindings)
+		{
+			Type newType = TypeVariable();
+			Type& actual = bind.expression->typecheck(child);
+			Unify(child, newType, actual);
+		}
+	}
+	else
+	{
+		for (auto& bind : bindings)
+		{
+			child.bindName(bind.name, bind.expression->getType());
+			Type& t = bind.expression->typecheck(child);
+		}
 	}
 	return expression->typecheck(child);
 }

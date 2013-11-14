@@ -44,6 +44,8 @@ public:
 	{
 	}
 
+	void typecheck();
+
 	std::vector<Binding> bindings;
 	std::vector<TypeDeclaration> typeDeclaration;
 	std::vector<DataDefinition> dataDefinitions;
