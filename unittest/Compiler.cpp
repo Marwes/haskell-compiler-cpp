@@ -43,13 +43,14 @@ TEST_CASE("compiler/compare", "Test compiling an arithmetic expression")
 }
 
 #if 0
-
 TEST_CASE("compiler/let", "")
 {
 	const char* expr =
-"let one = 1\n\
-    double x = 2*x\n\
-in double 3 + 1";
+"\n\
+    let\n\
+        one = 1\n\
+        double x = 2*x\n\
+    in double 3 + 1";
 	REQUIRE(evaluateInt(expr) == 7);
 }
 

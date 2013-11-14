@@ -29,13 +29,8 @@ void GMachine::compile(std::istream& input)
 	Tokenizer tokens(input);
 	Parser parser(tokens);
 	Module module = parser.module();
-	
-	TypeEnvironment typeEnvironment(&module);
-	for (Binding& bind : module.bindings)
-	{
-		bind.expression->typecheck(typeEnvironment);
-	}
 
+	module.typecheck();
 
 	GCompiler comp;
 	for (Binding& bind : module.bindings)
@@ -279,8 +274,16 @@ void GMachine::execute(GEnvironment& environment)
             break;
 
 			BINOP(+, ADD)
-			BINOP(-, SUBTRACT)
-			BINOP(*, MULTIPLY)
+				BINOP(-, SUBTRACT)
+		case GOP::MULTIPLY:
+			{
+			Address rhs = environment.stack.pop();
+			Address lhs = environment.stack.top();
+			int result = lhs.getNode()->number * rhs.getNode()->number;
+			heap.push_back(Node(result));
+			environment.stack.top() = Address::number(&heap.back());
+			}
+			break;
 			BINOP(/ , DIVIDE)
 			BINOP(%, REMAINDER)
 
