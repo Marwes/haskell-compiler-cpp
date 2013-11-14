@@ -39,9 +39,7 @@ void Module::typecheck()
 	{
 		Type newType = TypeVariable();
 		Type& actual = bind.expression->typecheck(env);
-		std::cerr << actual << "\n" << newType << std::endl;
 		unify(env, newType, actual);
-		std::cerr << actual << "\n" << newType << std::endl;
 	}
 }
 
