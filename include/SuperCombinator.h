@@ -28,6 +28,7 @@ enum class GOP : unsigned char
 	NEGATE,
 
 	COMPARE_EQ,
+	COMPARE_NEQ,
 	COMPARE_GT,
 	COMPARE_GE,
 	COMPARE_LT,

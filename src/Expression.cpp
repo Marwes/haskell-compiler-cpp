@@ -109,6 +109,12 @@ GOP toGOP(const std::string& op)
 	if (op == "*") return GOP::MULTIPLY;
 	if (op == "/") return GOP::DIVIDE;
 	if (op == "%") return GOP::REMAINDER;
+	if (op == "==") return GOP::COMPARE_EQ;
+	if (op == "/=") return GOP::COMPARE_NEQ;
+	if (op == ">") return GOP::COMPARE_GT;
+	if (op == "<") return GOP::COMPARE_LT;
+	if (op == ">=") return GOP::COMPARE_GE;
+	if (op == "<=") return GOP::COMPARE_LE;
 	throw std::runtime_error("Unknown op" + op);
 }
 
@@ -116,7 +122,8 @@ void PrimOP::compile(GCompiler& env, std::vector<GInstruction>& instructions, bo
 {
 	arguments[0]->compile(env, instructions, true);
 	arguments[1]->compile(env, instructions, true);
-	instructions.push_back(GInstruction(toGOP(static_cast<Name&>(*function).name)));
+	GOP op = toGOP(static_cast<Name&>(*function).name);
+	instructions.push_back(GInstruction(op));
 }
 
 void PatternName::addVariables(TypeEnvironment& env, Type& type)
@@ -193,6 +200,12 @@ TypeEnvironment::TypeEnvironment(Module* module)
 	bindName("*", binop);
 	bindName("/", binop);
 	bindName("%", binop);
+	bindName("==", binop);
+	bindName("/=", binop);
+	bindName("<", binop);
+	bindName(">", binop);
+	bindName("<=", binop);
+	bindName(">=", binop);
 	bindName("(,)", pairCtor);
 	bindName("undefined", undefinedType);
 }

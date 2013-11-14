@@ -278,15 +278,7 @@ void GMachine::execute(GEnvironment& environment)
 			}\
             break;
 
-		case GOP::ADD:
-						 {
-						 Address rhs = environment.stack.pop(); 
-						 Address lhs = environment.stack.top(); 
-						 int result = lhs.getNode()->number + rhs.getNode()->number; 
-						 heap.push_back(Node(result)); 
-						 environment.stack.top() = Address::number(&heap.back()); 
-						 }
-						 break;
+			BINOP(+, ADD)
 			BINOP(-, SUBTRACT)
 			BINOP(*, MULTIPLY)
 			BINOP(/ , DIVIDE)
@@ -300,7 +292,8 @@ void GMachine::execute(GEnvironment& environment)
 			}
 			break;
 
-			BINOP(==, COMPARE_EQ)
+			BINOP(== , COMPARE_EQ)
+			BINOP(!= , COMPARE_NEQ)
 			BINOP(> , COMPARE_GT)
 			BINOP(>=, COMPARE_GE)
 			BINOP(< , COMPARE_LT)

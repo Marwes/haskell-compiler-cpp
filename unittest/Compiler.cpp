@@ -32,7 +32,6 @@ TEST_CASE("compiler/arithmetic", "Test compiling an arithmetic expression")
 	REQUIRE(evaluateInt("let f x = x * x in f 3 + f 2") == 13);
 }
 
-#if 0
 TEST_CASE("compiler/compare", "Test compiling an arithmetic expression")
 {
 	REQUIRE(evaluateInt("3==2") == 0);
@@ -42,6 +41,8 @@ TEST_CASE("compiler/compare", "Test compiling an arithmetic expression")
 	REQUIRE(evaluateInt("3 < 2") == 0);
 	REQUIRE(evaluateInt("let one = 1 in one /= 2") == 1);
 }
+
+#if 0
 
 TEST_CASE("compiler/let", "")
 {
