@@ -40,18 +40,18 @@ public:
 	TypeDeclaration typeDeclaration();
 	Type type();
 
-	//Parse a data definition, data NAME = many1 constructor
+	//Parse a data definition, data NAME = sepBy1 constructor
 	DataDefinition dataDefinition();
 	Constructor constructor(const Type& dataType);
 
 	//Parse 1 to N occurances of the argument parse, each seperated by 'delim'
 	template<class TResult>
-	std::vector<TResult> many1(TResult(Parser::*parse)(), SymbolEnum delim);
+	std::vector<TResult> sepBy1(TResult(Parser::*parse)(), SymbolEnum delim);
 	//Parse 1 to N occurances of the argument parse, each seperated by tokens giving a true result from the delim function
 	template<class TResult, class F>
-	std::vector<TResult> many1(TResult(Parser::*parse)(), F delim);
+	std::vector<TResult> sepBy1(TResult(Parser::*parse)(), F delim);
 	template<class TResult, class T, class F>
-	std::vector<TResult> many1(TResult(Parser::*parse)(const T& t), const T& t, F delim);
+	std::vector<TResult> sepBy1(TResult(Parser::*parse)(const T& t), const T& t, F delim);
 
 	//Parse a binary operator expression, taking into account the precedence of the operators
 	std::unique_ptr<Expression> parseOperatorExpression(std::unique_ptr<Expression> lhs, int minPrecedence);
@@ -60,7 +60,7 @@ private:
 };
 
 template<class TResult>
-inline std::vector<TResult> Parser::many1(TResult (Parser::*parse)(), SymbolEnum delim)
+inline std::vector<TResult> Parser::sepBy1(TResult (Parser::*parse)(), SymbolEnum delim)
 {
 	const Token* tokenDelim;
 	std::vector<TResult> result;
@@ -73,7 +73,7 @@ inline std::vector<TResult> Parser::many1(TResult (Parser::*parse)(), SymbolEnum
 	return std::move(result);
 }
 template<class TResult, class F>
-inline std::vector<TResult> Parser::many1(TResult(Parser::*parse)(), F delim)
+inline std::vector<TResult> Parser::sepBy1(TResult(Parser::*parse)(), F delim)
 {
 	const Token* tokenDelim;
 	std::vector<TResult> result;
@@ -86,7 +86,7 @@ inline std::vector<TResult> Parser::many1(TResult(Parser::*parse)(), F delim)
 	return std::move(result);
 }
 template<class TResult, class T, class F>
-inline std::vector<TResult> Parser::many1(TResult(Parser::*parse)(const T& t), const T& t, F delim)
+inline std::vector<TResult> Parser::sepBy1(TResult(Parser::*parse)(const T& t), const T& t, F delim)
 {
 	const Token* tokenDelim;
 	std::vector<TResult> result;

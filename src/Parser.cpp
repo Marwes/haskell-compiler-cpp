@@ -251,7 +251,7 @@ std::unique_ptr<Expression> Parser::subExpression(bool (*parseError)(const Token
 				throw std::runtime_error("Expected bracket after 'of' keyword");
 			}
 
-			auto alts = many1(&Parser::alternative, SymbolEnum::SEMICOLON);
+			auto alts = sepBy1(&Parser::alternative, SymbolEnum::SEMICOLON);
 			const Token& rBrace = *tokenizer;
 			if (rBrace.type != SymbolEnum::RBRACE)
 			{
@@ -396,12 +396,14 @@ std::unique_ptr<Pattern> Parser::pattern()
 	switch (token.type)
 	{
 	case SymbolEnum::NAME:
-		return std::unique_ptr<Pattern>(new PatternName(token.name));
+		{
+			return std::unique_ptr<Pattern>(new PatternName(token.name));
+		}
 	case SymbolEnum::NUMBER:
 		return std::unique_ptr<Pattern>(new NumberLiteral(atoi(token.name.c_str())));
 	case SymbolEnum::LPARENS:
 		{
-			auto tupleArgs = many1(&Parser::pattern, SymbolEnum::COMMA);
+			auto tupleArgs = sepBy1(&Parser::pattern, SymbolEnum::COMMA);
 			const Token& rParens = *tokenizer;
 			if (rParens.type != SymbolEnum::RPARENS)
 			{
@@ -484,7 +486,7 @@ DataDefinition Parser::dataDefinition()
 	Type dataType = TypeOperator(dataName.name);
 	DataDefinition definition;
 	definition.name = dataName.name;
-	definition.constructors = many1(&Parser::constructor, dataType,
+	definition.constructors = sepBy1(&Parser::constructor, dataType,
 		[](const Token& t)
 	{
 		return t.type == SymbolEnum::OPERATOR && t.name == "|";
@@ -528,7 +530,7 @@ Type Parser::type()
 			{
 				--tokenizer;
 				--tokenizer;
-				auto tupleArgs = many1(&Parser::type, SymbolEnum::COMMA);
+				auto tupleArgs = sepBy1(&Parser::type, SymbolEnum::COMMA);
 				const Token& rParens = *tokenizer;
 				if (rParens.type == SymbolEnum::RPARENS)
 				{
