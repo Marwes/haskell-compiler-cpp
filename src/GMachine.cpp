@@ -32,6 +32,17 @@ void GMachine::compile(std::istream& input)
 
 	module.typecheck();
 
+	//Assign unique numbers for the tags so they can be correctly retrieved
+	int tag = 0;
+	for (DataDefinition& dataDef : module.dataDefinitions)
+	{
+		for (Constructor& ctor : dataDef.constructors)
+		{
+			ctor.tag = tag++;
+			dataDefinitions.push_back(ctor);
+		}
+	}
+
 	GCompiler comp(&module);
 	for (Binding& bind : module.bindings)
 	{
@@ -58,17 +69,6 @@ void GMachine::compile(std::istream& input)
 			sc.instructions.push_back(GInstruction(GOP::UPDATE, 0));
 			//sc.instructions.push_back(GInstruction(GOP::POP, 0));
 			sc.instructions.push_back(GInstruction(GOP::UNWIND));
-		}
-	}
-
-	//Assign unique numbers for the tags so they can be correctly retrieved
-	int tag = 0;
-	for (DataDefinition& dataDef : module.dataDefinitions)
-	{
-		for (Constructor& ctor : dataDef.constructors)
-		{
-			ctor.tag = tag++;
-			dataDefinitions.push_back(ctor);
 		}
 	}
 

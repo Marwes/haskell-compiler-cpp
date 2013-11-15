@@ -61,6 +61,26 @@ main = Vec2 1 2\n";
 	REQUIRE(ctor.arguments[1].getNode()->number == 2);
 }
 
+TEST_CASE("compiler/data/different names", "")
+{
+	GMachine machine;
+	const char* main =
+"data Tuple = Triple Int Int Int\n\
+main = Triple 1 2 3\n";
+	std::stringstream expr(main);
+	machine.compile(expr);
+
+	Address result = machine.executeMain();
+	REQUIRE(result.getType() == CONSTRUCTOR);
+	ConstructorNode ctor = result.getNode()->constructor;
+	REQUIRE(ctor.arguments[0].getType() == NUMBER);
+	REQUIRE(ctor.arguments[0].getNode()->number == 1);
+	REQUIRE(ctor.arguments[1].getType() == NUMBER);
+	REQUIRE(ctor.arguments[1].getNode()->number == 2);
+	REQUIRE(ctor.arguments[2].getType() == NUMBER);
+	REQUIRE(ctor.arguments[2].getNode()->number == 3);
+}
+
 #if 0
 TEST_CASE("compiler/let", "")
 {
