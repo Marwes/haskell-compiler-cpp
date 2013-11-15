@@ -131,19 +131,34 @@ void PatternName::addVariables(TypeEnvironment& env, Type& type)
 	env.bindName(name, type);
 }
 
+Type getReturnType(Type t)
+{
+	while (t.which() == 1)
+	{
+		TypeOperator& op = boost::get<TypeOperator>(t);
+		if (op.name == "->")
+		{
+			t = op.types[1];
+		}
+		else
+		{
+			return t;
+		}
+	}
+	return t;
+}
+
 void ConstructorPattern::addVariables(TypeEnvironment& env, Type& type)
 {
-	TypeOperator& typeOp = boost::get<TypeOperator>(type);
-	if (typeOp.types.size() != patterns.size())
-	{
-		std::stringstream str;
-		str << "Cannot match " << type << " in case alternative" << std::endl;
-		throw std::runtime_error(str.str());
-	}
+	Type& t = env.getType(this->name);
+	Type dataType = getReturnType(t);
+	unify(env, dataType, type);
 
+	TypeOperator* funcType = &boost::get<TypeOperator>(t);
 	for (size_t ii = 0; ii < patterns.size(); ++ii)
 	{
-		patterns[ii]->addVariables(env, typeOp.types[ii]);
+		patterns[ii]->addVariables(env, funcType->types[0]);
+		funcType = &boost::get<TypeOperator>(funcType->types[1]);
 	}
 }
 
@@ -556,9 +571,8 @@ void Let::compile(GCompiler& env, std::vector<GInstruction>& instructions, bool 
 	expression->compile(env, instructions, strict);
 	instructions.push_back(GInstruction(GOP::SLIDE, bindings.size()));
 	env.popStack(bindings.size());
-	if (strict)
+	if (isRecursive)
 	{
-		instructions.push_back(GInstruction(GOP::EVAL));
 		env.popStack(bindings.size());
 	}
 }
@@ -576,7 +590,9 @@ void Apply::compile(GCompiler& env, std::vector<GInstruction>& instructions, boo
 	}
 	function->compile(env, instructions, strict);
 	env.popStack(arguments.size());
-	if (instructions[instructions.size() - 2].op == GOP::PACK)
+	if (strict && instructions[instructions.size() - 2].op == GOP::PACK)
+		return;
+	if (!strict && instructions.back().op == GOP::PACK)
 		return;
 	for (size_t ii = 0; ii < arguments.size(); ++ii)
 		instructions.push_back(GInstruction(GOP::MKAP));
@@ -613,6 +629,12 @@ void Case::compile(GCompiler& env, std::vector<GInstruction>& instructions, bool
 		{
 			env.stackVariables.pop_back();
 		}
+		branches[ii] = instructions.size();
+		instructions.push_back(GInstruction(GOP::JUMP, 0));
+	}
+	for (size_t branch : branches)
+	{
+		instructions[branch].value = instructions.size();
 	}
 	if (strict)
 		instructions.push_back(GInstruction(GOP::EVAL));

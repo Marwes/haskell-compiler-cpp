@@ -109,18 +109,13 @@ TEST_CASE("compiler/data/patternmatch", "")
 length xs = case xs of\n\
     Cons n ys -> 1 + length ys\n\
     Nil -> 0\n\
-main = length (Cons 1 (Cons 2 Nil))\n";
+main = length (Cons 10 (Cons 20 Nil))\n";
 	std::stringstream expr(main);
 	machine.compile(expr);
 
 	Address result = machine.executeMain();
-	REQUIRE(result.getType() == CONSTRUCTOR);
-	ConstructorNode ctor = result.getNode()->constructor;
-	REQUIRE(ctor.arguments[0].getType() == NUMBER);
-	REQUIRE(ctor.arguments[0].getNode()->number == 1);
-	REQUIRE(ctor.arguments[1].getType() == CONSTRUCTOR);
-	ConstructorNode nil = ctor.arguments[1].getNode()->constructor;
-	REQUIRE(nil.tag == 1);
+	REQUIRE(result.getType() == NUMBER);
+	REQUIRE(result.getNode()->number == 2);
 }
 
 #if 0

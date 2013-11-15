@@ -213,7 +213,7 @@ public:
 
 	virtual void compileGCode(GCompiler& env, std::vector<size_t>& branches, std::vector<GInstruction>& instructions) const
 	{
-		assert(0);
+		branches.push_back(instructions.size());
 	}
 };
 

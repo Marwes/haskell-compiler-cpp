@@ -433,7 +433,7 @@ std::vector<std::unique_ptr<Pattern>> Parser::patternParameter()
 		}
 	}
 endloop:
-	tokenizer--;
+	--tokenizer;
 	return parameters;
 }
 
@@ -445,7 +445,7 @@ std::unique_ptr<Pattern> Parser::pattern()
 	case SymbolEnum::NAME:
 		{
 			std::vector<std::unique_ptr<Pattern>> patterns = patternParameter();
-			if (patterns.empty())
+			if (patterns.empty() && islower(nameToken.name[0]))
 			{
 				return std::unique_ptr<Pattern>(new PatternName(nameToken.name));
 			}
