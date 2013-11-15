@@ -6,10 +6,10 @@ namespace MyVMNamespace
 GCompiler::GCompiler()
 	: index(0)
 {
-	Constructor def;
-	def.name = "(,)";
-	def.tag = 0;
-	def.arity = 2;
+	std::vector<Type> args(2);
+	args[0] = TypeVariable();
+	args[1] = TypeVariable();
+	Constructor def("(,)", TypeOperator("(,)", args), 0, 2);
 	dataDefinitions.push_back(def);
 }
 

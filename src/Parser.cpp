@@ -133,7 +133,8 @@ Module Parser::module()
 		throw std::runtime_error("Expected '}' to end module, got " + std::string(enumToString(rBracket.type)));
 	}
 
-	if (tokenizer.nextToken().type != SymbolEnum::NONE)
+	const Token& none = tokenizer.nextToken();
+	if (none.type != SymbolEnum::NONE)
 	{
 		throw std::runtime_error("Unexpected token after end of module, " + std::string(enumToString(tokenizer->type)));
 	}
@@ -433,19 +434,27 @@ TypeDeclaration Parser::typeDeclaration()
 	return TypeDeclaration(nameToken.name, std::move(t));
 }
 
-Constructor Parser::constructor()
+Type constructorType(Tokenizer& tokenizer, int& arity, const Type& returnType)
+{
+	const Token* token = &tokenizer.nextToken();
+	if (token->type == SymbolEnum::NAME)
+	{
+		arity++;
+		return functionType(TypeOperator(token->name), constructorType(tokenizer, arity, returnType));
+	}
+	else
+	{
+		return returnType;
+	}
+}
+
+Constructor Parser::constructor(const Type& dataType)
 {
 	const Token& nameToken = tokenizer.nextToken();
-	Constructor ctor;
-	ctor.name = nameToken.name;
-	const Token* tok = &tokenizer.nextToken();
-	while (tok->type == SymbolEnum::NAME)
-	{
-		ctor.arity += 1;
-		tok = &tokenizer.nextToken();
-	}
+	int arity = 0;
+	Type type = constructorType(tokenizer, arity, dataType);
 	--tokenizer;
-	return std::move(ctor);
+	return Constructor(nameToken.name, type, 0, arity);
 }
 
 DataDefinition Parser::dataDefinition()
@@ -465,9 +474,11 @@ DataDefinition Parser::dataDefinition()
 	{
 		throw std::runtime_error("Expected EQUAL token");
 	}
+	Type dataType = TypeOperator(dataName.name);
 	DataDefinition definition;
 	definition.name = dataName.name;
-	definition.constructors = many1(&Parser::constructor, [](const Token& t)
+	definition.constructors = many1(&Parser::constructor, dataType,
+		[](const Token& t)
 	{
 		return t.type == SymbolEnum::OPERATOR && t.name == "|";
 	});
@@ -475,6 +486,7 @@ DataDefinition Parser::dataDefinition()
 	{
 		definition.constructors[ii].tag = ii;
 	}
+	--tokenizer;
 	return std::move(definition);
 }
 

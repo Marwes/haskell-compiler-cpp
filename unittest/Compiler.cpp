@@ -42,6 +42,19 @@ TEST_CASE("compiler/compare", "Test compiling an arithmetic expression")
 	REQUIRE(evaluateInt("let one = 1 in one /= 2") == 1);
 }
 
+
+TEST_CASE("compiler/data", "")
+{
+	GMachine machine;
+	const char* main =
+"data Vec2 = Vec2 Int Int\n\
+main = Vec2 1 2\n";
+	std::stringstream expr(main);
+	machine.compile(expr);
+
+	Address result = machine.executeMain();
+}
+
 #if 0
 TEST_CASE("compiler/let", "")
 {

@@ -249,6 +249,16 @@ Type& TypeEnvironment::getType(const std::string& name)
 		{
 			return found->expression->getType();
 		}
+		for (auto& def : module->dataDefinitions)
+		{
+			for (auto& ctor : def.constructors)
+			{
+				if (ctor.name == name)
+				{
+					return ctor.type;
+				}
+			}
+		}
 	}
 	throw std::runtime_error("Could not find the identifier " + name);
 }

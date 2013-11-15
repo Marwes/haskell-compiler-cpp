@@ -42,7 +42,7 @@ public:
 
 	//Parse a data definition, data NAME = many1 constructor
 	DataDefinition dataDefinition();
-	Constructor constructor();
+	Constructor constructor(const Type& dataType);
 
 	//Parse 1 to N occurances of the argument parse, each seperated by 'delim'
 	template<class TResult>
@@ -50,6 +50,8 @@ public:
 	//Parse 1 to N occurances of the argument parse, each seperated by tokens giving a true result from the delim function
 	template<class TResult, class F>
 	std::vector<TResult> many1(TResult(Parser::*parse)(), F delim);
+	template<class TResult, class T, class F>
+	std::vector<TResult> many1(TResult(Parser::*parse)(const T& t), const T& t, F delim);
 
 	//Parse a binary operator expression, taking into account the precedence of the operators
 	std::unique_ptr<Expression> parseOperatorExpression(std::unique_ptr<Expression> lhs, int minPrecedence);
@@ -78,6 +80,19 @@ inline std::vector<TResult> Parser::many1(TResult(Parser::*parse)(), F delim)
 	do
 	{
 		TResult x = (this->*parse)();
+		result.push_back(std::move(x));
+		tokenDelim = &tokenizer.nextToken();
+	} while (delim(*tokenDelim));
+	return std::move(result);
+}
+template<class TResult, class T, class F>
+inline std::vector<TResult> Parser::many1(TResult(Parser::*parse)(const T& t), const T& t, F delim)
+{
+	const Token* tokenDelim;
+	std::vector<TResult> result;
+	do
+	{
+		TResult x = (this->*parse)(t);
 		result.push_back(std::move(x));
 		tokenDelim = &tokenizer.nextToken();
 	} while (delim(*tokenDelim));

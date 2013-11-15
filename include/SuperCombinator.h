@@ -59,11 +59,14 @@ public:
 class Constructor
 {
 public:
-	Constructor()
-		: tag(0)
-		, arity(0)
+	Constructor(std::string name, Type type, int tag, int arity)
+		: name(std::move(name))
+		, type(std::move(type))
+		, tag(tag)
+		, arity(arity)
 	{}
 	std::string name;
+	Type type;
 	int tag;
 	int arity;
 };
