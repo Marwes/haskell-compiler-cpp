@@ -149,13 +149,19 @@ std::unique_ptr<Expression> Parser::expression()
 	}
 }
 
+std::string tupleName(size_t size)
+{
+	std::string name(size + 1, ',');
+	name.front() = '(';
+	name.back() = ')';
+	return std::move(name);
+}
+
 //Create a tuple with the constructor name inferred from the number of arguments passed in
 std::unique_ptr<Expression> newTuple(std::vector<std::unique_ptr<Expression>>&& arguments)
 {
-	std::string name(arguments.size() + 1, ',');
-	name.front() = '(';
-	name.back() = ')';
-	return std::unique_ptr<Expression>(new Apply(std::unique_ptr<Expression>(new Name(name)), std::move(arguments)));
+	std::unique_ptr<Expression> name(new Name(tupleName(arguments.size())));
+	return std::unique_ptr<Expression>(new Apply(std::move(name), std::move(arguments)));
 }
 
 bool subExpressionError(const Token& t)
@@ -445,13 +451,14 @@ std::unique_ptr<Pattern> Parser::pattern()
 	case SymbolEnum::NAME:
 		{
 			std::vector<std::unique_ptr<Pattern>> patterns = patternParameter();
-			if (patterns.empty() && islower(nameToken.name[0]))
+			if (isupper(nameToken.name[0]))
 			{
-				return std::unique_ptr<Pattern>(new PatternName(nameToken.name));
+				return std::unique_ptr<Pattern>(new ConstructorPattern(nameToken.name, std::move(patterns)));
 			}
 			else
 			{
-				return std::unique_ptr<Pattern>(new ConstructorPattern(nameToken.name, std::move(patterns)));
+				assert(patterns.empty());
+				return std::unique_ptr<Pattern>(new PatternName(nameToken.name));
 			}
 		}
 	case SymbolEnum::NUMBER:
@@ -464,7 +471,7 @@ std::unique_ptr<Pattern> Parser::pattern()
 			{
 				throw std::runtime_error("Expected RPARENS, got" + std::string(enumToString(rParens.type)));
 			}
-			return std::unique_ptr<Pattern>(new ConstructorPattern(std::move(tupleArgs)));
+			return std::unique_ptr<Pattern>(new ConstructorPattern(tupleName(tupleArgs.size()), std::move(tupleArgs)));
 		}
 		break;
 	default:
@@ -562,13 +569,9 @@ bool typeParseError(const Token& t)
 		&& t.type != SymbolEnum::RPARENS;
 }
 
-
 Type tupleType(const std::vector<Type>& types)
 {
-	std::string name(types.size() + 1, ',');
-	name.front() = '(';
-	name.back() = ')';
-	return TypeOperator(std::move(name), types);
+	return TypeOperator(tupleName(types.size()), types);
 }
 
 Type Parser::type()
