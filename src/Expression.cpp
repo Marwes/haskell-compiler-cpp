@@ -625,6 +625,7 @@ void Case::compile(GCompiler& env, std::vector<GInstruction>& instructions, bool
 
 		alt.expression->compile(env, instructions, strict);
 
+		instructions.push_back(GInstruction(GOP::SLIDE, pattern.patterns.size()));
 		for (auto& varName : pattern.patterns)
 		{
 			env.stackVariables.pop_back();
@@ -634,6 +635,7 @@ void Case::compile(GCompiler& env, std::vector<GInstruction>& instructions, bool
 	}
 	for (size_t branch : branches)
 	{
+		//Update the jump instructions jump value
 		instructions[branch].value = instructions.size();
 	}
 	if (strict)
