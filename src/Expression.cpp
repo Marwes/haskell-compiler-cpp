@@ -603,7 +603,7 @@ void Case::compile(GCompiler& env, std::vector<GInstruction>& instructions, bool
 {
 	expression->compile(env, instructions, strict);
 	env.newStackVariable("");
-	std::vector<size_t> branches;
+	std::vector<size_t> branches;//vector holding the indexes of the JUMP instructions
 	for (Alternative& alt : alternatives)
 	{
 		alt.pattern->compileGCode(env, branches, instructions);
@@ -611,6 +611,7 @@ void Case::compile(GCompiler& env, std::vector<GInstruction>& instructions, bool
 	for (size_t ii = 0; ii < alternatives.size(); ii++)
 	{
 		Alternative& alt = alternatives[ii];
+		//Set the JUMP instructions value to the upcoming SPLIT instruction
 		instructions[branches[ii]].value = instructions.size();
 
 		auto& pattern = dynamic_cast<ConstructorPattern&>(*alt.pattern);
@@ -625,11 +626,13 @@ void Case::compile(GCompiler& env, std::vector<GInstruction>& instructions, bool
 
 		alt.expression->compile(env, instructions, strict);
 
+		//Remove all the locals we allocated
 		instructions.push_back(GInstruction(GOP::SLIDE, pattern.patterns.size()));
 		for (auto& varName : pattern.patterns)
 		{
 			env.stackVariables.pop_back();
 		}
+		//Reuse the branch vector by storing this new instructions index
 		branches[ii] = instructions.size();
 		instructions.push_back(GInstruction(GOP::JUMP, 0));
 	}
