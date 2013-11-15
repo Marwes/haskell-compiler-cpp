@@ -171,7 +171,8 @@ bool subExpressionError(const Token& t)
 		&& t.type != SymbolEnum::CASE
 		&& t.type != SymbolEnum::NAME
 		&& t.type != SymbolEnum::NUMBER
-		&& t.type != SymbolEnum::SEMICOLON;
+		&& t.type != SymbolEnum::SEMICOLON
+		&& t.type != SymbolEnum::LBRACKET;
 }
 
 
@@ -372,6 +373,8 @@ bool applicationError(const Token& t)
 {
 	return t.type != SymbolEnum::LPARENS
 		&& t.type != SymbolEnum::RPARENS
+		&& t.type != SymbolEnum::LBRACKET
+		&& t.type != SymbolEnum::RBRACKET
 		&& t.type != SymbolEnum::LET
 		&& t.type != SymbolEnum::OF
 		&& t.type != SymbolEnum::NAME

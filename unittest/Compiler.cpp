@@ -117,6 +117,7 @@ main = length (Cons 10 (Cons 20 Nil))\n";
 	REQUIRE(result.getType() == NUMBER);
 	REQUIRE(result.getNode()->number == 2);
 }
+
 TEST_CASE("compiler/data/map", "")
 {
 	GMachine machine;
@@ -140,6 +141,21 @@ main = sum (map add2 (Cons 10 (Cons 20 Nil)))\n";
 	Address result = machine.executeMain();
 	REQUIRE(result.getType() == NUMBER);
 	REQUIRE(result.getNode()->number == 34);
+}
+
+
+TEST_CASE("compiler/list", "")
+{
+	GMachine machine;
+	const char* main =
+"head xs = case xs of\n\
+    : y ys -> y\n\
+main = [1,2,3]\n";
+	std::stringstream expr(main);
+	machine.compile(expr);
+
+	Address result = machine.executeMain();
+	REQUIRE(result.getType() == CONSTRUCTOR);
 }
 
 #if 0

@@ -28,30 +28,43 @@ TypeDeclaration::TypeDeclaration(TypeDeclaration && other)
 {
 }
 
+void addDefaultData(std::vector<DataDefinition>& dataDefinitions)
+{
+	{
+		std::vector<Type> args(2);
+		args[0] = TypeVariable();
+		args[1] = TypeVariable();
+		Constructor ctor("(,)", functionType(args[0], functionType(args[1], TypeOperator("(,)", args))), 0, 2);
+		DataDefinition def;
+		def.name = "(,)";
+		def.constructors.push_back(ctor);
+		dataDefinitions.push_back(def);
+	}
+
+	{
+		std::vector<Type> args(1);
+		args[0] = TypeVariable();
+		TypeOperator listType("[]", args);
+		Constructor ctor(":", functionType(args[0], functionType(listType, listType)), 0, 2);
+		Constructor ctor2("[]", listType, 0, 0);
+		DataDefinition def;
+		def.name = "[]";
+		def.constructors.push_back(ctor);
+		def.constructors.push_back(ctor2);
+		dataDefinitions.push_back(def);
+	}
+}
+
 Module::Module()
 {
-	std::vector<Type> args(2);
-	args[0] = TypeVariable();
-	args[1] = TypeVariable();
-	Constructor ctor("(,)", functionType(args[0], functionType(args[1], TypeOperator("(,)", args))), 0, 2);
-	DataDefinition def;
-	def.name = "(,)";
-	def.constructors.push_back(ctor);
-	dataDefinitions.push_back(def);
+	addDefaultData(dataDefinitions);
 }
 
 Module::Module(std::vector<Binding> && bindings, std::vector<TypeDeclaration> && typeDeclaration)
 	: bindings(std::move(bindings))
 	, typeDeclaration(std::move(typeDeclaration))
 {
-	std::vector<Type> args(2);
-	args[0] = TypeVariable();
-	args[1] = TypeVariable();
-	Constructor ctor("(,)", functionType(args[0], functionType(args[1], TypeOperator("(,)", args))), 0, 2);
-	DataDefinition def;
-	def.name = "(,)";
-	def.constructors.push_back(ctor);
-	dataDefinitions.push_back(def);
+	addDefaultData(dataDefinitions);
 }
 
 void Module::typecheck()
