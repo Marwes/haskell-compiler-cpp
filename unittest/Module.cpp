@@ -77,8 +77,8 @@ TEST_CASE("module/datadefinition/simple", "")
 
 	Module module = parser.module();
 
-	REQUIRE(module.dataDefinitions.size() == 1);
-	DataDefinition& def = module.dataDefinitions[0];
+	REQUIRE(module.dataDefinitions.size() > 0);
+	DataDefinition& def = module.dataDefinitions.back();
 	REQUIRE(def.name == "Test");
 	REQUIRE(def.constructors[0].name == "Test");
 	REQUIRE(def.constructors[0].arity == 0);
@@ -94,8 +94,8 @@ TEST_CASE("module/datadefinition/multiple", "")
 
 	Module module = parser.module();
 
-	REQUIRE(module.dataDefinitions.size() == 1);
-	DataDefinition& def = module.dataDefinitions[0];
+	REQUIRE(module.dataDefinitions.size() > 0);
+	DataDefinition& def = module.dataDefinitions.back();
 	REQUIRE(def.name == "Bool");
 	REQUIRE(def.constructors[0].name == "True");
 	REQUIRE(def.constructors[0].arity == 0);
@@ -114,8 +114,8 @@ TEST_CASE("module/datadefinition/arguments", "")
 
 	Module module = parser.module();
 
-	REQUIRE(module.dataDefinitions.size() == 1);
-	DataDefinition& def = module.dataDefinitions[0];
+	REQUIRE(module.dataDefinitions.size() > 0);
+	DataDefinition& def = module.dataDefinitions.back();
 	REQUIRE(def.name == "List");
 	REQUIRE(def.constructors[0].name == "Cons");
 	REQUIRE(def.constructors[0].arity == 2);

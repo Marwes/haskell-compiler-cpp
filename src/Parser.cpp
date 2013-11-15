@@ -434,9 +434,16 @@ TypeDeclaration Parser::typeDeclaration()
 	return TypeDeclaration(nameToken.name, std::move(t));
 }
 
+bool constructorError(const Token& tok)
+{
+	return tok.type != SymbolEnum::NAME
+		&& tok.type != SymbolEnum::OPERATOR
+		&& tok.type != SymbolEnum::LPARENS;
+}
+
 Type constructorType(Tokenizer& tokenizer, int& arity, const Type& returnType)
 {
-	const Token* token = &tokenizer.nextToken();
+	const Token* token = &tokenizer.nextToken(constructorError);
 	if (token->type == SymbolEnum::NAME)
 	{
 		arity++;

@@ -53,6 +53,12 @@ main = Vec2 1 2\n";
 	machine.compile(expr);
 
 	Address result = machine.executeMain();
+	REQUIRE(result.getType() == CONSTRUCTOR);
+	ConstructorNode ctor = result.getNode()->constructor;
+	REQUIRE(ctor.arguments[0].getType() == NUMBER);
+	REQUIRE(ctor.arguments[0].getNode()->number == 1);
+	REQUIRE(ctor.arguments[1].getType() == NUMBER);
+	REQUIRE(ctor.arguments[1].getNode()->number == 2);
 }
 
 #if 0
