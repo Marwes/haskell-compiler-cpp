@@ -32,7 +32,7 @@ void GMachine::compile(std::istream& input)
 
 	module.typecheck();
 
-	GCompiler comp;
+	GCompiler comp(&module);
 	for (Binding& bind : module.bindings)
 	{
 		comp.stackVariables.clear();
@@ -60,9 +60,20 @@ void GMachine::compile(std::istream& input)
 			sc.instructions.push_back(GInstruction(GOP::UNWIND));
 		}
 	}
+
+	//Assign unique numbers for the tags so they can be correctly retrieved
+	int tag = 0;
+	for (DataDefinition& dataDef : module.dataDefinitions)
+	{
+		for (Constructor& ctor : dataDef.constructors)
+		{
+			ctor.tag = tag++;
+			dataDefinitions.push_back(ctor);
+		}
+	}
+
 	superCombinators = std::move(comp.globals);
 	globals.resize(superCombinators.size());
-	dataDefinitions = std::move(comp.dataDefinitions);
 	for (auto& sc : superCombinators)
 	{
 		int index = comp.globalIndices[sc.second.get()];

@@ -73,7 +73,7 @@ void unify(TypeEnvironment& env, Type& lhs, Type& rhs);
 class GCompiler
 {
 public:
-	GCompiler();
+	GCompiler(Module* module);
 
 	void newStackVariable(const std::string& name);
 	void popStack(size_t n);
@@ -86,6 +86,7 @@ public:
 	std::map<SuperCombinator*, int> globalIndices;
 	std::vector<Constructor> dataDefinitions;
 private:
+	Module* module;
 	int index;
 };
 

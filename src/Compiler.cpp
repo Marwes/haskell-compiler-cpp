@@ -1,16 +1,13 @@
 #include <algorithm>
 #include "Expression.h"
+#include "Module.h"
 
 namespace MyVMNamespace
 {
-GCompiler::GCompiler()
-	: index(0)
+GCompiler::GCompiler(Module* module)
+	: module(module)
+	, index(0)
 {
-	std::vector<Type> args(2);
-	args[0] = TypeVariable();
-	args[1] = TypeVariable();
-	Constructor def("(,)", TypeOperator("(,)", args), 0, 2);
-	dataDefinitions.push_back(def);
 }
 
 void GCompiler::newStackVariable(const std::string& name)
@@ -40,15 +37,19 @@ Variable GCompiler::getVariable(const std::string& name)
 		int i = globalIndices[foundGlobal->second.get()];
 		return Variable { VariableType::TOPLEVEL, TypeVariable(), i };
 	}
-	auto foundCtor = std::find_if(dataDefinitions.begin(), dataDefinitions.end(),
-		[&name](const Constructor& def)
+	if (module != nullptr)
 	{
-		return def.name == name;
-	});
-	if (foundCtor != dataDefinitions.end())
-	{
-		int index = std::distance(dataDefinitions.begin(), foundCtor);
-		return Variable { VariableType::CONSTRUCTOR, TypeVariable(), index };
+		for (auto& dataDef : module->dataDefinitions)
+		{
+			for (auto& ctor : dataDef.constructors)
+			{
+				if (ctor.name == name)
+				{
+					//TODO ctor.tag must be a way to retrieve this constructor
+					return Variable { VariableType::CONSTRUCTOR, TypeVariable(), ctor.tag };
+				}
+			}
+		}
 	}
 	return Variable { VariableType::STACK, TypeVariable(), -1 };
 }

@@ -28,6 +28,32 @@ TypeDeclaration::TypeDeclaration(TypeDeclaration && other)
 {
 }
 
+Module::Module()
+{
+	std::vector<Type> args(2);
+	args[0] = TypeVariable();
+	args[1] = TypeVariable();
+	Constructor ctor("(,)", functionType(args[0], functionType(args[1], TypeOperator("(,)", args))), 0, 2);
+	DataDefinition def;
+	def.name = "(,)";
+	def.constructors.push_back(ctor);
+	dataDefinitions.push_back(def);
+}
+
+Module::Module(std::vector<Binding> && bindings, std::vector<TypeDeclaration> && typeDeclaration)
+	: bindings(std::move(bindings))
+	, typeDeclaration(std::move(typeDeclaration))
+{
+	std::vector<Type> args(2);
+	args[0] = TypeVariable();
+	args[1] = TypeVariable();
+	Constructor ctor("(,)", functionType(args[0], functionType(args[1], TypeOperator("(,)", args))), 0, 2);
+	DataDefinition def;
+	def.name = "(,)";
+	def.constructors.push_back(ctor);
+	dataDefinitions.push_back(def);
+}
+
 void Module::typecheck()
 {
 	TypeEnvironment env(this);
