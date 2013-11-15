@@ -464,9 +464,9 @@ Type& Apply::typecheck(TypeEnvironment& env)
 	Type& argType = arguments[0]->typecheck(env);
 
 	this->type = functionType(argType, TypeVariable());
-
 	Unify(env, this->type, funcType);
-	this->type = boost::get<TypeOperator>(this->type).types[1];
+	//Copy construct a object since we are assigning it to iteself
+	this->type = Type(boost::get<TypeOperator>(this->type).types[1]);
 	for (size_t ii = 1; ii < arguments.size(); ii++)
 	{
 		auto& arg = arguments[ii];
