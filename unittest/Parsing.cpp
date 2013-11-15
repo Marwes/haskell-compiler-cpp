@@ -397,3 +397,49 @@ add x y = x + y\n";
 	Lambda& lambda = dynamic_cast<Lambda&>(*bind.expression);
 	REQUIRE(lambda.arguments.size() == 2);
 }
+
+TEST_CASE("parser/list/nil", "")
+{
+	const char* str = "[]";
+	std::stringstream stream(str);
+	Tokenizer tokenizer(stream);
+	Parser parser(tokenizer);
+
+	std::unique_ptr<Expression> expr = parser.expression();
+	REQUIRE(*expr == Name("[]"));
+}
+
+TEST_CASE("parser/list/cons1", "")
+{
+	const char* str = "[1]";
+	std::stringstream stream(str);
+	Tokenizer tokenizer(stream);
+	Parser parser(tokenizer);
+
+	std::unique_ptr<Expression> expr = parser.expression();
+
+	Apply& apply = dynamic_cast<Apply&>(*expr);
+	REQUIRE(*apply.function == Name(":"));
+	REQUIRE(*apply.arguments[0] == Number(1));
+	REQUIRE(*apply.arguments[1] == Name("[]"));
+}
+
+TEST_CASE("parser/list/cons2", "")
+{
+	const char* str = "[1,2,3]";
+	std::stringstream stream(str);
+	Tokenizer tokenizer(stream);
+	Parser parser(tokenizer);
+
+	std::unique_ptr<Expression> expr = parser.expression();
+
+	Apply& apply = dynamic_cast<Apply&>(*expr);
+	REQUIRE(*apply.function == Name(":"));
+	REQUIRE(*apply.arguments[0] == Number(1));
+	Apply& apply2 = dynamic_cast<Apply&>(*apply.arguments[1]);
+	REQUIRE(*apply2.function == Name(":"));
+	REQUIRE(*apply2.arguments[0] == Number(2));
+	Apply& apply3 = dynamic_cast<Apply&>(*apply2.arguments[1]);
+	REQUIRE(*apply3.function == Name(":"));
+	REQUIRE(*apply3.arguments[0] == Number(3));
+}

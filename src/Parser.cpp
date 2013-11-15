@@ -180,6 +180,54 @@ bool letExpressionEndError(const Token& t)
 	return t.type != SymbolEnum::IN;
 }
 
+std::unique_ptr<Expression> parseList(Parser& parser, Tokenizer& tokenizer)
+{
+	std::vector<std::unique_ptr<Expression>> expressions;
+	const Token* comma;
+	do
+	{
+		auto expr = parser.expression();
+		if (expr != nullptr)
+			expressions.push_back(std::move(expr));
+		comma = &tokenizer.nextToken();
+	} while (comma->type == SymbolEnum::COMMA);
+
+	if (expressions.empty())
+	{
+		return std::unique_ptr<Expression>(new Name("[]"));
+	}
+
+	std::unique_ptr<Expression> application;
+	{
+		std::vector<std::unique_ptr<Expression>> arguments(2);
+		std::swap(arguments[0], expressions.back());
+		expressions.pop_back();
+		arguments[1] = std::unique_ptr<Expression>(new Name("[]"));
+
+		application = std::unique_ptr<Expression>(new Apply(std::unique_ptr<Expression>(new Name(":")), std::move(arguments)));
+	}
+	while (!expressions.empty())
+	{
+		std::vector<std::unique_ptr<Expression>> arguments(2);
+		std::swap(arguments[0], expressions.back());
+		expressions.pop_back();
+		arguments[1] = std::move(application);
+
+		application = std::unique_ptr<Expression>(new Apply(std::unique_ptr<Expression>(new Name(":")), std::move(arguments)));
+	}
+
+	const Token& maybeParens = *tokenizer;
+	if (maybeParens.type == SymbolEnum::RBRACKET)
+	{
+		return std::move(application);
+	}
+	else
+	{
+		--tokenizer;
+		return nullptr;
+	}
+}
+
 std::unique_ptr<Expression> Parser::subExpression(bool (*parseError)(const Token&))
 {
 	const Token& token = tokenizer.nextToken(parseError ? parseError : subExpressionError);
@@ -215,6 +263,11 @@ std::unique_ptr<Expression> Parser::subExpression(bool (*parseError)(const Token
 			}
 			break;
 		}
+	case SymbolEnum::LBRACKET:
+		{
+			return parseList(*this, tokenizer);
+		}
+		break;
 	case SymbolEnum::LET:
 		{
 			const Token& lbracket = tokenizer.nextToken();
