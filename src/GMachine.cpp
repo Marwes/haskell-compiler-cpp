@@ -33,9 +33,9 @@ void GMachine::compile(std::istream& input)
 	module.typecheck();
 
 	//Assign unique numbers for the tags so they can be correctly retrieved
-	int tag = 0;
 	for (DataDefinition& dataDef : module.dataDefinitions)
 	{
+		int tag = 0;
 		for (Constructor& ctor : dataDef.constructors)
 		{
 			ctor.tag = tag++;
@@ -154,11 +154,11 @@ void GMachine::execute(GEnvironment& environment)
 			break;
 		case GOP::PACK:
 			{
-				int globalTag = instruction.value;
-				Constructor& def = dataDefinitions[globalTag];
-				heap.push_back(Node(def.tag, new Address[def.arity]));
+				int tag = instruction.value & (0xFFFF);//Low two bytes
+				int arity = instruction.value >> 16;//High two bytes
+				heap.push_back(Node(tag, new Address[arity]));
 				Node& ctor = heap.back();
-				for (int ii = 0; ii < def.arity; ii++)
+				for (int ii = 0; ii < arity; ii++)
 				{
 					ctor.constructor.arguments[ii] = stack.pop();
 				}

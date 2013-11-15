@@ -46,7 +46,15 @@ Variable GCompiler::getVariable(const std::string& name)
 				if (ctor.name == name)
 				{
 					//TODO ctor.tag must be a way to retrieve this constructor
-					return Variable { VariableType::CONSTRUCTOR, TypeVariable(), ctor.tag };
+					if (ctor.tag > (1 << 16))
+					{
+						throw std::runtime_error("Number of constructors are to large");
+					}if (ctor.arity > (1 << 16))
+					{
+						throw std::runtime_error("Arity of constructor " + std::string(ctor.name) + " are to large");
+					}
+					int index = (ctor.arity << 16) | ctor.tag;
+					return Variable { VariableType::CONSTRUCTOR, TypeVariable(), index };
 				}
 			}
 		}

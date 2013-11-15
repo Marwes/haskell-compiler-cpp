@@ -80,6 +80,25 @@ main = Triple 1 2 3\n";
 	REQUIRE(ctor.arguments[2].getType() == NUMBER);
 	REQUIRE(ctor.arguments[2].getNode()->number == 3);
 }
+TEST_CASE("compiler/data/list", "")
+{
+	GMachine machine;
+	const char* main =
+"data List = Cons Int List\n\
+           | Nil\n\
+main = Cons 1 Nil\n";
+	std::stringstream expr(main);
+	machine.compile(expr);
+
+	Address result = machine.executeMain();
+	REQUIRE(result.getType() == CONSTRUCTOR);
+	ConstructorNode ctor = result.getNode()->constructor;
+	REQUIRE(ctor.arguments[0].getType() == NUMBER);
+	REQUIRE(ctor.arguments[0].getNode()->number == 1);
+	REQUIRE(ctor.arguments[1].getType() == CONSTRUCTOR);
+	ConstructorNode nil = ctor.arguments[1].getNode()->constructor;
+	REQUIRE(nil.tag == 1);
+}
 
 #if 0
 TEST_CASE("compiler/let", "")
