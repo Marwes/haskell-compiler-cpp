@@ -390,17 +390,72 @@ Binding Parser::binding()
 	}
 }
 
+
+std::vector<std::unique_ptr<Pattern>> Parser::patternParameter()
+{
+	std::vector<std::unique_ptr<Pattern>> parameters;
+	while (true)
+	{
+		const Token& token = tokenizer.nextToken();
+		switch (token.type)
+		{
+		case SymbolEnum::NAME:
+			{
+				parameters.push_back(std::unique_ptr<Pattern>(new PatternName(token.name)));
+			}
+			break;
+		case SymbolEnum::NUMBER:
+			parameters.push_back(std::unique_ptr<Pattern>(new NumberLiteral(atoi(token.name.c_str()))));
+			break;
+		case SymbolEnum::LPARENS:
+			{
+				auto pat = pattern();
+				const Token& maybeComma = tokenizer.nextToken();
+				if (maybeComma.type == SymbolEnum::COMMA)
+				{
+					auto tupleArgs = sepBy1(&Parser::pattern, SymbolEnum::COMMA);
+					const Token& rParens = *tokenizer;
+					if (rParens.type != SymbolEnum::RPARENS)
+					{
+						throw std::runtime_error("Expected RPARENS, got" + std::string(enumToString(rParens.type)));
+					}
+					tupleArgs.insert(tupleArgs.begin(), std::move(pat));
+					parameters.push_back(std::unique_ptr<Pattern>(new ConstructorPattern(std::move(tupleArgs))));
+				}
+				else
+				{
+				}
+			}
+			break;
+		default:
+			goto endloop;
+			break;
+		}
+	}
+endloop:
+	tokenizer--;
+	return parameters;
+}
+
 std::unique_ptr<Pattern> Parser::pattern()
 {
-	const Token& token = tokenizer.nextToken();
-	switch (token.type)
+	const Token& nameToken = tokenizer.nextToken();
+	switch (nameToken.type)
 	{
 	case SymbolEnum::NAME:
 		{
-			return std::unique_ptr<Pattern>(new PatternName(token.name));
+			std::vector<std::unique_ptr<Pattern>> patterns = patternParameter();
+			if (patterns.empty())
+			{
+				return std::unique_ptr<Pattern>(new PatternName(nameToken.name));
+			}
+			else
+			{
+				return std::unique_ptr<Pattern>(new ConstructorPattern(nameToken.name, std::move(patterns)));
+			}
 		}
 	case SymbolEnum::NUMBER:
-		return std::unique_ptr<Pattern>(new NumberLiteral(atoi(token.name.c_str())));
+		return std::unique_ptr<Pattern>(new NumberLiteral(atoi(nameToken.name.c_str())));
 	case SymbolEnum::LPARENS:
 		{
 			auto tupleArgs = sepBy1(&Parser::pattern, SymbolEnum::COMMA);

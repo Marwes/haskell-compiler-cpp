@@ -242,17 +242,16 @@ public:
 class ConstructorPattern : public Pattern
 {
 public:
-	ConstructorPattern(int tag, std::vector<std::unique_ptr<Pattern>> &&patterns)
+	ConstructorPattern(std::string name, std::vector<std::unique_ptr<Pattern>> &&patterns)
 		: patterns(std::move(patterns))
-		, tag(tag)
+		, name(std::move(name))
 	{}
 	ConstructorPattern(std::vector<std::unique_ptr<Pattern>>&& patterns)
 		: patterns(std::move(patterns))
-		, tag(0)
 	{}
 	ConstructorPattern(ConstructorPattern&& other)
 		: patterns(std::move(other.patterns))
-		, tag(other.tag)
+		, name(other.name)
 	{}
 
 
@@ -261,7 +260,7 @@ public:
 	virtual void compileGCode(GCompiler& env, std::vector<size_t>& branches, std::vector<GInstruction>& instructions) const;
 
 	std::vector<std::unique_ptr<Pattern>> patterns;
-	int tag;
+	std::string name;
 };
 
 class Alternative

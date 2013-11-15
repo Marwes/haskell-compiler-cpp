@@ -37,6 +37,8 @@ public:
 	//Parse pattern matching in alternative
 	std::unique_ptr<Pattern> pattern();
 
+	std::vector<std::unique_ptr<Pattern>> patternParameter();
+	
 	TypeDeclaration typeDeclaration();
 	Type type();
 

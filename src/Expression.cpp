@@ -149,7 +149,8 @@ void ConstructorPattern::addVariables(TypeEnvironment& env, Type& type)
 
 void ConstructorPattern::compileGCode(GCompiler& env, std::vector<size_t>& branches, std::vector<GInstruction>& instructions) const
 {
-	instructions.push_back(GInstruction(GOP::CASEJUMP, tag));
+	Variable var = env.getVariable(name);
+	instructions.push_back(GInstruction(GOP::CASEJUMP, var.index & 0xFFFF));
 	branches.push_back(instructions.size());
 	instructions.push_back(GInstruction(GOP::JUMP));
 }
