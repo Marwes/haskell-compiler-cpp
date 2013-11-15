@@ -19,6 +19,7 @@ GEnvironment GEnvironment::child(SuperCombinator* combinator)
 }
 
 GMachine::GMachine()
+	: debug(false)
 {
 	heap.reserve(1024);//Just make sure the heap is large enough for small examples for now
 }
@@ -115,6 +116,47 @@ Address GMachine::executeMain()
 	return env.stack.top();
 }
 
+std::ostream& operator<<(std::ostream& out, const Address& addr)
+{
+	switch (addr.getType())
+	{
+	case CONSTRUCTOR:
+		{
+			out << "(";
+			ConstructorNode ctor = addr.getNode()->constructor;
+			for (size_t ii = 0; ctor.arguments[ii].getNode() != nullptr; ii++)
+			{
+				out << ctor.arguments[ii] << " ";
+			}
+			out << ")";
+		}
+		break;
+	case APPLICATION:
+		{
+			assert(0);
+		}
+		break;
+	case NUMBER:
+		{
+			out << addr.getNode()->number;
+		}
+		break;
+	case GLOBAL:
+		{
+			out << addr.getNode()->global->name;
+		}
+		break;
+	case INDIRECTION:
+		{
+			out << addr.getNode()->indirection;
+		}
+		break;
+	default:
+		break;
+	}
+	return out;
+}
+
 void GMachine::execute(GEnvironment& environment)
 {
 	const std::vector<GInstruction>& code = environment.combinator->instructions;
@@ -156,12 +198,13 @@ void GMachine::execute(GEnvironment& environment)
 			{
 				int tag = instruction.value & (0xFFFF);//Low two bytes
 				int arity = instruction.value >> 16;//High two bytes
-				heap.push_back(Node(tag, new Address[arity]));
+				heap.push_back(Node(tag, new Address[arity+1]));
 				Node& ctor = heap.back();
 				for (int ii = 0; ii < arity; ii++)
 				{
 					ctor.constructor.arguments[ii] = stack.pop();
 				}
+				ctor.constructor.arguments[arity + 1] = Address::indirection(nullptr);//Use as end of this constructor
 				stack.push(Address::constructor(&ctor));
 			}
 			break;
@@ -247,6 +290,16 @@ void GMachine::execute(GEnvironment& environment)
 							}
 
 							GEnvironment child = environment.child(comb);
+							if (debug)
+							{
+								std::cerr << "Executing function '" << comb->name << "'" << std::endl;
+								std::cerr << "Arguments { ";
+								for (size_t i = 0; i < child.stack.stackSize(); i++)
+								{
+									std::cerr << child.stack[i];
+								}
+								std::cerr << " }" << std::endl;
+							}
 							execute(child);
 							Address result = child.stack.top();
 							for (int i = 0; i < comb->arity; i++)
@@ -311,6 +364,10 @@ void GMachine::execute(GEnvironment& environment)
 			std::cout << "Unimplemented instruction " << int(code[index].op) << std::endl;
 			break;
 		}
+	}
+	if (debug)
+	{
+		std::cerr << "Returning '" << stack.top() << "' from '" << environment.combinator->name << "'" << std::endl;
 	}
 }
 

@@ -23,11 +23,11 @@ class Address
 {
 	NodeType type;
 public:
-	NodeType getType()
+	NodeType getType() const
 	{
 		return type;
 	}
-	Node* getNode()
+	Node* getNode() const
 	{
 		return node;
 	}
@@ -158,6 +158,8 @@ private:
 	std::vector<Constructor> dataDefinitions;
 
 	std::map<std::string, std::unique_ptr<SuperCombinator>> superCombinators;
+
+	bool debug;
 };
 
 };
