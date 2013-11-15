@@ -117,6 +117,30 @@ main = length (Cons 10 (Cons 20 Nil))\n";
 	REQUIRE(result.getType() == NUMBER);
 	REQUIRE(result.getNode()->number == 2);
 }
+TEST_CASE("compiler/data/map", "")
+{
+	GMachine machine;
+	const char* main =
+"data List = Cons Int List\n\
+           | Nil\n\
+length xs = case xs of\n\
+    Cons n ys -> 1 + length ys\n\
+    Nil -> 0\n\
+map f xs = case xs of\n\
+    Cons n ys -> Cons (f n) (map f ys)\n\
+    Nil -> Nil\n\
+add2 x = x + 2\n\
+sum xs = case xs of\n\
+    Cons n ys -> n + sum ys\n\
+    Nil -> 0\n\
+main = sum (map add2 (Cons 10 (Cons 20 Nil)))\n";
+	std::stringstream expr(main);
+	machine.compile(expr);
+
+	Address result = machine.executeMain();
+	REQUIRE(result.getType() == NUMBER);
+	REQUIRE(result.getNode()->number == 34);
+}
 
 #if 0
 TEST_CASE("compiler/let", "")
