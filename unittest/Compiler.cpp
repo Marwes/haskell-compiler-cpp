@@ -175,6 +175,22 @@ main = head (tail [10,2222,3])\n";
 	REQUIRE(result.getNode()->number == 2222);
 }
 
+TEST_CASE("compiler/bool", "")
+{
+	std::stringstream expr(
+"data Bool = True | False\n\
+if bool x y = case bool of\n\
+    True -> x\n\
+    False -> y\n\
+main = if True 6 9\n");
+	GMachine machine;
+	machine.compile(expr);
+
+	Address result = machine.executeMain();
+	REQUIRE(result.getType() == NUMBER);
+	REQUIRE(result.getNode()->number == 6);
+}
+
 #if 0
 TEST_CASE("compiler/let", "")
 {

@@ -492,9 +492,9 @@ Type& Case::typecheck(TypeEnvironment& env)
 		Type& t = alt.expression->typecheck(caseEnv);
 		if (returnType == nullptr)//First alternative
 			returnType = &t;
-		else if (!(t == *returnType))
+		else
 		{
-			throw std::runtime_error("All case alternatives must have the same type");
+			unify(env, *returnType, t);
 		}
 	}
 	std::cerr << *returnType << std::endl;
