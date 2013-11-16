@@ -150,12 +150,29 @@ TEST_CASE("compiler/list", "")
 	const char* main =
 "head xs = case xs of\n\
     : y ys -> y\n\
-main = [1,2,3]\n";
+main = head [10,2,3]\n";
 	std::stringstream expr(main);
 	machine.compile(expr);
 
 	Address result = machine.executeMain();
-	REQUIRE(result.getType() == CONSTRUCTOR);
+	REQUIRE(result.getType() == NUMBER);
+	REQUIRE(result.getNode()->number == 10);
+}
+TEST_CASE("compiler/list/head_tail", "")
+{
+GMachine machine;
+const char* main =
+"head xs = case xs of\n\
+    : y ys -> y\n\
+tail xs = case xs of\n\
+    : y ys -> ys\n\
+main = head (tail [10,2222,3])\n";
+	std::stringstream expr(main);
+	machine.compile(expr);
+
+	Address result = machine.executeMain();
+	REQUIRE(result.getType() == NUMBER);
+	REQUIRE(result.getNode()->number == 2222);
 }
 
 #if 0

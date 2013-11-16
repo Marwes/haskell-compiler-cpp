@@ -135,7 +135,7 @@ Type getReturnType(Type t)
 {
 	while (t.which() == 1)
 	{
-		TypeOperator& op = boost::get<TypeOperator>(t);
+		TypeOperator op = boost::get<TypeOperator>(t);
 		if (op.name == "->")
 		{
 			t = op.types[1];
@@ -497,6 +497,7 @@ Type& Case::typecheck(TypeEnvironment& env)
 			throw std::runtime_error("All case alternatives must have the same type");
 		}
 	}
+	std::cerr << *returnType << std::endl;
 	assert(returnType != nullptr);
 	return *returnType;
 }

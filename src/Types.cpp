@@ -37,7 +37,8 @@ Type functionType(const Type& arg, const Type& result)
 
 std::string createTypeErrorString(const Type& expected, const Type& actual)
 {
-	std::stringstream err("Types are not compatible in PrimOP expression.\n");
+	std::stringstream err;
+	err << "Types are not compatible.\n";
 	err << "Expected: " << expected << "\n";
 	err << "Actual: " << actual << "\n";
 	return err.str();

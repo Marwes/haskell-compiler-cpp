@@ -204,3 +204,28 @@ test2 y = 2 * test1 y\n");
 	REQUIRE(sameTypes(module.bindings[0].expression->getType(), x));
 	REQUIRE(sameTypes(module.bindings[1].expression->getType(), x));
 }
+
+TEST_CASE("typecheck/list", "")
+{
+	std::stringstream stream(
+"head xs = case xs of\n\
+    : y ys -> y\n\
+tail xs = case xs of\n\
+    : y ys -> ys\n\
+main = head (tail [10, 20, 30])\n");
+	Tokenizer tokenizer(stream);
+	Parser parser(tokenizer);
+
+	Module module = parser.module();
+	module.typecheck();
+
+	std::vector<Type> args(1);
+	args[0] = TypeVariable();
+	Type listType = TypeOperator("[]", args);
+	Type headType = functionType(listType, TypeOperator("Int"));
+	Type tailType = functionType(listType, listType);
+	
+	CHECK(sameTypes(module.bindings[0].expression->getType(), headType));
+	CHECK(sameTypes(module.bindings[1].expression->getType(), listType));
+	CHECK(sameTypes(module.bindings[2].expression->getType(), Type(TypeOperator("Int"))));
+}

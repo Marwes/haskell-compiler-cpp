@@ -504,10 +504,11 @@ std::unique_ptr<Pattern> Parser::pattern()
 	const Token& nameToken = tokenizer.nextToken();
 	switch (nameToken.type)
 	{
+	case SymbolEnum::OPERATOR:
 	case SymbolEnum::NAME:
 		{
 			std::vector<std::unique_ptr<Pattern>> patterns = patternParameter();
-			if (isupper(nameToken.name[0]))
+			if (isupper(nameToken.name[0]) || nameToken.name == ":")
 			{
 				return std::unique_ptr<Pattern>(new ConstructorPattern(nameToken.name, std::move(patterns)));
 			}
