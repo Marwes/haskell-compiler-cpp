@@ -177,7 +177,7 @@ Case::Case(std::unique_ptr<Expression> && expr, std::vector<Alternative> && alte
 
 Type& Case::getType()
 {
-	return expression->getType();
+	return alternatives.at(0).expression->getType();
 }
 
 //typecheck functions
