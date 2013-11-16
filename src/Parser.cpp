@@ -623,7 +623,8 @@ bool typeParseError(const Token& t)
 	return t.type != SymbolEnum::ARROW
 		&& t.type != SymbolEnum::SEMICOLON
 		&& t.type != SymbolEnum::RBRACE
-		&& t.type != SymbolEnum::RPARENS;
+		&& t.type != SymbolEnum::RPARENS
+		&& t.type != SymbolEnum::RBRACKET;
 }
 
 Type tupleType(const std::vector<Type>& types)
@@ -637,6 +638,25 @@ Type Parser::type()
 	const Token& token = tokenizer.nextToken();
 	switch (token.type)
 	{
+	case SymbolEnum::LBRACKET:
+		{
+			Type t = type();
+			const Token& endList = tokenizer.nextToken();
+			if (endList.type != SymbolEnum::RBRACKET)
+			{
+				throw std::runtime_error("Expected end of list in type declaration");
+			}
+			std::vector<Type> args(1);
+			args[0] = t;
+			Type listType = TypeOperator("[]", std::move(args));
+
+			const Token& arrow = tokenizer.nextToken();
+			if (arrow.type == SymbolEnum::ARROW)
+			{
+				return functionType(listType, type());
+			}
+			return listType;
+		}
 	case SymbolEnum::LPARENS:
 		{
 			++tokenizer;
@@ -684,7 +704,9 @@ Type Parser::type()
 			{
 				return functionType(TypeVariable(), type());
 			}
-			if (arrow.type == SymbolEnum::COMMA || arrow.type == SymbolEnum::RPARENS)//in tuple type
+			if (arrow.type == SymbolEnum::COMMA
+			 || arrow.type == SymbolEnum::RPARENS
+			 || arrow.type == SymbolEnum::RBRACKET)//in tuple or list
 				--tokenizer;
 			return TypeVariable();
 		}

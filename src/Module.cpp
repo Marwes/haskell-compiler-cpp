@@ -72,6 +72,15 @@ void Module::typecheck()
 	TypeEnvironment env(this);
 	for (auto& bind : bindings)
 	{
+		auto foundTypeDecl = std::find_if(typeDeclaration.begin(), typeDeclaration.end(), 
+			[&bind](const TypeDeclaration& decl)
+		{
+			return bind.name == decl.name;
+		});
+		if (foundTypeDecl != typeDeclaration.end())
+		{
+			bind.expression->getType() = foundTypeDecl->type;
+		}
 		env.bindName(bind.name, bind.expression->getType());
 	}
 	for (auto& bind : bindings)

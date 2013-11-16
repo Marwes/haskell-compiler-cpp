@@ -208,7 +208,8 @@ test2 y = 2 * test1 y\n");
 TEST_CASE("typecheck/list", "")
 {
 	std::stringstream stream(
-"head xs = case xs of\n\
+"head :: [a] -> a\n\
+head xs = case xs of\n\
     : y ys -> y\n\
 tail xs = case xs of\n\
     : y ys -> ys\n\
