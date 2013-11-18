@@ -128,7 +128,8 @@ void PrimOP::compile(GCompiler& env, std::vector<GInstruction>& instructions, bo
 
 void PatternName::addVariables(TypeEnvironment& env, Type& type)
 {
-	env.bindName(name, type);
+	this->type = type;
+	env.bindName(name, this->type);
 }
 
 Type getReturnType(Type t)
@@ -150,7 +151,8 @@ Type getReturnType(Type t)
 
 void ConstructorPattern::addVariables(TypeEnvironment& env, Type& type)
 {
-	Type& t = env.getType(this->name);
+	Type t = env.getType(this->name);
+	std::cerr << t << "\n" << type << std::endl;
 	Type dataType = getReturnType(t);
 	unify(env, dataType, type);
 
@@ -207,6 +209,51 @@ inline bool occurs(const TypeVariable& type, const Type& collection)
 	return false;
 }
 
+
+class Freshener : public boost::static_visitor<Type>
+{
+public:
+	Freshener(TypeEnvironment& env)
+		: env(env)
+	{}
+
+	Type operator()(const TypeVariable& type)
+	{
+		if (env.isGeneric(type))
+		{
+			if (mappings.count(type.id) != 0)
+			{
+				return mappings[type.id];
+			}
+			else
+			{
+				return mappings[type.id] = TypeVariable();
+			}
+		}
+		return type;
+	}
+	Type operator()(const TypeOperator& type)
+	{
+		std::vector<Type> args;
+		for (const Type& t : type.types)
+		{
+			args.emplace_back(boost::apply_visitor(*this, t));
+		}
+		std::cerr << type << "\n" << TypeOperator(type.name, args) << std::endl;
+		return TypeOperator(type.name, std::move(args));
+	}
+
+private:
+	TypeEnvironment& env;
+	std::map<int, TypeVariable> mappings;
+};
+
+Type fresh(TypeEnvironment& env, const Type& type)
+{
+	Freshener f(env);
+	return boost::apply_visitor(f, type);
+}
+
 TypeEnvironment::TypeEnvironment(Module* module)
 	: parent(nullptr)
 	, module(module)
@@ -248,11 +295,11 @@ void TypeEnvironment::registerType(Type& type)
 	types.push_back(&type);
 }
 
-Type& TypeEnvironment::getType(const std::string& name)
+Type TypeEnvironment::getType(const std::string& name)
 {
 	auto found = namedTypes.find(name);
 	if (found != namedTypes.end())
-		return *found->second;
+		return fresh(*this, *found->second);
 	if (parent != nullptr)
 		return parent->getType(name);
 	if (module != nullptr)
@@ -263,7 +310,7 @@ Type& TypeEnvironment::getType(const std::string& name)
 		});
 		if (found != module->bindings.end())
 		{
-			return found->expression->getType();
+			return fresh(*this, found->expression->getType());
 		}
 		for (auto& def : module->dataDefinitions)
 		{
@@ -271,7 +318,7 @@ Type& TypeEnvironment::getType(const std::string& name)
 			{
 				if (ctor.name == name)
 				{
-					return ctor.type;
+					return fresh(*this, ctor.type);
 				}
 			}
 		}
@@ -309,6 +356,32 @@ void TypeEnvironment::replace(TypeVariable replaceMe, const Type& replaceWith)
 	{
 		tryReplace(*type, replaceMe, replaceWith);
 	}
+	if (parent != nullptr)
+		parent->replace(replaceMe, replaceWith);
+}
+
+bool TypeEnvironment::isGeneric(const TypeVariable& var) const
+{
+	for (auto& pair : namedTypes)
+	{
+		if (occurs(var, *pair.second))
+			return false;
+	}
+	for (Type* type : types)
+	{
+		if (occurs(var, *type))
+			return false;
+	}
+	if (parent != nullptr)
+	{
+		return parent->isGeneric(var);
+	}
+	for (auto& bind : module->bindings)
+	{
+		if (occurs(var, bind.expression->getType()))
+			return false;
+	}
+	return true;
 }
 
 class RecursiveUnification : public std::runtime_error
@@ -396,7 +469,9 @@ void unify(TypeEnvironment& env, Type& lhs, Type& rhs)
 
 Type& Name::typecheck(TypeEnvironment& env)
 {
-	return env.getType(this->name);
+	env.registerType(this->type);
+	this->type = env.getType(this->name);
+	return this->type;
 }
 
 Type& Rational::typecheck(TypeEnvironment& env)

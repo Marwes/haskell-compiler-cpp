@@ -57,8 +57,9 @@ public:
 	void bindName(const std::string& name, Type& type);
 	void registerType(Type& type);
 
-	Type& getType(const std::string& name);
+	Type getType(const std::string& name);
 
+	bool isGeneric(const TypeVariable& var) const;
 	void replace(TypeVariable replaceMe, const Type& replaceWith);
 private:
 	Module* module;
@@ -226,6 +227,7 @@ public:
 
 	virtual void addVariables(TypeEnvironment& env, Type& type);
 
+	Type type;
 	std::string name;
 };
 
