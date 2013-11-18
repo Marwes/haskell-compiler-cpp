@@ -65,7 +65,8 @@ bool toplevelError(const Token& t)
 	return t.type != SymbolEnum::NAME
 		&& t.type != SymbolEnum::RBRACKET
 		&& t.type != SymbolEnum::SEMICOLON
-		&& t.type != SymbolEnum::DATA;
+		&& t.type != SymbolEnum::DATA
+		&& t.type != SymbolEnum::LPARENS;
 }
 
 bool toplevelNewBindError(const Token& t)
@@ -78,7 +79,8 @@ bool bindingError(const Token& t)
 {
 	return t.type != SymbolEnum::EQUALSSIGN
 		&& t.type != SymbolEnum::NAME
-		&& t.type != SymbolEnum::TYPEDECL;
+		&& t.type != SymbolEnum::TYPEDECL
+		&& t.type != SymbolEnum::OPERATOR;
 }
 
 
@@ -97,7 +99,7 @@ Module Parser::module()
 	{
 		//Do a lookahead to see what the next top level binding is
 		const Token& token = tokenizer.nextToken(toplevelError);
-		if (token.type == SymbolEnum::NAME)
+		if (token.type == SymbolEnum::NAME || token.type == SymbolEnum::LPARENS)
 		{
 			const Token& equalOrType = tokenizer.nextToken(bindingError);
 			if (equalOrType.type == SymbolEnum::TYPEDECL)
@@ -404,14 +406,28 @@ std::unique_ptr<Expression> Parser::application()
 }
 
 
+bool errorIfNotNameOrLParens(const Token& tok)
+{
+	return tok.type != SymbolEnum::NAME
+		&& tok.type != SymbolEnum::LPARENS;
+}
 bool errorIfNotName(const Token& tok)
 {
 	return tok.type != SymbolEnum::NAME;
 }
+bool errorIfNotNameOrOperator(const Token& tok)
+{
+	return tok.type != SymbolEnum::NAME
+		&& tok.type != SymbolEnum::OPERATOR;
+}
 
-bool errorIfNotNameOrEqul(const Token& tok)
+bool errorIfNotNameOrEqual(const Token& tok)
 {
 	return tok.type != SymbolEnum::NAME && tok.type != SymbolEnum::EQUALSSIGN;
+}
+bool errorIfNotRParens(const Token& tok)
+{
+	return tok.type != SymbolEnum::RPARENS;
 }
 
 Binding Parser::binding()
@@ -419,15 +435,33 @@ Binding Parser::binding()
 	//name1 = expr
 	//or
 	//name2 x y = expr
-	const Token nameToken = tokenizer.nextToken(errorIfNotName);
-	if (nameToken.type != SymbolEnum::NAME)
+	const Token& nameToken = tokenizer.nextToken(errorIfNotNameOrLParens);
+	std::string name = nameToken.name;
+	if (nameToken.type == SymbolEnum::LPARENS)
+	{
+		//Parse a name within parentheses
+		const Token& functionName = tokenizer.nextToken(errorIfNotNameOrOperator);
+		if (functionName.type != SymbolEnum::NAME && functionName.type != SymbolEnum::OPERATOR)
+		{
+			throw std::runtime_error("Expected NAME or OPERATOR on left side of binding " + std::string(enumToString(functionName.type)));
+		}
+		name = functionName.name;
+		const Token& rParens = tokenizer.nextToken(errorIfNotRParens);
+		if (rParens.type != SymbolEnum::RPARENS)
+		{
+			throw std::runtime_error("Expected RPARENS on left side of binding " + std::string(enumToString(rParens.type)));
+		}
+	}
+	else if (nameToken.type != SymbolEnum::NAME)
 	{
 		throw std::runtime_error("Expected NAME on left side of binding " + std::string(enumToString(nameToken.type)));
 	}
+
+	//Parse the arguments for the binding
 	std::vector<std::string> arguments;
 	while (true)
 	{
-		const Token& token = tokenizer.nextToken(errorIfNotNameOrEqul);
+		const Token& token = tokenizer.nextToken(errorIfNotNameOrEqual);
 		if (token.type == SymbolEnum::NAME)
 		{
 			arguments.push_back(token.name);
@@ -444,11 +478,11 @@ Binding Parser::binding()
 	if (arguments.size() > 0)
 	{
 		std::unique_ptr<Expression> lambda(new Lambda(std::move(arguments), expression()));
-		return Binding(nameToken.name, std::move(lambda));
+		return Binding(name, std::move(lambda));
 	}
 	else
 	{
-		return Binding(nameToken.name, expression());
+		return Binding(name, expression());
 	}
 }
 

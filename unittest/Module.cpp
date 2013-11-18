@@ -147,3 +147,21 @@ TEST_CASE("module/datadefinition/typeargumentss", "")
 	REQUIRE(def.constructors[1].name == "Nothing");
 	REQUIRE(def.constructors[1].arity == 0);
 }
+
+
+TEST_CASE("module/operator", "")
+{
+	const char* file =
+"(.) f g x = f (g x)";
+	std::stringstream stream(file);
+	Tokenizer tokenizer(stream);
+	Parser parser(tokenizer);
+
+	Module module = parser.module();
+
+	REQUIRE(module.bindings.size() > 0);
+
+	REQUIRE(module.bindings.back().name == ".");
+	Lambda& lambda = dynamic_cast<Lambda&>(*module.bindings.back().expression);
+	REQUIRE(lambda.arguments.size() == 3);
+}
