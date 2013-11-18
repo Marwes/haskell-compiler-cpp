@@ -152,7 +152,6 @@ Type getReturnType(Type t)
 void ConstructorPattern::addVariables(TypeEnvironment& env, Type& type)
 {
 	Type t = env.getType(this->name);
-	std::cerr << t << "\n" << type << std::endl;
 	Type dataType = getReturnType(t);
 	unify(env, dataType, type);
 
@@ -239,7 +238,6 @@ public:
 		{
 			args.emplace_back(boost::apply_visitor(*this, t));
 		}
-		std::cerr << type << "\n" << TypeOperator(type.name, args) << std::endl;
 		return TypeOperator(type.name, std::move(args));
 	}
 
@@ -572,7 +570,6 @@ Type& Case::typecheck(TypeEnvironment& env)
 			unify(env, *returnType, t);
 		}
 	}
-	std::cerr << *returnType << std::endl;
 	assert(returnType != nullptr);
 	return *returnType;
 }
