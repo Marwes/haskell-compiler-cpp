@@ -15,7 +15,7 @@ TEST_CASE("module/function", "")
 	Module module = parser.module();
 	std::vector<Binding>& bindings = module.bindings;
 
-	REQUIRE(bindings.size() == 1);
+	REQUIRE(bindings.size() != 0);
 	REQUIRE(bindings[0].name == "test");
 	REQUIRE(typeid(*bindings[0].expression) == typeid(Lambda));
 }
@@ -34,7 +34,7 @@ f x y = x + y\n";
 	Module module = parser.module();
 	std::vector<Binding>& bindings = module.bindings;
 
-	REQUIRE(bindings.size() == 2);
+	REQUIRE(bindings.size() >= 2);
 	REQUIRE(bindings[0].name == "test");
 	REQUIRE(typeid(*bindings[0].expression) == typeid(Lambda));
 	REQUIRE(bindings[1].name == "f");
@@ -55,7 +55,7 @@ f x y = x + y\n";
 	Module module = parser.module();
 	std::vector<Binding>& bindings = module.bindings;
 
-	REQUIRE(bindings.size() == 2);
+	REQUIRE(bindings.size() >= 2);
 	const Binding& test = bindings[0];
 	REQUIRE(test.name == "test");
 	const Lambda& testLambda = dynamic_cast<Lambda&>(*test.expression);

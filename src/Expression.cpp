@@ -153,7 +153,6 @@ void ConstructorPattern::addVariables(TypeEnvironment& env, Type& type)
 {
 	Type t = env.getType(this->name);
 	Type dataType = getReturnType(t);
-	unify(env, dataType, type);
 
 	TypeOperator* funcType = &boost::get<TypeOperator>(t);
 	for (size_t ii = 0; ii < patterns.size(); ++ii)
@@ -161,6 +160,7 @@ void ConstructorPattern::addVariables(TypeEnvironment& env, Type& type)
 		patterns[ii]->addVariables(env, funcType->types[0]);
 		funcType = &boost::get<TypeOperator>(funcType->types[1]);
 	}
+	unify(env, dataType, type);
 }
 
 void ConstructorPattern::compileGCode(GCompiler& env, std::vector<size_t>& branches, std::vector<GInstruction>& instructions) const
@@ -254,7 +254,7 @@ Type fresh(TypeEnvironment& env, const Type& type)
 
 TypeEnvironment::TypeEnvironment(Module* module)
 	: parent(nullptr)
-	, module(module)
+	, module(module == nullptr ? Module::prelude.get() : module)
 {
 	bindName("+", binop);
 	bindName("-", binop);
@@ -267,8 +267,6 @@ TypeEnvironment::TypeEnvironment(Module* module)
 	bindName(">", binop);
 	bindName("<=", binop);
 	bindName(">=", binop);
-	bindName("(,)", pairCtor);
-	bindName("undefined", undefinedType);
 }
 
 TypeEnvironment::TypeEnvironment(TypeEnvironment && env)
@@ -293,6 +291,37 @@ void TypeEnvironment::registerType(Type& type)
 	types.push_back(&type);
 }
 
+bool findInModule(TypeEnvironment& env, Module& module, const std::string& name, Type& returnValue)
+{
+	auto found = std::find_if(module.bindings.begin(), module.bindings.end(), 
+		[&name](const Binding& bind)
+	{
+		return bind.name == name;
+	});
+	if (found != module.bindings.end())
+	{
+		returnValue = fresh(env, found->expression->getType());
+		return true;
+	}
+	for (auto& def : module.dataDefinitions)
+	{
+		for (auto& ctor : def.constructors)
+		{
+			if (ctor.name == name)
+			{
+				returnValue = fresh(env, ctor.type);
+				return true;
+			}
+		}
+	}
+	for (auto& import : module.imports)
+	{
+		if (findInModule(env, *import, name, returnValue))
+			return true;
+	}
+	return false;
+}
+
 Type TypeEnvironment::getType(const std::string& name)
 {
 	auto found = namedTypes.find(name);
@@ -302,24 +331,9 @@ Type TypeEnvironment::getType(const std::string& name)
 		return parent->getType(name);
 	if (module != nullptr)
 	{
-		auto found = std::find_if(module->bindings.begin(), module->bindings.end(), [&name](const Binding& bind)
-		{
-			return bind.name == name;
-		});
-		if (found != module->bindings.end())
-		{
-			return fresh(*this, found->expression->getType());
-		}
-		for (auto& def : module->dataDefinitions)
-		{
-			for (auto& ctor : def.constructors)
-			{
-				if (ctor.name == name)
-				{
-					return fresh(*this, ctor.type);
-				}
-			}
-		}
+		Type ret;
+		if (findInModule(*this, *module, name, ret))
+			return std::move(ret);
 	}
 	throw std::runtime_error("Could not find the identifier " + name);
 }

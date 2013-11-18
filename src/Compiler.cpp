@@ -22,6 +22,36 @@ void GCompiler::popStack(size_t n)
 	}
 }
 
+Variable findInModule(Module& module, const std::string& name)
+{
+	for (auto& dataDef : module.dataDefinitions)
+	{
+		for (auto& ctor : dataDef.constructors)
+		{
+			if (ctor.name == name)
+			{
+				//TODO ctor.tag must be a way to retrieve this constructor
+				if (ctor.tag > (1 << 16))
+				{
+					throw std::runtime_error("Number of constructors are to large");
+				}if (ctor.arity > (1 << 16))
+				{
+					throw std::runtime_error("Arity of constructor " + std::string(ctor.name) + " are to large");
+				}
+				int index = (ctor.arity << 16) | ctor.tag;
+				return Variable { VariableType::CONSTRUCTOR, TypeVariable(), index };
+			}
+		}
+	}
+	for (auto& import : module.imports)
+	{
+		Variable ret = findInModule(*import, name);
+		if (ret.index >= 0)
+			return ret;
+	}
+	return Variable { VariableType::STACK, TypeVariable(), -1 };
+}
+
 Variable GCompiler::getVariable(const std::string& name)
 {
 	auto found = std::find(stackVariables.begin(), stackVariables.end(), name);
@@ -39,25 +69,7 @@ Variable GCompiler::getVariable(const std::string& name)
 	}
 	if (module != nullptr)
 	{
-		for (auto& dataDef : module->dataDefinitions)
-		{
-			for (auto& ctor : dataDef.constructors)
-			{
-				if (ctor.name == name)
-				{
-					//TODO ctor.tag must be a way to retrieve this constructor
-					if (ctor.tag > (1 << 16))
-					{
-						throw std::runtime_error("Number of constructors are to large");
-					}if (ctor.arity > (1 << 16))
-					{
-						throw std::runtime_error("Arity of constructor " + std::string(ctor.name) + " are to large");
-					}
-					int index = (ctor.arity << 16) | ctor.tag;
-					return Variable { VariableType::CONSTRUCTOR, TypeVariable(), index };
-				}
-			}
-		}
+		return findInModule(*module, name);
 	}
 	return Variable { VariableType::STACK, TypeVariable(), -1 };
 }

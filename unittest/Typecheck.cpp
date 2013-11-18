@@ -236,3 +236,29 @@ main = head (tail [10, 20, 30])\n");
 	CHECK(sameTypes(module.bindings[1].expression->getType(), tailType));
 	CHECK(sameTypes(module.bindings[2].expression->getType(), Type(TypeOperator("Int"))));
 }
+
+
+TEST_CASE("typecheck/Maybe", "")
+{
+	std::stringstream stream(
+"data Maybe a = Just a | Nothing\n\
+test1 = Just 3\n\
+test2 = Just undefined\n\
+test3 = Nothing\n");
+	Tokenizer tokenizer(stream);
+	Parser parser(tokenizer);
+
+	Module module = parser.module();
+	module.typecheck();
+
+	std::vector<Type> intArgs(1);
+	intArgs[0] = TypeOperator("Int");
+	Type intMaybe = TypeOperator("Maybe", intArgs);
+	std::vector<Type> args(1);
+	args[0] = TypeVariable();
+	Type genericMaybe = TypeOperator("Maybe", args);
+
+	CHECK(sameTypes(module.bindings[0].expression->getType(), intMaybe));
+	CHECK(sameTypes(module.bindings[1].expression->getType(), genericMaybe));
+	CHECK(sameTypes(module.bindings[2].expression->getType(), genericMaybe));
+}

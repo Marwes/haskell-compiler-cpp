@@ -31,18 +31,17 @@ class Module
 public:
 	Module();
 	Module(std::vector<Binding> && bindings, std::vector<TypeDeclaration> && typeDeclaration);
-	Module(Module && other)
-		: bindings(std::move(other.bindings))
-		, typeDeclaration(std::move(other.typeDeclaration))
-		, dataDefinitions(std::move(other.dataDefinitions))
-	{
-	}
+	Module(Module && other);
 
 	void typecheck();
 
 	std::vector<Binding> bindings;
 	std::vector<TypeDeclaration> typeDeclaration;
 	std::vector<DataDefinition> dataDefinitions;
+
+	std::vector<std::shared_ptr<Module>> imports;
+
+	static const std::shared_ptr<Module> prelude;
 };
 
 }

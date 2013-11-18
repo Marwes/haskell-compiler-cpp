@@ -28,8 +28,10 @@ TypeDeclaration::TypeDeclaration(TypeDeclaration && other)
 {
 }
 
-void addDefaultData(std::vector<DataDefinition>& dataDefinitions)
+std::shared_ptr<Module> createPrelude()
 {
+	std::shared_ptr<Module> prelude(std::make_shared<Module>());
+	prelude->imports.clear();//Remove prelude from itself
 	{
 		std::vector<Type> args(2);
 		args[0] = TypeVariable();
@@ -38,7 +40,7 @@ void addDefaultData(std::vector<DataDefinition>& dataDefinitions)
 		DataDefinition def;
 		def.name = "(,)";
 		def.constructors.push_back(ctor);
-		dataDefinitions.push_back(def);
+		prelude->dataDefinitions.push_back(def);
 	}
 
 	{
@@ -51,20 +53,31 @@ void addDefaultData(std::vector<DataDefinition>& dataDefinitions)
 		def.name = "[]";
 		def.constructors.push_back(ctor);
 		def.constructors.push_back(ctor2);
-		dataDefinitions.push_back(def);
+		prelude->dataDefinitions.push_back(def);
 	}
+	prelude->bindings.push_back(Binding("undefined", std::unique_ptr<Expression>(new Name("undefined"))));
+	return prelude;
 }
+const std::shared_ptr<Module> Module::prelude(createPrelude());
 
 Module::Module()
 {
-	addDefaultData(dataDefinitions);
+	imports.push_back(prelude);
 }
 
 Module::Module(std::vector<Binding> && bindings, std::vector<TypeDeclaration> && typeDeclaration)
 	: bindings(std::move(bindings))
 	, typeDeclaration(std::move(typeDeclaration))
 {
-	addDefaultData(dataDefinitions);
+	imports.push_back(prelude);
+}
+
+Module::Module(Module && other)
+	: bindings(std::move(other.bindings))
+	, typeDeclaration(std::move(other.typeDeclaration))
+	, dataDefinitions(std::move(other.dataDefinitions))
+	, imports(std::move(other.imports))
+{
 }
 
 void Module::typecheck()
