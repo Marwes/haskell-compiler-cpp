@@ -237,7 +237,6 @@ main = head (tail [10, 20, 30])\n");
 	CHECK(sameTypes(module.bindings[2].expression->getType(), Type(TypeOperator("Int"))));
 }
 
-
 TEST_CASE("typecheck/Maybe", "")
 {
 	std::stringstream stream(
@@ -261,4 +260,36 @@ test3 = Nothing\n");
 	CHECK(sameTypes(module.bindings[0].expression->getType(), intMaybe));
 	CHECK(sameTypes(module.bindings[1].expression->getType(), genericMaybe));
 	CHECK(sameTypes(module.bindings[2].expression->getType(), genericMaybe));
+}
+
+TEST_CASE("typecheck/pair", "Check that it is possible to have multiple pairs with differing types")
+{
+	std::stringstream stream(
+"test1 = (undefined, undefined)\n\
+test2 = (1, 2)\n\
+test3 = (undefined, 3)\n");
+	Tokenizer tokenizer(stream);
+	Parser parser(tokenizer);
+
+	Module module = parser.module();
+	module.typecheck();
+
+	std::vector<Type> args1(2);
+	args1[0] = TypeVariable();
+	args1[1] = TypeVariable();
+	Type test1 = TypeOperator("(,)", args1);
+
+	std::vector<Type> args2(2);
+	args2[0] = TypeOperator("Int");
+	args2[1] = TypeOperator("Int");
+	Type test2 = TypeOperator("(,)", args2);
+
+	std::vector<Type> args3(2);
+	args3[0] = TypeVariable();
+	args3[1] = TypeOperator("Int");
+	Type test3 = TypeOperator("(,)", args3);
+
+	CHECK(sameTypes(module.bindings[0].expression->getType(), test1));
+	CHECK(sameTypes(module.bindings[1].expression->getType(), test2));
+	CHECK(sameTypes(module.bindings[2].expression->getType(), test3));
 }
