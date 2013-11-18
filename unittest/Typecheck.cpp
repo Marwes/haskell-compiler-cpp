@@ -293,3 +293,18 @@ test3 = (undefined, 3)\n");
 	CHECK(sameTypes(module.bindings[1].expression->getType(), test2));
 	CHECK(sameTypes(module.bindings[2].expression->getType(), test3));
 }
+
+
+TEST_CASE("typecheck/error", "")
+{
+	std::stringstream stream(
+"test x = case x of\n\
+    (a, b) -> a + b\n\
+main = test 3\n");
+	Tokenizer tokenizer(stream);
+	Parser parser(tokenizer);
+
+	Module module = parser.module();
+
+	REQUIRE_THROWS(module.typecheck());
+}
