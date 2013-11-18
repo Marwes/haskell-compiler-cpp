@@ -217,6 +217,34 @@ test2 y = 2 * test1 y\n");
 	REQUIRE(sameTypes(module.bindings[1].expression->getType(), x));
 }
 
+TEST_CASE("typecheck/nested_let", "")
+{
+	std::stringstream stream(
+"test x =\n\
+    let\n\
+        first = x + x\n\
+    in let\n\
+        second = [first, x]\n\
+       in second\n");
+	Tokenizer tokenizer(stream);
+	Parser parser(tokenizer);
+
+	Module module = parser.module();
+	module.typecheck();
+
+	std::vector<Type> args(1);
+	args[0] = TypeOperator("Int");
+	Type listType = TypeOperator("[]", args);
+	Type x = functionType(TypeOperator("Int"), listType);
+	REQUIRE(sameTypes(module.bindings[0].expression->getType(), x));
+
+	Lambda& lambda = dynamic_cast<Lambda&>(*module.bindings[0].expression);
+	Let& let = dynamic_cast<Let&>(*lambda.body);
+	REQUIRE(let.bindings[0].expression->getType() == Type(TypeOperator("Int")));
+	Let& innerLet = dynamic_cast<Let&>(*let.expression);
+	REQUIRE(innerLet.bindings[0].expression->getType() == listType);
+}
+
 TEST_CASE("typecheck/list", "")
 {
 	std::stringstream stream(
