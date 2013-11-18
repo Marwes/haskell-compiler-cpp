@@ -1,5 +1,6 @@
 #pragma once
 #include <vector>
+#include <map>
 
 namespace MyVMNamespace
 {
@@ -75,6 +76,8 @@ class DataDefinition
 {
 public:
 	std::string name;
+	Type type;
+	std::map<std::string, Type> parameters;
 	std::vector<Constructor> constructors;
 };
 

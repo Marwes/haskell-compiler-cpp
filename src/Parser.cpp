@@ -562,25 +562,33 @@ bool constructorError(const Token& tok)
 		&& tok.type != SymbolEnum::LPARENS;
 }
 
-Type constructorType(Tokenizer& tokenizer, int& arity, const Type& returnType)
+Type constructorType(Tokenizer& tokenizer, int& arity, const DataDefinition& dataDef)
 {
 	const Token* token = &tokenizer.nextToken(constructorError);
 	if (token->type == SymbolEnum::NAME)
 	{
 		arity++;
-		return functionType(TypeOperator(token->name), constructorType(tokenizer, arity, returnType));
+		if (islower(token->name[0]))
+		{
+			auto existingVariable = dataDef.parameters.find(token->name);
+			if (existingVariable == dataDef.parameters.end())
+				throw std::runtime_error("Undefined type parameter " + token->name);
+			return functionType(existingVariable->second, constructorType(tokenizer, arity, dataDef));
+		}
+		else
+			return functionType(TypeOperator(token->name), constructorType(tokenizer, arity, dataDef));
 	}
 	else
 	{
-		return returnType;
+		return dataDef.type;
 	}
 }
 
-Constructor Parser::constructor(const Type& dataType)
+Constructor Parser::constructor(const DataDefinition& dataDef)
 {
 	const Token& nameToken = tokenizer.nextToken();
 	int arity = 0;
-	Type type = constructorType(tokenizer, arity, dataType);
+	Type type = constructorType(tokenizer, arity, dataDef);
 	--tokenizer;
 	return Constructor(nameToken.name, type, 0, arity);
 }
@@ -597,15 +605,21 @@ DataDefinition Parser::dataDefinition()
 	{
 		throw std::runtime_error("Expected NAME token");
 	}
-	const Token& equalToken = tokenizer.nextToken();
+	DataDefinition definition;
+	definition.type = TypeOperator(dataName.name);
+	TypeOperator& op = boost::get<TypeOperator>(definition.type);
+	while (tokenizer.nextToken().type == SymbolEnum::NAME)
+	{
+		op.types.push_back(TypeVariable());
+		definition.parameters.insert(std::make_pair(tokenizer->name, op.types.back()));
+	}
+	const Token& equalToken = *tokenizer;
 	if (equalToken.type != SymbolEnum::EQUALSSIGN)
 	{
 		throw std::runtime_error("Expected EQUAL token");
 	}
-	Type dataType = TypeOperator(dataName.name);
-	DataDefinition definition;
 	definition.name = dataName.name;
-	definition.constructors = sepBy1(&Parser::constructor, dataType,
+	definition.constructors = sepBy1(&Parser::constructor, definition,
 		[](const Token& t)
 	{
 		return t.type == SymbolEnum::OPERATOR && t.name == "|";

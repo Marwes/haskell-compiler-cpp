@@ -1,4 +1,5 @@
 #include "Catch/include/catch.hpp"
+#include "TestUtil.h"
 #include "Tokenizer.h"
 #include "Parser.h"
 

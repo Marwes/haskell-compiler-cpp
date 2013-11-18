@@ -1,4 +1,5 @@
 #include "Catch/include/catch.hpp"
+#include "TestUtil.h"
 #include "Tokenizer.h"
 #include "Parser.h"
 
@@ -120,5 +121,29 @@ TEST_CASE("module/datadefinition/arguments", "")
 	REQUIRE(def.constructors[0].name == "Cons");
 	REQUIRE(def.constructors[0].arity == 2);
 	REQUIRE(def.constructors[1].name == "Nil");
+	REQUIRE(def.constructors[1].arity == 0);
+}
+
+
+TEST_CASE("module/datadefinition/typeargumentss", "")
+{
+	const char* file =
+"data Maybe a = Just a\n\
+              | Nothing";
+	std::stringstream stream(file);
+	Tokenizer tokenizer(stream);
+	Parser parser(tokenizer);
+
+	Module module = parser.module();
+
+	REQUIRE(module.dataDefinitions.size() > 0);
+	DataDefinition& def = module.dataDefinitions.back();
+	REQUIRE(def.name == "Maybe");
+	REQUIRE(sameTypes(def.type, Type(TypeOperator("Maybe", { TypeVariable()}))));
+	TypeOperator& maybe = boost::get<TypeOperator>(def.type);
+	REQUIRE(def.constructors[0].name == "Just");
+	REQUIRE(def.constructors[0].arity == 1);
+	REQUIRE(def.constructors[0].type == functionType(maybe.types[0], TypeOperator("Maybe", maybe.types)));//TODO
+	REQUIRE(def.constructors[1].name == "Nothing");
 	REQUIRE(def.constructors[1].arity == 0);
 }

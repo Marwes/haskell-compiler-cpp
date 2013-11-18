@@ -44,7 +44,7 @@ public:
 
 	//Parse a data definition, data NAME = sepBy1 constructor
 	DataDefinition dataDefinition();
-	Constructor constructor(const Type& dataType);
+	Constructor constructor(const DataDefinition& dataType);
 
 	//Parse 1 to N occurances of the argument parse, each seperated by 'delim'
 	template<class TResult>
