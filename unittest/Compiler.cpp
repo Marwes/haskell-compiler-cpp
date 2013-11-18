@@ -191,6 +191,19 @@ main = if True 6 9\n");
 	REQUIRE(result.getNode()->number == 6);
 }
 
+TEST_CASE("compiler/opererator", "")
+{
+	std::stringstream expr(
+"(===) x y = x == y\n\
+main = 7 === 3\n");
+	GMachine machine;
+	machine.compile(expr);
+
+	Address result = machine.executeMain();
+	REQUIRE(result.getType() == NUMBER);
+	REQUIRE(result.getNode()->number == 0);
+}
+
 #if 0
 TEST_CASE("compiler/let", "")
 {

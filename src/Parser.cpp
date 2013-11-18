@@ -57,7 +57,10 @@ PrimOps getOperand(const std::string& name)
 
 int getPrecedence(const std::string& name)
 {
-	return operators.at(name).precedence;
+	auto found = operators.find(name);
+	if (found == operators.end())
+		return 9;
+	return found->second.precedence;
 }
 
 bool toplevelError(const Token& t)
@@ -364,7 +367,16 @@ std::unique_ptr<Expression> Parser::parseOperatorExpression(std::unique_ptr<Expr
 		{
 			return nullptr;
 		}
-		lhs = std::unique_ptr<Expression>(new PrimOP(op.name, std::move(lhs), std::move(rhs)));
+		if (operators.count(op.name) != 0)
+			lhs = std::unique_ptr<Expression>(new PrimOP(op.name, std::move(lhs), std::move(rhs)));
+		else
+		{
+			std::unique_ptr<Expression> name(new Name(op.name));
+			std::vector<std::unique_ptr<Expression>> args(2);
+			args[0] = std::move(lhs);
+			args[1] = std::move(rhs);
+			lhs = std::unique_ptr<Expression>(new Apply(std::move(name), std::move(args)));
+		}
 	}
 	--tokenizer;
 	return lhs;
