@@ -204,6 +204,20 @@ main = 7 === 3\n");
 	REQUIRE(result.getNode()->number == 0);
 }
 
+TEST_CASE("compiler/partial_application", "")
+{
+	std::stringstream expr(
+"(.) f g x = f (g x)\n\
+id x = x\n\
+main = (id . id) 3\n");
+	GMachine machine;
+	machine.compile(expr);
+
+	Address result = machine.executeMain();
+	REQUIRE(result.getType() == NUMBER);
+	REQUIRE(result.getNode()->number == 3);
+}
+
 #if 0
 TEST_CASE("compiler/let", "")
 {

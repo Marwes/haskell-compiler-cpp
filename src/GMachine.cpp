@@ -133,7 +133,10 @@ std::ostream& operator<<(std::ostream& out, const Address& addr)
 		break;
 	case APPLICATION:
 		{
-			assert(0);
+			out << "(";
+			out << addr.getNode()->apply.func << " ";
+			out << addr.getNode()->apply.arg;
+			out << ")";
 		}
 		break;
 	case NUMBER:
@@ -277,7 +280,14 @@ void GMachine::execute(GEnvironment& environment)
 				case GLOBAL:
 					{
 						SuperCombinator* comb = top.getNode()->global;
-						if (environment.stack.stackSize() >= size_t(comb->arity))
+						if (environment.stack.stackSize() - 1 < size_t(comb->arity))
+						{
+							while (stack.stackSize() > 1)
+							{
+								stack.pop();
+							}
+						}
+						else
 						{
 							//Before calling the function, replace all applications on the stack with the actual arguments
 							//This gives faster access to a functions arguments when using PUSH

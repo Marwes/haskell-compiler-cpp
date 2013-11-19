@@ -27,7 +27,7 @@ public:
 
     void push(const T& obj)
     {
-        assert(currentSize < Slice<T>::size() - 1);
+        assert(currentSize < size() - 1);
         (*this)[currentSize] = obj;
         currentSize++;
     }
