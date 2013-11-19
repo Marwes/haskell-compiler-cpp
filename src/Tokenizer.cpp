@@ -11,6 +11,8 @@ namespace MyVMNamespace
 
 const std::map<std::string, SymbolEnum> keywords = {
 	std::make_pair("module", SymbolEnum::MODULE),
+	std::make_pair("class", SymbolEnum::CLASS),
+	std::make_pair("instance", SymbolEnum::INSTANCE),
 	std::make_pair("where", SymbolEnum::WHERE),
 	std::make_pair("let", SymbolEnum::LET),
 	std::make_pair("in", SymbolEnum::IN),

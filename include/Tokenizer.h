@@ -28,6 +28,8 @@ namespace MyVMNamespace
 	XX(t,EQUALSSIGN) \
 	XX(t,SEMICOLON) \
 	XX(t,MODULE) \
+	XX(t,CLASS) \
+	XX(t,INSTANCE) \
 	XX(t,WHERE) \
 	XX(t,LET) \
 	XX(t,IN) \
