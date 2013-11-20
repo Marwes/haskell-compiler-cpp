@@ -343,7 +343,7 @@ TEST_CASE("parser/case2", "case expr of")
 
 TEST_CASE("parser/typedeclaration", "")
 {
-	const char* expr = "test :: Int";
+	const char* expr = "test :: Int\n";
 	std::stringstream stream(expr);
 	Tokenizer tokenizer(stream);
 	Parser parser(tokenizer);
@@ -356,7 +356,7 @@ TEST_CASE("parser/typedeclaration", "")
 
 TEST_CASE("parser/typedeclaration2", "Function")
 {
-	const char* expr = "double :: Int -> Int";
+	const char* expr = "double :: Int -> Int\n";
 	std::stringstream stream(expr);
 	Tokenizer tokenizer(stream);
 	Parser parser(tokenizer);

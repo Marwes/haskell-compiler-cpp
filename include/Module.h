@@ -73,6 +73,7 @@ public:
 	std::vector<TypeDeclaration> typeDeclaration;
 	std::vector<DataDefinition> dataDefinitions;
 	std::vector<Class> classes;
+	std::vector<Instance> instances;
 
 	std::vector<std::shared_ptr<Module>> imports;
 

@@ -148,6 +148,11 @@ Module Parser::module()
 			--tokenizer;
 			module.classes.push_back(klass());
 		}
+		else if (token.type == SymbolEnum::INSTANCE)
+		{
+			--tokenizer;
+			module.instances.push_back(instance());
+		}
 		else if (token.type == SymbolEnum::DATA)
 		{
 			--tokenizer;
@@ -205,7 +210,23 @@ Class Parser::klass()
 
 Instance Parser::instance()
 {
-	return Instance();
+	Instance inst;
+	requireNext(SymbolEnum::INSTANCE);
+
+	const Token& className = requireNext(SymbolEnum::NAME);
+	//inst.name = className.name;
+	
+	inst.type = type();
+
+	--tokenizer;
+	requireNext(SymbolEnum::WHERE);
+	requireNext(SymbolEnum::LBRACE);
+
+	inst.bindings = sepBy1(&Parser::binding, SymbolEnum::SEMICOLON);
+
+	--tokenizer;
+	requireNext(SymbolEnum::RBRACE);
+	return std::move(inst);
 }
 
 std::unique_ptr<Expression> Parser::expression()
@@ -846,7 +867,7 @@ Type Parser::type(std::map<std::string, TypeVariable>& typeVariableMapping)
 		break;
 	case SymbolEnum::NAME:
 		{
-			const Token& arrow = tokenizer.nextToken(typeParseError);
+			const Token& arrow = tokenizer.nextToken();
 			Type thisType;
 			if (isupper(token.name[0]))
 			{

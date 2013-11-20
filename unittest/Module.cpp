@@ -184,3 +184,21 @@ TEST_CASE("module/class", "")
 	Type equalType = functionType(eqClass.variable, functionType(eqClass.variable, TypeOperator("Bool")));
 	REQUIRE(eqClass.declarations["=="].type == equalType);
 }
+
+TEST_CASE("module/instance", "")
+{
+	const char* file =
+"instance Eq Int where\n\
+	(==) = primIntEq\n";
+	std::stringstream stream(file);
+	Tokenizer tokenizer(stream);
+	Parser parser(tokenizer);
+
+	Module module = parser.module();
+	REQUIRE(module.instances.size() == 1);
+	Instance& instance = module.instances[0];
+	REQUIRE(instance.bindings.size() == 1);
+	REQUIRE(instance.type == Type(TypeOperator("Int")));
+	Binding& eqBind = instance.bindings[0];
+	REQUIRE(eqBind.name == "==");
+}
