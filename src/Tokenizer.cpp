@@ -240,11 +240,11 @@ bool Tokenizer::tokenize(bool (*parseError)(const Token&))
 				unprocessedTokens.push_back(Token(SymbolEnum::INDENTSTART, "{n}", tok.indent));
 			}
 		}
-		if (newline)
-		{
-			unprocessedTokens.push_back(Token(SymbolEnum::INDENTLEVEL, "<n>", tok.indent));
-		}
 		success = true;
+	}
+	if (newline)
+	{
+		unprocessedTokens.push_back(Token(SymbolEnum::INDENTLEVEL, "<n>", tok.indent));
 	}
 	nextLayoutIndependentToken(parseError);
 	return success;
