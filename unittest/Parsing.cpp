@@ -351,7 +351,7 @@ TEST_CASE("parser/typedeclaration", "")
 	Module module = parser.module();
 	TypeDeclaration& type = module.typeDeclaration[0];
 	REQUIRE(type.name == "test");
-	//REQUIRE(type.type->toString() == "Int");
+	REQUIRE(type.type == Type(TypeOperator("Int")));
 }
 
 TEST_CASE("parser/typedeclaration2", "Function")
@@ -364,7 +364,7 @@ TEST_CASE("parser/typedeclaration2", "Function")
 	Module module = parser.module();
 	TypeDeclaration& type = module.typeDeclaration[0];
 	REQUIRE(type.name == "double");
-	//REQUIRE(type.type->toString() == "Int -> Int");//TODO
+	REQUIRE(type.type == functionType(TypeOperator("Int"), TypeOperator("Int")));
 }
 
 TEST_CASE("parser/typedeclaration3", "Function")
@@ -377,7 +377,7 @@ TEST_CASE("parser/typedeclaration3", "Function")
 	Module module = parser.module();
 	TypeDeclaration& type = module.typeDeclaration[0];
 	REQUIRE(type.name == "add");
-	//REQUIRE(type.type->toString() == "(Int -> Double) -> Int");//TODO
+	REQUIRE(type.type == functionType(functionType(TypeOperator("Int"), TypeOperator("Double")), TypeOperator("Int")));//TODO
 }
 
 TEST_CASE("parser/typedeclaration4", "add")
