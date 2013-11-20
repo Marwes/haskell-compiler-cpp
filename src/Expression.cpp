@@ -96,10 +96,6 @@ std::vector<std::unique_ptr<Expression>> argVector(std::unique_ptr<Expression> &
 	return std::move(args);
 }
 
-PrimOP::PrimOP(std::string name, std::unique_ptr<Expression> && lhs, std::unique_ptr<Expression> && rhs)
-	: Apply(std::unique_ptr<Expression>(new Name(std::move(name))), argVector(std::move(lhs), std::move(rhs)))
-{
-}
 
 
 GOP toGOP(const std::string& op)
@@ -116,14 +112,6 @@ GOP toGOP(const std::string& op)
 	if (op == ">=") return GOP::COMPARE_GE;
 	if (op == "<=") return GOP::COMPARE_LE;
 	throw std::runtime_error("Unknown op" + op);
-}
-
-void PrimOP::compile(GCompiler& env, std::vector<GInstruction>& instructions, bool)
-{
-	arguments[0]->compile(env, instructions, true);
-	arguments[1]->compile(env, instructions, true);
-	GOP op = toGOP(static_cast<Name&>(*function).name);
-	instructions.push_back(GInstruction(op));
 }
 
 void PatternName::addVariables(TypeEnvironment& env, Type& type)
@@ -669,6 +657,21 @@ void Lambda::compile(GCompiler& env, std::vector<GInstruction>& instructions, bo
 }
 void Apply::compile(GCompiler& env, std::vector<GInstruction>& instructions, bool strict)
 {
+	if (Name* nameFunc = dynamic_cast<Name*>(function.get()))
+	{
+		try
+		{
+			GOP op = toGOP(nameFunc->name);
+			assert(arguments.size() == 2);
+			arguments[0]->compile(env, instructions, true);
+			arguments[1]->compile(env, instructions, true);
+			instructions.push_back(GInstruction(op));
+			return;
+		}
+		catch (std::runtime_error&)
+		{
+		}
+	}
 	for (int ii = arguments.size() - 1; ii >= 0; --ii)
 	{
 		//TODO

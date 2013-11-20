@@ -197,14 +197,6 @@ private:
 	Type type;
 };
 
-class PrimOP : public Apply
-{
-public:
-	PrimOP(std::string name, std::unique_ptr<Expression> && lhs, std::unique_ptr<Expression> && rhs);
-
-	virtual void compile(GCompiler& env, std::vector<GInstruction>& instructions, bool strict);
-};
-
 class Pattern
 {
 public:
