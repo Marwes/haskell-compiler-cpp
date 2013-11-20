@@ -694,10 +694,24 @@ TypeDeclaration Parser::typeDeclaration(std::map<std::string, TypeVariable>& typ
 	{
 		throw std::runtime_error("Expected '::' in binding, got " + std::string(enumToString(tokenizer->type)));
 	}
-	Type t = type(typeVariableMapping);
+	Type typeOrContext = type(typeVariableMapping);
+	if (tokenizer->type == SymbolEnum::OPERATOR && tokenizer->name == "=>")
+	{
+		Type t = type(typeVariableMapping);
+		--tokenizer;
+		TypeOperator& op = boost::get<TypeOperator>(typeOrContext);
+		if (op.name[0] == '(')
+		{
+			return TypeDeclaration(std::move(name), std::move(t), std::move(op.types));
+		}
+		else
+		{
+			return TypeDeclaration(std::move(name), std::move(t), { typeOrContext });
+		}
+	}
 	--tokenizer;
 
-	return TypeDeclaration(std::move(name), std::move(t));
+	return TypeDeclaration(std::move(name), std::move(typeOrContext));
 }
 
 bool constructorError(const Token& tok)
@@ -862,11 +876,21 @@ Type Parser::type(std::map<std::string, TypeVariable>& typeVariableMapping)
 		break;
 	case SymbolEnum::NAME:
 		{
-			const Token& arrow = tokenizer.nextToken();
+			const Token* next = &tokenizer.nextToken();
+			std::vector<Type> typeArguments;
+			while (next->type == SymbolEnum::NAME)
+			{
+				if (typeVariableMapping.count(next->name) == 0)
+				{
+					typeVariableMapping[next->name] = TypeVariable();
+				}
+				typeArguments.push_back(typeVariableMapping[next->name]);
+				next = &tokenizer.nextToken();
+			}
 			Type thisType;
 			if (isupper(token.name[0]))
 			{
-				thisType = TypeOperator(token.name);
+				thisType = TypeOperator(token.name, typeArguments);
 			}
 			else
 			{
@@ -880,13 +904,13 @@ Type Parser::type(std::map<std::string, TypeVariable>& typeVariableMapping)
 					thisType = found->second;
 				}
 			}
-			if (arrow.type == SymbolEnum::ARROW)
+			if (next->type == SymbolEnum::ARROW)
 			{
 				thisType = functionType(thisType, type(typeVariableMapping));
 			}
-			if (arrow.type == SymbolEnum::COMMA
-			 || arrow.type == SymbolEnum::RPARENS
-			 || arrow.type == SymbolEnum::RBRACKET)//in tuple or list
+			if (next->type == SymbolEnum::COMMA
+				|| next->type == SymbolEnum::RPARENS
+				|| next->type == SymbolEnum::RBRACKET)//in tuple or list
 				--tokenizer;
 			return thisType;
 		}

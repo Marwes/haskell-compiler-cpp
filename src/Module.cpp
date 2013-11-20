@@ -22,9 +22,16 @@ TypeDeclaration::TypeDeclaration(std::string name, Type type)
 	, type(std::move(type))
 {
 }
+TypeDeclaration::TypeDeclaration(std::string name, Type type, std::vector<Type> constraints)
+	: name(std::move(name))
+	, type(std::move(type))
+	, constraints(std::move(constraints))
+{
+}
 TypeDeclaration::TypeDeclaration(TypeDeclaration && other)
 	: name(std::move(other.name))
 	, type(std::move(other.type))
+	, constraints(std::move(other.constraints))
 {
 }
 

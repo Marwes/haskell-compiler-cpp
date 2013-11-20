@@ -377,8 +377,25 @@ TEST_CASE("parser/typedeclaration3", "Function")
 	Module module = parser.module();
 	TypeDeclaration& type = module.typeDeclaration[0];
 	REQUIRE(type.name == "add");
-	REQUIRE(type.type == functionType(functionType(TypeOperator("Int"), TypeOperator("Double")), TypeOperator("Int")));//TODO
+	REQUIRE(type.type == functionType(functionType(TypeOperator("Int"), TypeOperator("Double")), TypeOperator("Int")));
 }
+
+TEST_CASE("parser/constraints", "")
+{
+	const char* expr = "add :: Num a => a -> a -> a\n";
+	std::stringstream stream(expr);
+	Tokenizer tokenizer(stream);
+	Parser parser(tokenizer);
+
+	Module module = parser.module();
+	TypeDeclaration& type = module.typeDeclaration[0];
+	REQUIRE(type.constraints.size() == 1);
+	TypeOperator* op = boost::get<TypeOperator>(&type.constraints[0]);
+	REQUIRE(op != 0);
+	REQUIRE(type.name == "add");
+	REQUIRE(type.type == functionType(op->types[0], functionType(op->types[0], op->types[0])));
+}
+
 
 TEST_CASE("parser/typedeclaration4", "add")
 {

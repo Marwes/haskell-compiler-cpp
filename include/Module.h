@@ -21,10 +21,12 @@ class TypeDeclaration
 public:
 	TypeDeclaration() {}
 	TypeDeclaration(std::string name, Type type);
+	TypeDeclaration(std::string name, Type type, std::vector<Type> constraints);
 	TypeDeclaration(TypeDeclaration && binding);
 
 	std::string name;
 	Type type;
+	std::vector<Type> constraints;
 };
 
 class Instance
