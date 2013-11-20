@@ -22,8 +22,15 @@ public:
     
 	std::unique_ptr<Expression> run();
 
+
+	const Token& requireNext(SymbolEnum expected);
+
 	//Parse the tokens from the tokenizer as a haskell module (file)
 	Module module();
+	//Parse a class declaration
+	Class klass();
+	//Parse a instance declaration
+	Instance instance();
 	//Top level expression parsing function
     std::unique_ptr<Expression> expression();
 	//Parse a expression which can be passed as an argument to a function application
@@ -41,6 +48,7 @@ public:
 	
 	TypeDeclaration typeDeclaration();
 	Type type();
+	Type type(std::map<std::string, TypeVariable>& typeVariableMapping);
 
 	//Parse a data definition, data NAME = sepBy1 constructor
 	DataDefinition dataDefinition();
@@ -69,7 +77,7 @@ inline std::vector<TResult> Parser::sepBy1(TResult (Parser::*parse)(), SymbolEnu
 	do
 	{
 		TResult x = (this->*parse)();
-		result.push_back(std::move(x));
+		result.emplace_back(std::move(x));
 		tokenDelim = &tokenizer.nextToken();
 	} while (tokenDelim->type == delim);
 	return std::move(result);
@@ -82,7 +90,7 @@ inline std::vector<TResult> Parser::sepBy1(TResult(Parser::*parse)(), F delim)
 	do
 	{
 		TResult x = (this->*parse)();
-		result.push_back(std::move(x));
+		result.emplace_back(std::move(x));
 		tokenDelim = &tokenizer.nextToken();
 	} while (delim(*tokenDelim));
 	return std::move(result);
@@ -95,10 +103,17 @@ inline std::vector<TResult> Parser::sepBy1(TResult(Parser::*parse)(const T& t), 
 	do
 	{
 		TResult x = (this->*parse)(t);
-		result.push_back(std::move(x));
+		result.emplace_back(std::move(x));
 		tokenDelim = &tokenizer.nextToken();
 	} while (delim(*tokenDelim));
 	return std::move(result);
 }
+
+class ParseError : public std::runtime_error
+{
+public:
+	ParseError(const Token& found, SymbolEnum expected);
+};
+
 
 }

@@ -1,5 +1,6 @@
 #include <string>
 #include <fstream>
+#include <sstream>
 #include <algorithm>
 #include <array>
 #include "Expression.h"
@@ -8,12 +9,32 @@
 
 namespace MyVMNamespace
 {
+std::string parseError(const Token& found, SymbolEnum expected)
+{
+	std::stringstream str;
+	str << "Error: Unexpected token\n";
+	str << "Expected: " << enumToString(expected) << "\n";
+	str << "Found: " << enumToString(found.type) << " '" << found.name << "'";
+	return str.str();
+}
+ParseError::ParseError(const Token& found, SymbolEnum expected)
+	: std::runtime_error(parseError(found, expected).c_str())
+{
+}
 
 Parser::Parser(Tokenizer& tokenizer)
     : tokenizer(tokenizer)
 {
 }
 
+
+const Token& Parser::requireNext(SymbolEnum expected)
+{
+	const Token& tok = tokenizer.nextToken();
+	if (tok.type != expected)
+		throw ParseError(tok, expected);
+	return tok;
+}
     
 std::unique_ptr<Expression> Parser::run()
 {
@@ -69,7 +90,9 @@ bool toplevelError(const Token& t)
 		&& t.type != SymbolEnum::RBRACKET
 		&& t.type != SymbolEnum::SEMICOLON
 		&& t.type != SymbolEnum::DATA
-		&& t.type != SymbolEnum::LPARENS;
+		&& t.type != SymbolEnum::LPARENS
+		&& t.type != SymbolEnum::CLASS
+		&& t.type != SymbolEnum::INSTANCE;
 }
 
 bool toplevelNewBindError(const Token& t)
@@ -120,6 +143,11 @@ Module Parser::module()
 				module.bindings.push_back(std::move(bind));
 			}
 		}
+		else if (token.type == SymbolEnum::CLASS)
+		{
+			--tokenizer;
+			module.classes.push_back(klass());
+		}
 		else if (token.type == SymbolEnum::DATA)
 		{
 			--tokenizer;
@@ -145,6 +173,38 @@ Module Parser::module()
 	}
 
 	return std::move(module);
+}
+
+Class Parser::klass()
+{
+	Class klass;
+
+	requireNext(SymbolEnum::CLASS);
+
+	const Token& className = requireNext(SymbolEnum::NAME);
+	klass.name = className.name;
+
+	const Token& typeVariable = requireNext(SymbolEnum::NAME);
+
+	requireNext(SymbolEnum::WHERE);
+	requireNext(SymbolEnum::LBRACE);
+
+	std::vector<TypeDeclaration> decls = sepBy1(&Parser::typeDeclaration, SymbolEnum::SEMICOLON);
+	while (!decls.empty())
+	{
+		klass.declarations.insert(std::make_pair(decls.back().name, std::move(decls.back())));
+		decls.pop_back();
+	}
+	
+	--tokenizer;
+	requireNext(SymbolEnum::RBRACE);
+
+	return std::move(klass);
+}
+
+Instance Parser::instance()
+{
+	return Instance();
 }
 
 std::unique_ptr<Expression> Parser::expression()
@@ -585,8 +645,24 @@ std::unique_ptr<Pattern> Parser::pattern()
 
 TypeDeclaration Parser::typeDeclaration()
 {
-	const Token nameToken = tokenizer.nextToken(errorIfNotName);
-	if (nameToken.type != SymbolEnum::NAME)
+	const Token& nameToken = tokenizer.nextToken(errorIfNotNameOrLParens);
+	std::string name = nameToken.name;
+	if (nameToken.type == SymbolEnum::LPARENS)
+	{
+		//Parse a name within parentheses
+		const Token& functionName = tokenizer.nextToken(errorIfNotNameOrOperator);
+		if (functionName.type != SymbolEnum::NAME && functionName.type != SymbolEnum::OPERATOR)
+		{
+			throw std::runtime_error("Expected NAME or OPERATOR on left side of binding " + std::string(enumToString(functionName.type)));
+		}
+		name = functionName.name;
+		const Token& rParens = tokenizer.nextToken(errorIfNotRParens);
+		if (rParens.type != SymbolEnum::RPARENS)
+		{
+			throw std::runtime_error("Expected RPARENS on left side of binding " + std::string(enumToString(rParens.type)));
+		}
+	}
+	else if (nameToken.type != SymbolEnum::NAME)
 	{
 		throw std::runtime_error("Expected NAME on left side of binding " + std::string(enumToString(nameToken.type)));
 	}
@@ -598,7 +674,7 @@ TypeDeclaration Parser::typeDeclaration()
 	Type t = type();
 	--tokenizer;
 
-	return TypeDeclaration(nameToken.name, std::move(t));
+	return TypeDeclaration(std::move(name), std::move(t));
 }
 
 bool constructorError(const Token& tok)
@@ -693,6 +769,11 @@ Type tupleType(const std::vector<Type>& types)
 }
 
 Type Parser::type()
+{
+	std::map<std::string, TypeVariable> vars;
+	return type(vars);
+}
+Type Parser::type(std::map<std::string, TypeVariable>& typeVariableMapping)
 {
 	Type result;
 	const Token& token = tokenizer.nextToken();
