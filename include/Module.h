@@ -55,7 +55,7 @@ public:
 
 
 	std::string name;
-	Type variable;
+	TypeVariable variable;
 	std::vector<Instance> instances;
 	std::map<std::string, TypeDeclaration> declarations;
 };

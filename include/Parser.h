@@ -47,6 +47,7 @@ public:
 	std::vector<std::unique_ptr<Pattern>> patternParameter();
 	
 	TypeDeclaration typeDeclaration();
+	TypeDeclaration typeDeclaration(std::map<std::string, TypeVariable>& typeVariableMapping);
 	Type type();
 	Type type(std::map<std::string, TypeVariable>& typeVariableMapping);
 
@@ -57,6 +58,8 @@ public:
 	//Parse 1 to N occurances of the argument parse, each seperated by 'delim'
 	template<class TResult>
 	std::vector<TResult> sepBy1(TResult(Parser::*parse)(), SymbolEnum delim);
+	template<class TResult, class T>
+	std::vector<TResult> sepBy1(TResult(Parser::*parse)(T&) , T& t, SymbolEnum delim);
 	//Parse 1 to N occurances of the argument parse, each seperated by tokens giving a true result from the delim function
 	template<class TResult, class F>
 	std::vector<TResult> sepBy1(TResult(Parser::*parse)(), F delim);
@@ -93,6 +96,19 @@ inline std::vector<TResult> Parser::sepBy1(TResult(Parser::*parse)(), F delim)
 		result.emplace_back(std::move(x));
 		tokenDelim = &tokenizer.nextToken();
 	} while (delim(*tokenDelim));
+	return std::move(result);
+}
+template<class TResult, class T>
+inline std::vector<TResult> Parser::sepBy1(TResult(Parser::*parse)(T&), T& t, SymbolEnum delim)
+{
+	const Token* tokenDelim;
+	std::vector<TResult> result;
+	do
+	{
+		TResult x = (this->*parse)(t);
+		result.emplace_back(std::move(x));
+		tokenDelim = &tokenizer.nextToken();
+	} while (tokenDelim->type == delim);
 	return std::move(result);
 }
 template<class TResult, class T, class F>

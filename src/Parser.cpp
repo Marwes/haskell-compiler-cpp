@@ -188,8 +188,9 @@ Class Parser::klass()
 
 	requireNext(SymbolEnum::WHERE);
 	requireNext(SymbolEnum::LBRACE);
-
-	std::vector<TypeDeclaration> decls = sepBy1(&Parser::typeDeclaration, SymbolEnum::SEMICOLON);
+	std::map<std::string, TypeVariable> typeVariableMapping;
+	typeVariableMapping[typeVariable.name] = klass.variable;
+	std::vector<TypeDeclaration> decls = sepBy1(&Parser::typeDeclaration, typeVariableMapping, SymbolEnum::SEMICOLON);
 	while (!decls.empty())
 	{
 		klass.declarations.insert(std::make_pair(decls.back().name, std::move(decls.back())));
@@ -645,6 +646,12 @@ std::unique_ptr<Pattern> Parser::pattern()
 
 TypeDeclaration Parser::typeDeclaration()
 {
+	std::map<std::string, TypeVariable> typeVariableMapping;
+	return typeDeclaration(typeVariableMapping);
+}
+
+TypeDeclaration Parser::typeDeclaration(std::map<std::string, TypeVariable>& typeVariableMapping)
+{
 	const Token& nameToken = tokenizer.nextToken(errorIfNotNameOrLParens);
 	std::string name = nameToken.name;
 	if (nameToken.type == SymbolEnum::LPARENS)
@@ -671,7 +678,7 @@ TypeDeclaration Parser::typeDeclaration()
 	{
 		throw std::runtime_error("Expected '::' in binding, got " + std::string(enumToString(tokenizer->type)));
 	}
-	Type t = type();
+	Type t = type(typeVariableMapping);
 	--tokenizer;
 
 	return TypeDeclaration(std::move(name), std::move(t));
@@ -781,7 +788,7 @@ Type Parser::type(std::map<std::string, TypeVariable>& typeVariableMapping)
 	{
 	case SymbolEnum::LBRACKET:
 		{
-			Type t = type();
+			Type t = type(typeVariableMapping);
 			const Token& endList = tokenizer.nextToken();
 			if (endList.type != SymbolEnum::RBRACKET)
 			{
@@ -794,7 +801,7 @@ Type Parser::type(std::map<std::string, TypeVariable>& typeVariableMapping)
 			const Token& arrow = tokenizer.nextToken();
 			if (arrow.type == SymbolEnum::ARROW)
 			{
-				return functionType(listType, type());
+				return functionType(listType, type(typeVariableMapping));
 			}
 			return listType;
 		}
@@ -806,14 +813,14 @@ Type Parser::type(std::map<std::string, TypeVariable>& typeVariableMapping)
 			{
 				--tokenizer;
 				--tokenizer;
-				auto tupleArgs = sepBy1(&Parser::type, SymbolEnum::COMMA);
+				auto tupleArgs = sepBy1(&Parser::type, typeVariableMapping, SymbolEnum::COMMA);
 				const Token& rParens = *tokenizer;
 				if (rParens.type == SymbolEnum::RPARENS)
 				{
 					const Token& arrow = tokenizer.nextToken();
 					if (arrow.type == SymbolEnum::ARROW)
 					{
-						return functionType(tupleType(tupleArgs), type());
+						return functionType(tupleType(tupleArgs), type(typeVariableMapping));
 					}
 					return tupleType(tupleArgs);
 				}
@@ -823,14 +830,14 @@ Type Parser::type(std::map<std::string, TypeVariable>& typeVariableMapping)
 			{
 				--tokenizer;
 				--tokenizer;
-				auto arg = type();
+				auto arg = type(typeVariableMapping);
 				const Token& rParens = tokenizer.nextToken();
 				if (rParens.type == SymbolEnum::RPARENS)
 				{
 					const Token& arrow = tokenizer.nextToken();
 					if (arrow.type == SymbolEnum::ARROW)
 					{
-						return functionType(std::move(arg), type());
+						return functionType(std::move(arg), type(typeVariableMapping));
 					}
 					return std::move(arg);
 				}
@@ -840,16 +847,32 @@ Type Parser::type(std::map<std::string, TypeVariable>& typeVariableMapping)
 	case SymbolEnum::NAME:
 		{
 			const Token& arrow = tokenizer.nextToken(typeParseError);
-			//TODO include find the correct type for the type variable
+			Type thisType;
+			if (isupper(token.name[0]))
+			{
+				thisType = TypeOperator(token.name);
+			}
+			else
+			{
+				auto found = typeVariableMapping.find(token.name);
+				if (found == typeVariableMapping.end())
+				{
+					thisType = typeVariableMapping[token.name] = TypeVariable();
+				}
+				else
+				{
+					thisType = found->second;
+				}
+			}
 			if (arrow.type == SymbolEnum::ARROW)
 			{
-				return functionType(TypeVariable(), type());
+				thisType = functionType(thisType, type(typeVariableMapping));
 			}
 			if (arrow.type == SymbolEnum::COMMA
 			 || arrow.type == SymbolEnum::RPARENS
 			 || arrow.type == SymbolEnum::RBRACKET)//in tuple or list
 				--tokenizer;
-			return TypeVariable();
+			return thisType;
 		}
 		break;
 	default:
