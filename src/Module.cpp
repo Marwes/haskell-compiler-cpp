@@ -76,6 +76,7 @@ Module::Module(Module && other)
 	: bindings(std::move(other.bindings))
 	, typeDeclaration(std::move(other.typeDeclaration))
 	, dataDefinitions(std::move(other.dataDefinitions))
+	, classes(std::move(other.classes))
 	, imports(std::move(other.imports))
 {
 }

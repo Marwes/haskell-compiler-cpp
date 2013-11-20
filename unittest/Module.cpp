@@ -165,3 +165,22 @@ TEST_CASE("module/operator", "")
 	Lambda& lambda = dynamic_cast<Lambda&>(*module.bindings.back().expression);
 	REQUIRE(lambda.arguments.size() == 3);
 }
+
+TEST_CASE("module/class", "")
+{
+	const char* file =
+"class Eq a where\n\
+    (==) :: a -> a -> Bool\n";
+	std::stringstream stream(file);
+	Tokenizer tokenizer(stream);
+	Parser parser(tokenizer);
+
+	Module module = parser.module();
+
+	REQUIRE(module.classes.size() > 0);
+	Class& eqClass = module.classes.back();
+	REQUIRE(eqClass.declarations.size() == 1);
+	REQUIRE(eqClass.declarations["=="].name == "==");
+	Type equalType = functionType(eqClass.variable, functionType(eqClass.variable, TypeOperator("Bool")));
+	REQUIRE(eqClass.declarations["=="].type == equalType);
+}

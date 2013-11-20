@@ -19,11 +19,45 @@ public:
 class TypeDeclaration
 {
 public:
+	TypeDeclaration() {}
 	TypeDeclaration(std::string name, Type type);
 	TypeDeclaration(TypeDeclaration && binding);
 
 	std::string name;
 	Type type;
+};
+
+class Instance
+{
+public:
+	Instance() { }
+
+	Instance(Instance && other)
+		: type(std::move(other.type))
+		, bindings(std::move(other.bindings))
+	{}
+
+	Type type;
+	std::vector<Binding> bindings;
+};
+
+class Class
+{
+public:
+	Class() { }
+
+	Class(Class && other)
+		: name(std::move(other.name))
+		, variable(std::move(other.variable))
+		, instances(std::move(other.instances))
+		, declarations(std::move(other.declarations))
+	{}
+
+
+	std::string name;
+	Type variable;
+	std::vector<Instance> instances;
+	std::map<std::string, TypeDeclaration> declarations;
 };
 
 class Module
@@ -38,6 +72,7 @@ public:
 	std::vector<Binding> bindings;
 	std::vector<TypeDeclaration> typeDeclaration;
 	std::vector<DataDefinition> dataDefinitions;
+	std::vector<Class> classes;
 
 	std::vector<std::shared_ptr<Module>> imports;
 
