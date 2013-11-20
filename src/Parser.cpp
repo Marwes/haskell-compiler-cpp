@@ -695,7 +695,8 @@ TypeDeclaration Parser::typeDeclaration(std::map<std::string, TypeVariable>& typ
 		throw std::runtime_error("Expected '::' in binding, got " + std::string(enumToString(tokenizer->type)));
 	}
 	Type typeOrContext = type(typeVariableMapping);
-	if (tokenizer->type == SymbolEnum::OPERATOR && tokenizer->name == "=>")
+	const Token& maybeContextArrow = *tokenizer;
+	if (maybeContextArrow.type == SymbolEnum::OPERATOR && maybeContextArrow.name == "=>")
 	{
 		Type t = type(typeVariableMapping);
 		--tokenizer;
@@ -837,13 +838,12 @@ Type Parser::type(std::map<std::string, TypeVariable>& typeVariableMapping)
 		}
 	case SymbolEnum::LPARENS:
 		{
-			++tokenizer;
+			Type t = type(typeVariableMapping);
 			const Token& maybeComma = tokenizer.nextToken();
 			if (maybeComma.type == SymbolEnum::COMMA)
 			{
-				--tokenizer;
-				--tokenizer;
 				auto tupleArgs = sepBy1(&Parser::type, typeVariableMapping, SymbolEnum::COMMA);
+				tupleArgs.insert(tupleArgs.begin(), t);
 				const Token& rParens = *tokenizer;
 				if (rParens.type == SymbolEnum::RPARENS)
 				{
@@ -856,20 +856,15 @@ Type Parser::type(std::map<std::string, TypeVariable>& typeVariableMapping)
 				}
 				throw std::runtime_error("Expected ')' to end tuple type");
 			}
-			else
+			else if (maybeComma.type == SymbolEnum::RPARENS)
 			{
-				--tokenizer;
-				--tokenizer;
-				auto arg = type(typeVariableMapping);
-				const Token& rParens = tokenizer.nextToken();
-				if (rParens.type == SymbolEnum::RPARENS)
+				const Token& arrow = tokenizer.nextToken();
+				if (arrow.type == SymbolEnum::ARROW)
+					return functionType(t, type());
+				else
 				{
-					const Token& arrow = tokenizer.nextToken();
-					if (arrow.type == SymbolEnum::ARROW)
-					{
-						return functionType(std::move(arg), type(typeVariableMapping));
-					}
-					return std::move(arg);
+					--tokenizer;
+					return t;
 				}
 			}
 		}
