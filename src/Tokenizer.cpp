@@ -63,7 +63,7 @@ bool Tokenizer::previousTokenWasKeyword()
 	if (!tokens.empty())
 	{
 		SymbolEnum& type = tokens.back().type;
-		return type == SymbolEnum::LET || type == SymbolEnum::OF;
+		return type == SymbolEnum::LET || type == SymbolEnum::OF || type == SymbolEnum::WHERE;
 	}
 	return false;
 }
