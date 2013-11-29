@@ -35,10 +35,12 @@ public:
 	Instance() { }
 
 	Instance(Instance && other)
-		: type(std::move(other.type))
+		: className(std::move(other.className))
+		, type(std::move(other.type))
 		, bindings(std::move(other.bindings))
 	{}
 
+	std::string className;
 	Type type;
 	std::vector<Binding> bindings;
 };

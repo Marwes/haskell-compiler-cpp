@@ -63,6 +63,9 @@ std::shared_ptr<Module> createPrelude()
 		prelude->dataDefinitions.push_back(def);
 	}
 	prelude->bindings.push_back(Binding("undefined", std::unique_ptr<Expression>(new Name("undefined"))));
+	prelude->bindings.push_back(Binding("primIntEq", std::unique_ptr<Expression>(new Name("undefined"))));
+	TypeVariable var;
+	prelude->bindings.back().expression->getType() = functionType(var, functionType(var, TypeOperator("Bool")));
 	return prelude;
 }
 const std::shared_ptr<Module> Module::prelude(createPrelude());
@@ -89,12 +92,46 @@ Module::Module(Module && other)
 {
 }
 
+Class* getClass(Module& module, const std::string& name)
+{
+	for (Class& klass : module.classes)
+	{
+		if (klass.name == name)
+			return &klass;
+	}
+	for (auto& m : module.imports)
+	{
+		if (Class* klass = getClass(*m, name))
+		{
+			return klass;
+		}
+	}
+	return nullptr;
+}
+
 void Module::typecheck()
 {
 	TypeEnvironment env(this);
+	for (auto& instance : instances)
+	{
+		Class* klass = getClass(*this, instance.className);
+		assert(klass != nullptr);
+		for (auto& bind : instance.bindings)
+		{
+			Type newType = klass->declarations[bind.name].type;
+			env.addNonGeneric(newType);
+			Type& actual = bind.expression->typecheck(env);
+			unify(env, newType, actual);
+		}
+	}
+	for (auto& bind : bindings)
+	{
+		env.bindName(bind.name, bind.expression->getType());
+	}
 	for (auto& bind : bindings)
 	{
 		Type newType = TypeVariable();
+		env.addNonGeneric(newType);
 		Type& actual = bind.expression->typecheck(env);
 		unify(env, newType, actual);
 	}

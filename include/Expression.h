@@ -59,6 +59,7 @@ public:
 
 	Type getType(const std::string& name);
 
+	void addNonGeneric(const Type& type);
 	bool isGeneric(const TypeVariable& var) const;
 	void replace(TypeVariable replaceMe, const Type& replaceWith);
 private:
@@ -66,6 +67,7 @@ private:
 	TypeEnvironment* parent;
 	std::map<std::string, Type*> namedTypes;
 	std::vector<Type*> types;
+	std::vector<Type> nonGeneric;
 };
 
 

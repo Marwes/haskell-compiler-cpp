@@ -166,6 +166,21 @@ in f 2\n");
 
 	REQUIRE(type == Type(TypeOperator("Int")));
 }
+TEST_CASE("typecheck/letrec/error", "")
+{
+	std::stringstream stream(
+"let\n\
+    g y = f y y\n\
+    f x = 10\n\
+in g 2\n");
+	Tokenizer tokenizer(stream);
+	Parser parser(tokenizer);
+
+	auto expr = parser.expression();
+	TypeEnvironment env(nullptr);
+
+	REQUIRE_THROWS(expr->typecheck(env));
+}
 
 TEST_CASE("typecheck/module/mutual_recursion", "")
 {
@@ -232,9 +247,9 @@ main = head (tail [10, 20, 30])\n");
 	Type headType = functionType(listType, args[0]);
 	Type tailType = functionType(listType, listType);
 	
-	CHECK(sameTypes(module.bindings[0].expression->getType(), headType));
-	CHECK(sameTypes(module.bindings[1].expression->getType(), tailType));
-	CHECK(sameTypes(module.bindings[2].expression->getType(), Type(TypeOperator("Int"))));
+	CHECK(module.bindings[0].expression->getType() < headType);
+	CHECK(module.bindings[1].expression->getType() < tailType);
+	CHECK(module.bindings[2].expression->getType() < Type(TypeOperator("Int")));
 }
 
 TEST_CASE("typecheck/Maybe", "")
@@ -289,11 +304,23 @@ test3 = (undefined, 3)\n");
 	args3[1] = TypeOperator("Int");
 	Type test3 = TypeOperator("(,)", args3);
 
-	CHECK(sameTypes(module.bindings[0].expression->getType(), test1));
-	CHECK(sameTypes(module.bindings[1].expression->getType(), test2));
-	CHECK(sameTypes(module.bindings[2].expression->getType(), test3));
+	CHECK(module.bindings[0].expression->getType() < test1);
+	CHECK(module.bindings[1].expression->getType() < test2);
+	CHECK(module.bindings[2].expression->getType() < test3);
 }
 
+TEST_CASE("typecheck/error_recursive", "Check that type errors are also thrown for using bindings declared later")
+{
+	std::stringstream stream(
+"main = primError 2 3\n\
+primError x = x");
+	Tokenizer tokenizer(stream);
+	Parser parser(tokenizer);
+
+	Module module = parser.module();
+
+	REQUIRE_THROWS(module.typecheck());
+}
 
 TEST_CASE("typecheck/error", "")
 {
@@ -307,4 +334,48 @@ main = test 3\n");
 	Module module = parser.module();
 
 	REQUIRE_THROWS(module.typecheck());
+}
+
+TEST_CASE("typecheck/class", "")
+{
+	std::stringstream stream(
+"data Bool = True | False\n\
+class Eq a where\n\
+    (===) :: a -> a -> Bool\n\
+instance Eq Int where\n\
+    (===) = primIntEq\n\
+main = 2 === 3");
+	Tokenizer tokenizer(stream);
+	Parser parser(tokenizer);
+
+	Module module = parser.module();
+
+	module.typecheck();
+
+	REQUIRE(module.bindings[0].expression->getType() == Type(TypeOperator("Bool")));
+
+	TypeVariable& var = module.classes[0].variable;
+	Binding& eqInt = module.instances[0].bindings[0];
+	REQUIRE(sameTypes(eqInt.expression->getType(), Type(functionType(var, functionType(var, TypeOperator("Bool"))))));
+}
+
+TEST_CASE("typecheck/class/error", "")
+{
+	std::stringstream stream(
+"data Bool = True | False\n\
+primError = True\n\
+class Eq a where\n\
+    (===) :: a -> a -> Bool\n\
+instance Eq Int where\n\
+    (===) = primError\n\
+main = 2 === 3");
+	Tokenizer tokenizer(stream);
+	Parser parser(tokenizer);
+
+	Module module = parser.module();
+
+	REQUIRE_THROWS(module.typecheck());
+	std::cerr << "\n" << module.bindings[0].expression->getType() << std::endl;
+	std::cerr << module.bindings[1].expression->getType() << std::endl;
+	std::cerr << module.instances[0].bindings[0].expression->getType() << std::endl;
 }

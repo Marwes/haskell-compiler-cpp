@@ -118,6 +118,7 @@ void PatternName::addVariables(TypeEnvironment& env, Type& type)
 {
 	this->type = type;
 	env.bindName(name, this->type);
+	env.addNonGeneric(this->type);
 }
 
 Type getReturnType(Type t)
@@ -302,6 +303,17 @@ bool findInModule(TypeEnvironment& env, Module& module, const std::string& name,
 			}
 		}
 	}
+	for (auto& klass : module.classes)
+	{
+		for (auto& decl : klass.declarations)
+		{
+			if (decl.first == name)
+			{
+				returnValue = fresh(env, decl.second.type);
+				return true;
+			}
+		}
+	}
 	for (auto& import : module.imports)
 	{
 		if (findInModule(env, *import, name, returnValue))
@@ -360,26 +372,21 @@ void TypeEnvironment::replace(TypeVariable replaceMe, const Type& replaceWith)
 		parent->replace(replaceMe, replaceWith);
 }
 
+void TypeEnvironment::addNonGeneric(const Type& type)
+{
+	nonGeneric.push_back(type);
+}
+
 bool TypeEnvironment::isGeneric(const TypeVariable& var) const
 {
-	for (auto& pair : namedTypes)
+	for (const Type& type : nonGeneric)
 	{
-		if (occurs(var, *pair.second))
-			return false;
-	}
-	for (Type* type : types)
-	{
-		if (occurs(var, *type))
+		if (occurs(var, type))
 			return false;
 	}
 	if (parent != nullptr)
 	{
 		return parent->isGeneric(var);
-	}
-	for (auto& bind : module->bindings)
-	{
-		if (occurs(var, bind.expression->getType()))
-			return false;
 	}
 	return true;
 }
@@ -497,6 +504,7 @@ Type& Let::typecheck(TypeEnvironment& env)
 		for (auto& bind : bindings)
 		{
 			Type newType = TypeVariable();
+			child.addNonGeneric(newType);
 			Type& actual = bind.expression->typecheck(child);
 			Unify(child, newType, actual);
 		}
@@ -519,13 +527,13 @@ Type& Lambda::typecheck(TypeEnvironment& env)
 	for (size_t ii = 0; ii < argTypes.size(); ++ii)
 	{
 		child.bindName(arguments[ii], argTypes[ii]);
+		child.addNonGeneric(boost::get<TypeVariable>(argTypes[ii]));
 	}
 	Type* returnType = &body->typecheck(child);
 
-	for (auto arg = arguments.rbegin(); arg != arguments.rend(); ++arg)
+	for (auto arg = argTypes.rbegin(); arg != argTypes.rend(); ++arg)
 	{
-		Type& argType = child.getType(*arg);
-		this->type = functionType(argType, *returnType);
+		this->type = functionType(*arg, *returnType);
 
 		returnType = &this->type;
 	}
@@ -539,6 +547,7 @@ Type& Apply::typecheck(TypeEnvironment& env)
 	Type& argType = arguments[0]->typecheck(env);
 
 	this->type = functionType(argType, TypeVariable());
+	std::cerr << funcType << std::endl;
 	Unify(env, this->type, funcType);
 	//Copy construct a object since we are assigning it to iteself
 	this->type = Type(boost::get<TypeOperator>(this->type).types[1]);

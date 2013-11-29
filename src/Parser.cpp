@@ -214,7 +214,7 @@ Instance Parser::instance()
 	requireNext(SymbolEnum::INSTANCE);
 
 	const Token& className = requireNext(SymbolEnum::NAME);
-	//inst.name = className.name;
+	inst.className = className.name;
 	
 	inst.type = type();
 

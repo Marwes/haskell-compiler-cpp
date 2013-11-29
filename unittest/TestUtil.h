@@ -37,3 +37,11 @@ inline bool sameTypes(const Type& lhs, const Type& rhs)
 	std::map<int, int> idmap;
 	return sameTypes(idmap, lhs, rhs);
 }
+
+namespace MyVMNamespace
+{
+	inline bool operator<(const Type& lhs, const Type& rhs)
+	{
+		return sameTypes(lhs, rhs);
+	}
+}
