@@ -124,17 +124,8 @@ void Module::typecheck()
 			unify(env, newType, actual);
 		}
 	}
-	for (auto& bind : bindings)
-	{
-		env.bindName(bind.name, bind.expression->getType());
-	}
-	for (auto& bind : bindings)
-	{
-		Type newType = TypeVariable();
-		env.addNonGeneric(newType);
-		Type& actual = bind.expression->typecheck(env);
-		unify(env, newType, actual);
-	}
+
+	typeCheckUnorderedBindings(env, bindings);
 }
 
 }

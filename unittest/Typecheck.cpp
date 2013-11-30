@@ -154,8 +154,10 @@ TEST_CASE("typecheck/letrec", "")
 {
 	std::stringstream stream(
 "let\n\
+    t = h 2\n\
     f x = x + g x\n\
     g y = y * f y\n\
+    h z = g z + 2\n\
 in f 2\n");
 	Tokenizer tokenizer(stream);
 	Parser parser(tokenizer);
@@ -319,7 +321,7 @@ primError x = x");
 
 	Module module = parser.module();
 
-	REQUIRE_THROWS(module.typecheck());
+	REQUIRE_THROWS_AS(module.typecheck(), TypeError);
 }
 
 TEST_CASE("typecheck/error", "")
@@ -374,7 +376,7 @@ main = 2 === 3");
 
 	Module module = parser.module();
 
-	REQUIRE_THROWS(module.typecheck());
+	REQUIRE_THROWS_AS(module.typecheck(), TypeError);
 	std::cerr << "\n" << module.bindings[0].expression->getType() << std::endl;
 	std::cerr << module.bindings[1].expression->getType() << std::endl;
 	std::cerr << module.instances[0].bindings[0].expression->getType() << std::endl;

@@ -3,6 +3,8 @@
 #include "Types.h"
 #include "Expression.h"
 #include "Module.h"
+#include <boost/graph/adjacency_list.hpp>
+#include <boost/graph/strong_components.hpp>
 
 namespace MyVMNamespace
 {
@@ -59,6 +61,55 @@ Let::Let(std::vector<Binding>&& bindings, std::unique_ptr<Expression>&& expressi
 	, expression(std::move(expression))
 	, isRecursive(false)
 {
+}
+
+void Name::accept(ExpressionVisitor& visitor)
+{
+	visitor.visit(*this);
+}
+
+void Number::accept(ExpressionVisitor& visitor)
+{
+	visitor.visit(*this);
+}
+
+void Rational::accept(ExpressionVisitor& visitor)
+{
+	visitor.visit(*this);
+}
+
+void Apply::accept(ExpressionVisitor& visitor)
+{
+	visitor.visit(*this);
+
+	function->accept(visitor);
+	for (auto& arg : arguments)
+		arg->accept(visitor);
+}
+
+void Lambda::accept(ExpressionVisitor& visitor)
+{
+	visitor.visit(*this);
+
+	body->accept(visitor);
+}
+
+void Let::accept(ExpressionVisitor& visitor)
+{
+	visitor.visit(*this);
+
+	for (Binding& bind : bindings)
+		bind.expression->accept(visitor);
+	expression->accept(visitor);
+}
+
+void Case::accept(ExpressionVisitor& visitor)
+{
+	visitor.visit(*this);
+
+	expression->accept(visitor);
+	for (auto& alt : alternatives)
+		alt.expression->accept(visitor);
 }
 
 Type& Let::getType()
@@ -474,6 +525,26 @@ void unify(TypeEnvironment& env, Type& lhs, Type& rhs)
 	Unify(env, lhs, rhs);
 }
 
+class DependencyVisitor : public ExpressionVisitor
+{
+public:
+	typedef boost::adjacency_list<boost::listS, boost::vecS, boost::directedS, Binding*> Graph;
+	typedef boost::graph_traits<Graph>::vertex_descriptor Vertex;
+	typedef boost::graph_traits<Graph>::edge_descriptor Edge;
+
+	virtual void visit(Name& name)
+	{
+		if (bindings.count(name.name) == 0)
+			return;
+
+		boost::add_edge(bindings[function], bindings[name.name], graph);
+	}
+
+	std::string function;
+	Graph graph;
+	std::map<std::string, Vertex> bindings;
+};
+
 Type& Name::typecheck(TypeEnvironment& env)
 {
 	env.registerType(this->type);
@@ -491,23 +562,70 @@ Type& Number::typecheck(TypeEnvironment& env)
 	return intType;
 }
 
+void typeCheckUnorderedBindings(TypeEnvironment& env, std::vector<Binding>& bindings)
+{
+	DependencyVisitor visitor;
+
+	for (Binding& bind : bindings)
+	{
+		DependencyVisitor::Vertex vert = boost::add_vertex(visitor.graph);
+		visitor.graph[vert] = &bind;
+		visitor.bindings.insert(std::make_pair(bind.name, vert));
+	}
+	for (Binding& bind : bindings)
+	{
+		visitor.function = bind.name;
+		bind.expression->accept(visitor);
+	}
+	//Use Tarjan's strongly connected components algorithm to find mutually recursive bindings
+	std::map<DependencyVisitor::Vertex, size_t> verticesToGroups;
+	boost::associative_property_map<std::map<DependencyVisitor::Vertex, size_t>> map(verticesToGroups);
+	boost::strong_components(visitor.graph, map);
+
+	//The group indexes are ordered so that processing the groups in order
+	//will give the correct typechecking order for bindings
+	std::vector<Binding*> groupedBindings;
+	size_t groupIndex = 0;
+	while (true)
+	{
+		for (auto& vertToGroup : verticesToGroups)
+		{
+			DependencyVisitor::Vertex vert = vertToGroup.first;
+			size_t group = vertToGroup.second;
+			if (group == groupIndex)
+			{
+				groupedBindings.push_back(visitor.graph[vert]);
+			}
+		}
+
+		if (groupedBindings.empty())
+		{
+			break;
+		}
+		for (Binding* bind : groupedBindings)
+		{
+			env.bindName(bind->name, bind->expression->getType());
+		}
+		for (Binding* bind : groupedBindings)
+		{
+			Type newType = TypeVariable();
+			env.addNonGeneric(newType);
+			Type& actual = bind->expression->typecheck(env);
+			unify(env, newType, actual);
+		}
+
+		groupIndex++;
+		groupedBindings.clear();
+	}
+}
+
 Type& Let::typecheck(TypeEnvironment& env)
 {
 	isRecursive = true;
 	TypeEnvironment& child = env.child();
 	if (isRecursive)
 	{
-		for (auto& bind : bindings)
-		{
-			child.bindName(bind.name, bind.expression->getType());
-		}
-		for (auto& bind : bindings)
-		{
-			Type newType = TypeVariable();
-			child.addNonGeneric(newType);
-			Type& actual = bind.expression->typecheck(child);
-			Unify(child, newType, actual);
-		}
+		typeCheckUnorderedBindings(child, bindings);
 	}
 	else
 	{
@@ -547,7 +665,7 @@ Type& Apply::typecheck(TypeEnvironment& env)
 	Type& argType = arguments[0]->typecheck(env);
 
 	this->type = functionType(argType, TypeVariable());
-	std::cerr << funcType << std::endl;
+
 	Unify(env, this->type, funcType);
 	//Copy construct a object since we are assigning it to iteself
 	this->type = Type(boost::get<TypeOperator>(this->type).types[1]);

@@ -3,6 +3,7 @@
 #include <vector>
 #include <memory>
 #include <map>
+#include <set>
 #include "Types.h"
 #include "SuperCombinator.h"
 
@@ -73,6 +74,8 @@ private:
 
 void unify(TypeEnvironment& env, Type& lhs, Type& rhs);
 
+void typeCheckUnorderedBindings(TypeEnvironment& env, std::vector<Binding>& bindings);
+
 class GCompiler
 {
 public:
@@ -93,6 +96,8 @@ private:
 	int index;
 };
 
+class ExpressionVisitor;
+
 class Expression
 {
 public:
@@ -103,6 +108,8 @@ public:
 	virtual void compile(GCompiler& env, std::vector<GInstruction>& instructions, bool strict) = 0;
 
 	virtual Type& getType() = 0;
+
+	virtual void accept(ExpressionVisitor& visitor) = 0;
 };
 
 class Name : public Expression
@@ -115,6 +122,8 @@ public:
 	virtual void compile(GCompiler& env, std::vector<GInstruction>& instructions, bool strict);
 
 	virtual Type& getType();
+
+	virtual void accept(ExpressionVisitor& visitor);
 
 	std::string name;
 private:
@@ -132,6 +141,8 @@ public:
 
 	virtual Type& getType();
 
+	virtual void accept(ExpressionVisitor& visitor);
+
 	double value;
 };
 
@@ -146,6 +157,8 @@ public:
 
 	virtual Type& getType();
 
+	virtual void accept(ExpressionVisitor& visitor);
+
     int value;
 };
 
@@ -159,6 +172,8 @@ public:
 	virtual void compile(GCompiler& env, std::vector<GInstruction>& instructions, bool strict);
 
 	virtual Type& getType();
+
+	virtual void accept(ExpressionVisitor& visitor);
 
 	bool isRecursive;
 	std::vector<Binding> bindings;
@@ -176,6 +191,8 @@ public:
 
 	virtual Type& getType();
 
+	virtual void accept(ExpressionVisitor& visitor);
+
 	std::vector<std::string> arguments;
 	std::unique_ptr<Expression> body;
 private:
@@ -192,6 +209,8 @@ public:
 	virtual void compile(GCompiler& env, std::vector<GInstruction>& instructions, bool strict);
 
 	virtual Type& getType();
+
+	virtual void accept(ExpressionVisitor& visitor);
 
 	std::unique_ptr<Expression> function;
 	std::vector<std::unique_ptr<Expression>> arguments;
@@ -286,8 +305,32 @@ public:
 
 	virtual Type& getType();
 
+	virtual void accept(ExpressionVisitor& visitor);
+
 	std::unique_ptr<Expression> expression;
 	std::vector<Alternative> alternatives;
+};
+
+
+class ExpressionVisitor
+{
+public:
+	virtual ~ExpressionVisitor()
+	{}
+	virtual void visit(Name&)
+	{}
+	virtual void visit(Number&)
+	{}
+	virtual void visit(Rational&)
+	{}
+	virtual void visit(Apply&)
+	{}
+	virtual void visit(Lambda&)
+	{}
+	virtual void visit(Let&)
+	{}
+	virtual void visit(Case&)
+	{}
 };
 
 }
