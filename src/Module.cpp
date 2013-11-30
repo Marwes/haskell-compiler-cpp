@@ -114,13 +114,20 @@ void Module::typecheck()
 	TypeEnvironment env(this);
 	Graph graph;
 
+	for (Class& klass : classes)
+	{
+		env.addConstraint(klass.variable, klass.name);
+	}
+
 	for (auto& instance : instances)
 	{
 		Class* klass = getClass(*this, instance.className);
 		assert(klass != nullptr);
 		//Type newType = klass->declarations[bind.name].type;
 		for (Binding& bind : instance.bindings)
+		{
 			bind.expression->getType() = klass->declarations[bind.name].type;
+		}
 		addBindingsToGraph(graph, instance.bindings);
 	}
 

@@ -416,3 +416,19 @@ main = 2 === [2]");
 
 	REQUIRE_THROWS_AS(module.typecheck(), TypeError);
 }
+
+
+TEST_CASE("typecheck/class/error/no_instance", "")
+{
+	std::stringstream stream(
+"data Bool = True | False\n\
+class Eq a where\n\
+    (===) :: a -> a -> Bool\n\
+main = 2 === 2");
+	Tokenizer tokenizer(stream);
+	Parser parser(tokenizer);
+
+	Module module = parser.module();
+
+	REQUIRE_THROWS_AS(module.typecheck(), TypeError);
+}

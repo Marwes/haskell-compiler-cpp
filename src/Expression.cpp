@@ -266,7 +266,10 @@ public:
 			}
 			else
 			{
-				return mappings[type.id] = TypeVariable();
+				TypeVariable var;
+				mappings[type.id] = var;
+				env.updateConstraints(type, var);
+				return var;
 			}
 		}
 		return type;
@@ -389,7 +392,44 @@ Type TypeEnvironment::getType(const std::string& name)
 	throw std::runtime_error("Could not find the identifier " + name);
 }
 
-void tryReplace(Type& toReplace, TypeVariable& replaceMe, const Type& replaceWith)
+void TypeEnvironment::updateConstraints(const TypeVariable& replaced, const TypeVariable& newVar)
+{
+	//Add all constraints from the replaced variable
+	auto found = constraints.find(replaced);
+	if (found != constraints.end())
+	{
+		std::vector<std::string>& x = constraints[newVar];
+		for (std::string& className : found->second)
+		{
+			x.push_back(className);
+		}
+	}
+}
+
+bool hasInstance(const Module& module, const std::string& className, const Type& op)
+{
+	for (const Class& klass : module.classes)
+	{
+		if (klass.name == className)
+		{
+			for (const Instance& instance : klass.instances)
+			{
+				if (instance.type == op)
+				{
+					return true;
+				}
+			}
+		}
+	}
+	for (auto& import : module.imports)
+	{
+		if (hasInstance(*import, className, op))
+			return true;
+	}
+	return false;
+}
+
+void TypeEnvironment::tryReplace(Type& toReplace, TypeVariable& replaceMe, const Type& replaceWith)
 {
 	if (toReplace.which() == 0)
 	{
@@ -397,11 +437,27 @@ void tryReplace(Type& toReplace, TypeVariable& replaceMe, const Type& replaceWit
 		if (x == replaceMe)
 		{
 			toReplace = replaceWith;
+			if (replaceWith.which() == 0)//TypeVariable
+			{
+				//Merge the constraints from both variables
+				updateConstraints(x, boost::get<TypeVariable>(replaceWith));
+			}
+			else
+			{
+				//Check that the TypeOperator fulfills all constraints of the variable
+				for (const std::string& className : constraints[replaceMe])
+				{
+					assert(module != nullptr);
+					if (!hasInstance(*module, className, toReplace))
+						throw TypeError(*this, replaceWith, toReplace);
+				}
+			}
 		}
 	}
 	else
 	{
 		TypeOperator& x = boost::get<TypeOperator>(toReplace);
+
 		for (Type& type : x.types)
 		{
 			tryReplace(type, replaceMe, replaceWith);
@@ -440,6 +496,21 @@ bool TypeEnvironment::isGeneric(const TypeVariable& var) const
 		return parent->isGeneric(var);
 	}
 	return true;
+}
+
+void TypeEnvironment::addConstraint(const TypeVariable& var, const std::string& className)
+{
+	constraints[var].push_back(className);
+}
+
+
+const std::vector<std::string>& TypeEnvironment::getConstraints(const TypeVariable& var) const
+{
+	auto found = constraints.find(var);
+	if (found != constraints.end())
+		return found->second;
+	static const std::vector<std::string> empty;
+	return empty;
 }
 
 class RecursiveUnification : public std::runtime_error
@@ -482,7 +553,7 @@ public:
 				throw RecursiveUnification(t1, t2);
 
 			env.replace(t1, rhs);
-			tryReplace(lhs, t1, rhs);
+			env.tryReplace(lhs, t1, rhs);
 		}
 	}
 	void operator()(TypeVariable& t1, TypeOperator& t2) const
@@ -491,7 +562,7 @@ public:
 			throw RecursiveUnification(t1, t2);
 
 		env.replace(t1, rhs);
-		tryReplace(lhs, t1, rhs);
+		env.tryReplace(lhs, t1, rhs);
 	}
 	void operator()(TypeOperator& t1, TypeVariable& t2) const
 	{
@@ -499,7 +570,7 @@ public:
 			throw RecursiveUnification(t2, t1);
 
 		env.replace(t2, lhs);
-		tryReplace(rhs, t2, lhs);
+		env.tryReplace(rhs, t2, lhs);
 	}
 	void operator()(TypeOperator& t1, TypeOperator& t2) const
 	{

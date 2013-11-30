@@ -63,12 +63,18 @@ public:
 	void addNonGeneric(const Type& type);
 	bool isGeneric(const TypeVariable& var) const;
 	void replace(TypeVariable replaceMe, const Type& replaceWith);
+	void tryReplace(Type& toReplace, TypeVariable& replaceMe, const Type& replaceWith);
+
+	void addConstraint(const TypeVariable& var, const std::string& className);
+	void updateConstraints(const TypeVariable& oldVar, const TypeVariable& newVar);
+	const std::vector<std::string>& getConstraints(const TypeVariable& var) const;
 private:
 	Module* module;
 	TypeEnvironment* parent;
 	std::map<std::string, Type*> namedTypes;
 	std::vector<Type*> types;
 	std::vector<Type> nonGeneric;
+	std::map<TypeVariable, std::vector<std::string>> constraints;
 };
 
 
