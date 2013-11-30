@@ -34,6 +34,7 @@ private:
 
 inline bool operator==(const TypeVariable& l, const TypeVariable& r) { return l.id == r.id; }
 inline bool operator!=(const TypeVariable& l, const TypeVariable& r) { return !(l == r); }
+inline bool operator<(const TypeVariable& l, const TypeVariable& r) { return l.id < r.id; }
 
 typedef boost::variant<TypeVariable, boost::recursive_wrapper<TypeOperator>> TypeVariant;
 class Type : public TypeVariant
@@ -132,9 +133,12 @@ inline bool operator!=(const TypeOperator& l, const TypeOperator& r) { return !(
 
 Type functionType(const Type& arg, const Type& result);
 
+class TypeEnvironment;
+
 class TypeError : public std::runtime_error
 {
 public:
+	TypeError(TypeEnvironment& env, const Type& expected, const Type& actual);
 	TypeError(const Type& expected, const Type& actual);
 	TypeError(const std::string& expected, const Type& actual);
 };
