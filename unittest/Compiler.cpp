@@ -217,3 +217,20 @@ main = (id . id) 3\n");
 	REQUIRE(result.getType() == NUMBER);
 	REQUIRE(result.getNode()->number == 3);
 }
+
+
+TEST_CASE("compiler/typeclass", "")
+{
+	std::stringstream expr(
+"class Num a where\n\
+    ($+) :: a -> a -> a\n\
+instance Num Int where\n\
+    ($+) x y = primIntAdd x y\n\
+main = 2 $+ 3");
+	GMachine machine;
+	machine.compile(expr);
+
+	Address result = machine.executeMain();
+	REQUIRE(result.getType() == NUMBER);
+	REQUIRE(result.getNode()->number == 5);
+}

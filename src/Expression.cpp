@@ -151,7 +151,7 @@ std::vector<std::unique_ptr<Expression>> argVector(std::unique_ptr<Expression> &
 
 GOP toGOP(const std::string& op)
 {
-	if (op == "+") return GOP::ADD;
+	if (op == "+" || op == "primIntAdd") return GOP::ADD;
 	if (op == "-") return GOP::SUBTRACT;
 	if (op == "*") return GOP::MULTIPLY;
 	if (op == "/") return GOP::DIVIDE;
@@ -408,17 +408,11 @@ void TypeEnvironment::updateConstraints(const TypeVariable& replaced, const Type
 
 bool hasInstance(const Module& module, const std::string& className, const Type& op)
 {
-	for (const Class& klass : module.classes)
+	for (const Instance& instance : module.instances)
 	{
-		if (klass.name == className)
+		if (instance.className == className && instance.type == op)
 		{
-			for (const Instance& instance : klass.instances)
-			{
-				if (instance.type == op)
-				{
-					return true;
-				}
-			}
+			return true;
 		}
 	}
 	for (auto& import : module.imports)
@@ -436,7 +430,6 @@ void TypeEnvironment::tryReplace(Type& toReplace, TypeVariable& replaceMe, const
 		TypeVariable& x = boost::get<TypeVariable>(toReplace);
 		if (x == replaceMe)
 		{
-			toReplace = replaceWith;
 			if (replaceWith.which() == 0)//TypeVariable
 			{
 				//Merge the constraints from both variables
@@ -448,10 +441,11 @@ void TypeEnvironment::tryReplace(Type& toReplace, TypeVariable& replaceMe, const
 				for (const std::string& className : constraints[replaceMe])
 				{
 					assert(module != nullptr);
-					if (!hasInstance(*module, className, toReplace))
+					if (!hasInstance(*module, className, replaceWith))
 						throw TypeError(*this, replaceWith, toReplace);
 				}
 			}
+			toReplace = replaceWith;
 		}
 	}
 	else
@@ -792,6 +786,37 @@ Type& Case::typecheck(TypeEnvironment& env)
 
 //compile functions
 
+const std::string* findMatchingTypeVariable(const Type& in, const Type& matcher, TypeVariable var)
+{
+	if (const TypeVariable* inVar = boost::get<TypeVariable>(&in))
+	{
+		if (*inVar == var)
+		{
+			return &boost::get<TypeOperator>(matcher).name;
+		}
+	}
+	else if (const TypeOperator* inOp = boost::get<TypeOperator>(&in))
+	{
+		auto& matchOp = boost::get<TypeOperator>(matcher);
+		assert(matchOp.types.size() == inOp->types.size());
+		for (size_t ii = 0; ii < inOp->types.size(); ii++)
+		{
+			if (const std::string* ret = findMatchingTypeVariable(inOp->types[ii], matchOp.types[ii], var))
+				return ret;
+		}
+	}
+	return nullptr;
+}
+
+const std::string& findInstanceTypeVariable(const Class& klass, const std::string& name, const Type& type)
+{
+	const TypeDeclaration& decl = klass.declarations.at(name);
+	
+	const std::string* ret = findMatchingTypeVariable(decl.type, type, klass.variable);
+	assert(ret != nullptr);
+	return *ret;
+}
+
 void Name::compile(GCompiler& env, std::vector<GInstruction>& instructions, bool strict)
 {
 	Variable var = env.getVariable(this->name);
@@ -807,6 +832,20 @@ void Name::compile(GCompiler& env, std::vector<GInstruction>& instructions, bool
 		break;
 	case VariableType::CONSTRUCTOR:
 		instructions.push_back(GInstruction(GOP::PACK, var.index));
+		break;
+	case VariableType::TYPECLASSFUNCTION:
+		if (TypeOperator* op = boost::get<TypeOperator>(&type))
+		{
+			const std::string& nameOfInstanceType = findInstanceTypeVariable(*var.klass, name, type);
+			std::string directVarName = "#" + nameOfInstanceType + name;
+			Variable fastVar = env.getVariable(directVarName);
+			assert(fastVar.accessType == VariableType::TOPLEVEL);
+			instructions.push_back(GInstruction(GOP::PUSH_GLOBAL, var.index));
+		}
+		else
+		{
+			assert(0);
+		}
 		break;
 	default:
 		assert(0 && "Could not find the variable");

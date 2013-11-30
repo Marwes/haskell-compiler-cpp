@@ -22,8 +22,17 @@ void GCompiler::popStack(size_t n)
 	}
 }
 
-Variable findInModule(Module& module, const std::string& name)
+Variable findInModule(GCompiler& comp, Module& module, const std::string& name)
 {
+	for (Binding& bind : module.bindings)
+	{
+		if (bind.name == name)
+		{
+			size_t index = comp.globalIndices[&comp.getGlobal(name)];
+			return Variable { VariableType::TOPLEVEL, index, nullptr };
+		}
+	}
+
 	for (auto& dataDef : module.dataDefinitions)
 	{
 		for (auto& ctor : dataDef.constructors)
@@ -39,17 +48,30 @@ Variable findInModule(Module& module, const std::string& name)
 					throw std::runtime_error("Arity of constructor " + std::string(ctor.name) + " are to large");
 				}
 				int index = (ctor.arity << 16) | ctor.tag;
-				return Variable { VariableType::CONSTRUCTOR, TypeVariable(), index };
+				return Variable { VariableType::CONSTRUCTOR, index, nullptr };
 			}
 		}
 	}
+	for (Class& klass : module.classes)
+	{
+		size_t index = 0;
+		for (auto& decl : klass.declarations)
+		{
+			if (decl.second.name == name)
+			{
+				return Variable { VariableType::TYPECLASSFUNCTION, index, &klass };
+			}
+			index++;
+		}
+	}
+
 	for (auto& import : module.imports)
 	{
-		Variable ret = findInModule(*import, name);
+		Variable ret = findInModule(comp, *import, name);
 		if (ret.index >= 0)
 			return ret;
 	}
-	return Variable { VariableType::STACK, TypeVariable(), -1 };
+	return Variable { VariableType::STACK, -1, nullptr };
 }
 
 Variable GCompiler::getVariable(const std::string& name)
@@ -59,19 +81,19 @@ Variable GCompiler::getVariable(const std::string& name)
 	{
 		int index = std::distance(stackVariables.begin(), found);
 		int distanceFromStackTop = stackVariables.size() - index - 1;
-		return Variable { VariableType::STACK, TypeVariable(), index };
+		return Variable { VariableType::STACK, index, nullptr };
 	}
 	auto foundGlobal = globals.find(name);
 	if (foundGlobal != globals.end())
 	{
 		int i = globalIndices[foundGlobal->second.get()];
-		return Variable { VariableType::TOPLEVEL, TypeVariable(), i };
+		return Variable { VariableType::TOPLEVEL, i, nullptr };
 	}
 	if (module != nullptr)
 	{
-		return findInModule(*module, name);
+		return findInModule(*this, *module, name);
 	}
-	return Variable { VariableType::STACK, TypeVariable(), -1 };
+	return Variable { VariableType::NONE, -1, nullptr };
 }
 
 SuperCombinator& GCompiler::getGlobal(const std::string& name)

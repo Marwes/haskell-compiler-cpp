@@ -36,14 +36,17 @@ enum class VariableType
 	NONE,
 	STACK,
 	TOPLEVEL,
-	CONSTRUCTOR
+	CONSTRUCTOR,
+	TYPECLASSFUNCTION
 };
+
+class Class;
 
 struct Variable
 {
 	VariableType accessType;
-	Type type;
 	int index;
+	Class* klass;
 };
 
 
