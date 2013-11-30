@@ -184,6 +184,26 @@ in g 2\n");
 	REQUIRE_THROWS(expr->typecheck(env));
 }
 
+TEST_CASE("typecheck/letrec/error/infinitelist", "")
+{
+	std::stringstream stream(
+"data Bool = True | False\n\
+test =\n\
+  let\n\
+    true = True : false\n\
+    false = False : true \n\
+  in true\n");
+	Tokenizer tokenizer(stream);
+	Parser parser(tokenizer);
+
+	auto module = parser.module();
+
+	module.typecheck();
+	std::vector<Type> boolean(1);
+	boolean[0] = TypeOperator("Bool");
+	REQUIRE(module.bindings[0].expression->getType() < Type(TypeOperator("[]", boolean)));
+}
+
 TEST_CASE("typecheck/module/mutual_recursion", "")
 {
 	std::stringstream stream(
