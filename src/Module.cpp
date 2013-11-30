@@ -66,6 +66,9 @@ std::shared_ptr<Module> createPrelude()
 	prelude->bindings.push_back(Binding("primIntEq", std::unique_ptr<Expression>(new Name("undefined"))));
 	TypeVariable var;
 	prelude->bindings.back().expression->getType() = functionType(var, functionType(var, TypeOperator("Bool")));
+	prelude->bindings.push_back(Binding("primIntAdd", std::unique_ptr<Expression>(new Name("undefined"))));
+	TypeVariable varIntAdd;
+	prelude->bindings.back().expression->getType() = functionType(varIntAdd, functionType(varIntAdd, varIntAdd));
 	return prelude;
 }
 const std::shared_ptr<Module> Module::prelude(createPrelude());
