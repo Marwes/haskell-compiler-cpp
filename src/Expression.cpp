@@ -528,9 +528,9 @@ void unify(TypeEnvironment& env, Type& lhs, Type& rhs)
 class DependencyVisitor : public ExpressionVisitor
 {
 public:
-	typedef boost::adjacency_list<boost::listS, boost::vecS, boost::directedS, Binding*> Graph;
-	typedef boost::graph_traits<Graph>::vertex_descriptor Vertex;
-	typedef boost::graph_traits<Graph>::edge_descriptor Edge;
+	DependencyVisitor(Graph& graph)
+		: graph(graph)
+	{}
 
 	virtual void visit(Name& name)
 	{
@@ -541,7 +541,7 @@ public:
 	}
 
 	std::string function;
-	Graph graph;
+	Graph& graph;
 	std::map<std::string, Vertex> bindings;
 };
 
@@ -562,25 +562,34 @@ Type& Number::typecheck(TypeEnvironment& env)
 	return intType;
 }
 
-void typeCheckUnorderedBindings(TypeEnvironment& env, std::vector<Binding>& bindings)
+void addBindingsToGraph(Graph& graph, std::vector<Binding>& bindings)
 {
-	DependencyVisitor visitor;
 
 	for (Binding& bind : bindings)
 	{
-		DependencyVisitor::Vertex vert = boost::add_vertex(visitor.graph);
-		visitor.graph[vert] = &bind;
-		visitor.bindings.insert(std::make_pair(bind.name, vert));
+		Vertex vert = boost::add_vertex(graph);
+		graph[vert] = &bind;
 	}
-	for (Binding& bind : bindings)
+}
+void typecheckDependecyGraph(TypeEnvironment& env, Graph& graph)
+{
+	DependencyVisitor visitor(graph);
+	size_t ii = 0;
+	for (auto& vertex : graph.m_vertices)
 	{
-		visitor.function = bind.name;
-		bind.expression->accept(visitor);
+		visitor.bindings.insert(std::make_pair(vertex.m_property->name, ii));
+		ii++;
 	}
+	for (auto& vertex : graph.m_vertices)
+	{
+		visitor.function = vertex.m_property->name;
+		vertex.m_property->expression->accept(visitor);
+	}
+
 	//Use Tarjan's strongly connected components algorithm to find mutually recursive bindings
-	std::map<DependencyVisitor::Vertex, size_t> verticesToGroups;
-	boost::associative_property_map<std::map<DependencyVisitor::Vertex, size_t>> map(verticesToGroups);
-	boost::strong_components(visitor.graph, map);
+	std::map<Vertex, size_t> verticesToGroups;
+	boost::associative_property_map<std::map<Vertex, size_t>> map(verticesToGroups);
+	boost::strong_components(graph, map);
 
 	//The group indexes are ordered so that processing the groups in order
 	//will give the correct typechecking order for bindings
@@ -590,11 +599,11 @@ void typeCheckUnorderedBindings(TypeEnvironment& env, std::vector<Binding>& bind
 	{
 		for (auto& vertToGroup : verticesToGroups)
 		{
-			DependencyVisitor::Vertex vert = vertToGroup.first;
+			Vertex vert = vertToGroup.first;
 			size_t group = vertToGroup.second;
 			if (group == groupIndex)
 			{
-				groupedBindings.push_back(visitor.graph[vert]);
+				groupedBindings.push_back(graph[vert]);
 			}
 		}
 
@@ -608,7 +617,7 @@ void typeCheckUnorderedBindings(TypeEnvironment& env, std::vector<Binding>& bind
 		}
 		for (Binding* bind : groupedBindings)
 		{
-			Type newType = TypeVariable();
+			Type newType = bind->expression->getType();
 			env.addNonGeneric(newType);
 			Type& actual = bind->expression->typecheck(env);
 			unify(env, newType, actual);
@@ -619,13 +628,20 @@ void typeCheckUnorderedBindings(TypeEnvironment& env, std::vector<Binding>& bind
 	}
 }
 
+void typecheckUnorderedBindings(TypeEnvironment& env, std::vector<Binding>& bindings)
+{
+	Graph graph;
+	addBindingsToGraph(graph, bindings);
+	typecheckDependecyGraph(env, graph);
+}
+
 Type& Let::typecheck(TypeEnvironment& env)
 {
 	isRecursive = true;
 	TypeEnvironment& child = env.child();
 	if (isRecursive)
 	{
-		typeCheckUnorderedBindings(child, bindings);
+		typecheckUnorderedBindings(child, bindings);
 	}
 	else
 	{

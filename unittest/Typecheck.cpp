@@ -397,7 +397,4 @@ main = 2 === 3");
 	Module module = parser.module();
 
 	REQUIRE_THROWS_AS(module.typecheck(), TypeError);
-	std::cerr << "\n" << module.bindings[0].expression->getType() << std::endl;
-	std::cerr << module.bindings[1].expression->getType() << std::endl;
-	std::cerr << module.instances[0].bindings[0].expression->getType() << std::endl;
 }

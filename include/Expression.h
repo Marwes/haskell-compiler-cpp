@@ -6,7 +6,7 @@
 #include <set>
 #include "Types.h"
 #include "SuperCombinator.h"
-
+#include <boost/graph/adjacency_list.hpp>
 
 namespace MyVMNamespace
 {
@@ -74,7 +74,12 @@ private:
 
 void unify(TypeEnvironment& env, Type& lhs, Type& rhs);
 
-void typeCheckUnorderedBindings(TypeEnvironment& env, std::vector<Binding>& bindings);
+typedef boost::adjacency_list<boost::listS, boost::vecS, boost::directedS, Binding*> Graph;
+typedef boost::graph_traits<Graph>::vertex_descriptor Vertex;
+typedef boost::graph_traits<Graph>::edge_descriptor Edge;
+
+void addBindingsToGraph(Graph& graph, std::vector<Binding>& bindings);
+void typecheckDependecyGraph(TypeEnvironment& env, Graph& graph);
 
 class GCompiler
 {

@@ -112,20 +112,20 @@ Class* getClass(Module& module, const std::string& name)
 void Module::typecheck()
 {
 	TypeEnvironment env(this);
+	Graph graph;
+
 	for (auto& instance : instances)
 	{
 		Class* klass = getClass(*this, instance.className);
 		assert(klass != nullptr);
-		for (auto& bind : instance.bindings)
-		{
-			Type newType = klass->declarations[bind.name].type;
-			env.addNonGeneric(newType);
-			Type& actual = bind.expression->typecheck(env);
-			unify(env, newType, actual);
-		}
+		//Type newType = klass->declarations[bind.name].type;
+		for (Binding& bind : instance.bindings)
+			bind.expression->getType() = klass->declarations[bind.name].type;
+		addBindingsToGraph(graph, instance.bindings);
 	}
 
-	typeCheckUnorderedBindings(env, bindings);
+	addBindingsToGraph(graph, bindings);
+	typecheckDependecyGraph(env, graph);
 }
 
 }
