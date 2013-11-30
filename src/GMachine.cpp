@@ -25,6 +25,33 @@ GMachine::GMachine()
 }
 
 
+void compileBinding(GCompiler& comp, Binding& binding, const std::string& name)
+{
+	comp.stackVariables.clear();
+	if (Lambda* lambda = dynamic_cast<Lambda*>(binding.expression.get()))
+	{
+		for (auto arg = lambda->arguments.rbegin(); arg != lambda->arguments.rend(); ++arg)
+		{
+			comp.stackVariables.push_back(*arg);
+		}
+		SuperCombinator& sc = comp.getGlobal(name);
+		sc.arity = lambda->arguments.size();
+		lambda->body->compile(comp, sc.instructions, true);
+		sc.instructions.push_back(GInstruction(GOP::UPDATE, 0));
+		sc.instructions.push_back(GInstruction(GOP::POP, sc.arity));
+		sc.instructions.push_back(GInstruction(GOP::UNWIND));
+	}
+	else
+	{
+		SuperCombinator& sc = comp.getGlobal(name);
+		sc.arity = 0;
+		binding.expression->compile(comp, comp.getGlobal(name).instructions, true);
+		sc.instructions.push_back(GInstruction(GOP::UPDATE, 0));
+		//sc.instructions.push_back(GInstruction(GOP::POP, 0));
+		sc.instructions.push_back(GInstruction(GOP::UNWIND));
+	}
+}
+
 void GMachine::compile(std::istream& input)
 {
 	Tokenizer tokens(input);
@@ -45,32 +72,17 @@ void GMachine::compile(std::istream& input)
 	}
 
 	GCompiler comp(&module);
+	for (Instance& instance : module.instances)
+	{
+		for (Binding& bind : instance.bindings)
+		{
+			std::string name = "#" + boost::get<TypeOperator>(instance.type).name + bind.name;
+			compileBinding(comp, bind, name);
+		}
+	}
 	for (Binding& bind : module.bindings)
 	{
-		comp.stackVariables.clear();
-		std::vector<GInstruction> instructions;
-		if (Lambda* lambda = dynamic_cast<Lambda*>(bind.expression.get()))
-		{
-			for (auto arg = lambda->arguments.rbegin(); arg != lambda->arguments.rend(); ++arg)
-			{
-				comp.stackVariables.push_back(*arg);
-			}
-			SuperCombinator& sc = comp.getGlobal(bind.name);
-			sc.arity = lambda->arguments.size();
-			lambda->body->compile(comp, sc.instructions, true);
-			sc.instructions.push_back(GInstruction(GOP::UPDATE, 0));
-			sc.instructions.push_back(GInstruction(GOP::POP, sc.arity));
-			sc.instructions.push_back(GInstruction(GOP::UNWIND));
-		}
-		else
-		{
-			SuperCombinator& sc = comp.getGlobal(bind.name);
-			sc.arity = 0;
-			bind.expression->compile(comp, comp.getGlobal(bind.name).instructions, true);
-			sc.instructions.push_back(GInstruction(GOP::UPDATE, 0));
-			//sc.instructions.push_back(GInstruction(GOP::POP, 0));
-			sc.instructions.push_back(GInstruction(GOP::UNWIND));
-		}
+		compileBinding(comp, bind, bind.name);
 	}
 
 	superCombinators = std::move(comp.globals);
