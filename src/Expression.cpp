@@ -437,12 +437,16 @@ void TypeEnvironment::tryReplace(Type& toReplace, TypeVariable& replaceMe, const
 			}
 			else
 			{
-				//Check that the TypeOperator fulfills all constraints of the variable
-				for (const std::string& className : constraints[replaceMe])
+				auto varConstraints = constraints.find(replaceMe);
+				if (varConstraints != constraints.end())
 				{
-					assert(module != nullptr);
-					if (!hasInstance(*module, className, replaceWith))
-						throw TypeError(*this, replaceWith, toReplace);
+					//Check that the TypeOperator fulfills all constraints of the variable
+					for (const std::string& className : varConstraints->second)
+					{
+						assert(module != nullptr);
+						if (!hasInstance(*module, className, replaceWith))
+							throw TypeError(*this, replaceWith, toReplace);
+					}
 				}
 			}
 			toReplace = replaceWith;
@@ -792,7 +796,8 @@ const std::string* findMatchingTypeVariable(const Type& in, const Type& matcher,
 	{
 		if (*inVar == var)
 		{
-			return &boost::get<TypeOperator>(matcher).name;
+			auto op = boost::get<TypeOperator>(&matcher);
+			return op == nullptr ? nullptr : &op->name;
 		}
 	}
 	else if (const TypeOperator* inOp = boost::get<TypeOperator>(&in))
@@ -808,13 +813,11 @@ const std::string* findMatchingTypeVariable(const Type& in, const Type& matcher,
 	return nullptr;
 }
 
-const std::string& findInstanceTypeVariable(const Class& klass, const std::string& name, const Type& type)
+const std::string* findInstanceTypeVariable(const Class& klass, const std::string& name, const Type& type)
 {
 	const TypeDeclaration& decl = klass.declarations.at(name);
 	
-	const std::string* ret = findMatchingTypeVariable(decl.type, type, klass.variable);
-	assert(ret != nullptr);
-	return *ret;
+	return findMatchingTypeVariable(decl.type, type, klass.variable);
 }
 
 void Name::compile(GCompiler& env, std::vector<GInstruction>& instructions, bool strict)
@@ -834,16 +837,17 @@ void Name::compile(GCompiler& env, std::vector<GInstruction>& instructions, bool
 		instructions.push_back(GInstruction(GOP::PACK, var.index));
 		break;
 	case VariableType::TYPECLASSFUNCTION:
-		if (TypeOperator* op = boost::get<TypeOperator>(&type))
+		if (const std::string* nameOfInstanceType = findInstanceTypeVariable(*var.klass, name, type))
 		{
-			const std::string& nameOfInstanceType = findInstanceTypeVariable(*var.klass, name, type);
-			std::string directVarName = "#" + nameOfInstanceType + name;
+			//We have found the actual type for this class function so get that function directly
+			std::string directVarName = "#" + *nameOfInstanceType + name;
 			Variable fastVar = env.getVariable(directVarName);
 			assert(fastVar.accessType == VariableType::TOPLEVEL);
 			instructions.push_back(GInstruction(GOP::PUSH_GLOBAL, var.index));
 		}
 		else
 		{
+
 			assert(0);
 		}
 		break;
