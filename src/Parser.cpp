@@ -627,6 +627,15 @@ std::unique_ptr<Pattern> Parser::pattern()
 	const Token& nameToken = tokenizer.nextToken();
 	switch (nameToken.type)
 	{
+	case SymbolEnum::LBRACKET:
+		{
+			if (tokenizer.nextToken().type != SymbolEnum::RBRACKET)
+			{
+				throw ParseError(*tokenizer, SymbolEnum::RBRACKET);
+			}
+			return std::unique_ptr<Pattern>(new ConstructorPattern("[]", std::vector<std::unique_ptr<Pattern>>()));
+		}
+		break;
 	case SymbolEnum::OPERATOR:
 	case SymbolEnum::NAME:
 		{
