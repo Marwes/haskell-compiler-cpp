@@ -177,6 +177,17 @@ Module Parser::module()
 		throw std::runtime_error("Unexpected token after end of module, " + std::string(enumToString(tokenizer->type)));
 	}
 
+	for (TypeDeclaration& decl : module.typeDeclaration)
+	{
+		for (Binding& bind : module.bindings)
+		{
+			if (decl.name == bind.name)
+			{
+				bind.type = decl;
+			}
+		}
+	}
+
 	return std::move(module);
 }
 
@@ -669,6 +680,25 @@ std::unique_ptr<Pattern> Parser::pattern()
 	return nullptr;
 }
 
+std::vector<TypeOperator> createTypeConstraints(const Type& context)
+{
+	std::vector<TypeOperator> mapping;
+
+	const TypeOperator& op = boost::get<TypeOperator>(context);
+	if (op.name[0] == '(')
+	{
+		for (const Type& type : op.types)
+		{
+			mapping.push_back(boost::get<TypeOperator>(type));
+		}
+	}
+	else
+	{
+		mapping.push_back(op);
+	}
+	return mapping;
+}
+
 TypeDeclaration Parser::typeDeclaration()
 {
 	std::map<std::string, TypeVariable> typeVariableMapping;
@@ -710,14 +740,7 @@ TypeDeclaration Parser::typeDeclaration(std::map<std::string, TypeVariable>& typ
 		Type t = type(typeVariableMapping);
 		--tokenizer;
 		TypeOperator& op = boost::get<TypeOperator>(typeOrContext);
-		if (op.name[0] == '(')
-		{
-			return TypeDeclaration(std::move(name), std::move(t), std::move(op.types));
-		}
-		else
-		{
-			return TypeDeclaration(std::move(name), std::move(t), { typeOrContext });
-		}
+		return TypeDeclaration(std::move(name), std::move(t), createTypeConstraints(op));
 	}
 	--tokenizer;
 
