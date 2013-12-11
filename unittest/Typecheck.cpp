@@ -201,7 +201,7 @@ test =\n\
 	module.typecheck();
 	std::vector<Type> boolean(1);
 	boolean[0] = TypeOperator("Bool");
-	REQUIRE(module.bindings[0].expression->getType() < Type(TypeOperator("[]", boolean)));
+	REQUIRE(module.bindings[0].expression->getType() == Type(TypeOperator("[]", boolean)));
 }
 
 TEST_CASE("typecheck/module/mutual_recursion", "")
@@ -269,9 +269,9 @@ main = head (tail [10, 20, 30])\n");
 	Type headType = functionType(listType, args[0]);
 	Type tailType = functionType(listType, listType);
 	
-	CHECK(module.bindings[0].expression->getType() < headType);
-	CHECK(module.bindings[1].expression->getType() < tailType);
-	CHECK(module.bindings[2].expression->getType() < Type(TypeOperator("Int")));
+	CHECK(module.bindings[0].expression->getType() > headType);
+	CHECK(module.bindings[1].expression->getType() > tailType);
+	CHECK(module.bindings[2].expression->getType() > Type(TypeOperator("Int")));
 }
 
 TEST_CASE("typecheck/Maybe", "")
@@ -326,9 +326,9 @@ test3 = (undefined, 3)\n");
 	args3[1] = TypeOperator("Int");
 	Type test3 = TypeOperator("(,)", args3);
 
-	CHECK(module.bindings[0].expression->getType() < test1);
-	CHECK(module.bindings[1].expression->getType() < test2);
-	CHECK(module.bindings[2].expression->getType() < test3);
+	CHECK(module.bindings[0].expression->getType() > test1);
+	CHECK(module.bindings[1].expression->getType() > test2);
+	CHECK(module.bindings[2].expression->getType() > test3);
 }
 
 TEST_CASE("typecheck/error_recursive", "Check that type errors are also thrown for using bindings declared later")

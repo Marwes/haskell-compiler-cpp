@@ -234,3 +234,23 @@ main = 2 $+ 3");
 	REQUIRE(result.getType() == NUMBER);
 	REQUIRE(result.getNode()->number == 5);
 }
+
+TEST_CASE("compiler/typeclass/sum", "")
+{
+	std::stringstream expr(
+"class Num a where\n\
+    ($+) :: a -> a -> a\n\
+instance Num Int where\n\
+    ($+) x y = primIntAdd x y\n\
+sum :: Num a => [a] -> a\n\
+sum xs = case xs of\n\
+    : y ys -> y $+ sum ys\n\
+    [] -> 0\n\
+main = sum [1, 2, 3]");
+	GMachine machine;
+	machine.compile(expr);
+
+	Address result = machine.executeMain();
+	REQUIRE(result.getType() == NUMBER);
+	REQUIRE(result.getNode()->number == 6);
+}

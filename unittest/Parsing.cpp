@@ -390,11 +390,10 @@ TEST_CASE("parser/constraints", "")
 	Module module = parser.module();
 	TypeDeclaration& type = module.typeDeclaration[0];
 	REQUIRE(type.constraints.size() == 1);
-	TypeOperator* op = boost::get<TypeOperator>(&type.constraints[0]);
-	REQUIRE(op != 0);
-	REQUIRE(op->name == "Num");
+	TypeOperator& op = type.constraints[0];
+	REQUIRE(op.name == "Num");
 	REQUIRE(type.name == "add");
-	REQUIRE(type.type == functionType(op->types[0], functionType(op->types[0], op->types[0])));
+	REQUIRE(type.type == functionType(op.types[0], functionType(op.types[0], op.types[0])));
 }
 
 TEST_CASE("parser/constraints/multiple", "")
@@ -407,16 +406,14 @@ TEST_CASE("parser/constraints/multiple", "")
 	Module module = parser.module();
 	TypeDeclaration& type = module.typeDeclaration[0];
 	REQUIRE(type.constraints.size() == 2);
-	TypeOperator* opEq = boost::get<TypeOperator>(&type.constraints[0]);
-	REQUIRE(opEq != 0);
-	REQUIRE(opEq->name == "Eq");
-	TypeOperator* opNum = boost::get<TypeOperator>(&type.constraints[1]);
-	REQUIRE(opNum != 0);
-	REQUIRE(opNum->name == "Num");
-	REQUIRE(opEq->types == opNum->types);
+	TypeOperator& opEq = type.constraints[0];
+	REQUIRE(opEq.name == "Eq");
+	TypeOperator& opNum = type.constraints[1];
+	REQUIRE(opNum.name == "Num");
+	REQUIRE(opEq.types == opNum.types);
 
 	REQUIRE(type.name == "add");
-	REQUIRE(type.type == functionType(opEq->types[0], functionType(opEq->types[0], opEq->types[0])));
+	REQUIRE(type.type == functionType(opEq.types[0], functionType(opEq.types[0], opEq.types[0])));
 }
 
 TEST_CASE("parser/typedeclaration4", "add")

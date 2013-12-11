@@ -14,6 +14,7 @@ Binding::Binding(std::string name, std::unique_ptr<Expression> expression)
 Binding::Binding(Binding&& other)
 	: name(std::move(other.name))
 	, expression(std::move(other.expression))
+	, type(std::move(other.type))
 {
 }
 
@@ -22,7 +23,7 @@ TypeDeclaration::TypeDeclaration(std::string name, Type type)
 	, type(std::move(type))
 {
 }
-TypeDeclaration::TypeDeclaration(std::string name, Type type, std::vector<Type> constraints)
+TypeDeclaration::TypeDeclaration(std::string name, Type type, std::vector<TypeOperator> constraints)
 	: name(std::move(name))
 	, type(std::move(type))
 	, constraints(std::move(constraints))
@@ -112,7 +113,7 @@ Class* getClass(Module& module, const std::string& name)
 	return nullptr;
 }
 
-void Module::typecheck()
+TypeEnvironment Module::typecheck()
 {
 	TypeEnvironment env(this);
 	Graph graph;
@@ -136,6 +137,7 @@ void Module::typecheck()
 
 	addBindingsToGraph(graph, bindings);
 	typecheckDependecyGraph(env, graph);
+	return env;
 }
 
 }

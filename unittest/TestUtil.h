@@ -40,7 +40,8 @@ inline bool sameTypes(const Type& lhs, const Type& rhs)
 
 namespace MyVMNamespace
 {
-	inline bool operator<(const Type& lhs, const Type& rhs)
+	//Use operator> as alias to sameTypes to get more readable output from Catch
+	inline bool operator>(const Type& lhs, const Type& rhs)
 	{
 		return sameTypes(lhs, rhs);
 	}
