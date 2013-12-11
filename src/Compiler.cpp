@@ -4,9 +4,10 @@
 
 namespace MyVMNamespace
 {
-GCompiler::GCompiler(Module* module)
+GCompiler::GCompiler(TypeEnvironment& typeEnv, Module* module)
 	: module(module)
 	, index(0)
+	, typeEnv(typeEnv)
 {
 }
 
@@ -71,7 +72,7 @@ Variable findInModule(GCompiler& comp, Module& module, const std::string& name)
 		if (ret.index >= 0)
 			return ret;
 	}
-	return Variable { VariableType::STACK, -1, nullptr };
+	return Variable { VariableType::NONE, -1, nullptr };
 }
 
 Variable GCompiler::getVariable(const std::string& name)
@@ -109,4 +110,82 @@ SuperCombinator& GCompiler::getGlobal(const std::string& name)
 	return *found->second;
 }
 
+
+int GCompiler::getDictionaryIndex(std::vector<TypeOperator>& constraints)
+{
+	for (size_t ii = 0; ii < instanceDicionaries.size(); ii++)
+	{
+		if (instanceDicionaries[ii].constraints == constraints)
+		{
+			return int(ii);
+		}
+	}
+	//Add a new dictionary
+	std::vector<SuperCombinator*> dict;
+	for (TypeOperator& op : constraints)
+	{
+		std::map<Type, std::vector<SuperCombinator*>>& klass = classes[op.name];
+		std::vector<SuperCombinator*>& instanceFunctions = klass[op.types[0]];
+		for (SuperCombinator* comb : instanceFunctions)
+		{
+			dict.push_back(comb);
+		}
+	}
+	instanceDicionaries.push_back(InstanceDictionary { constraints, std::move(dict) });
+
+	return instanceDicionaries.size() - 1;
+}
+
+
+SuperCombinator& compileBinding(GCompiler& comp, Binding& binding, const std::string& name)
+{
+	SuperCombinator& sc = comp.getGlobal(name);
+	comp.stackVariables.clear();
+	if (Lambda* lambda = dynamic_cast<Lambda*>(binding.expression.get()))
+	{
+		if (!binding.type.constraints.empty())
+		{
+			comp.newStackVariable("$dict");
+			Variable var = comp.getVariable("#" + binding.type.constraints[0].name + "#");
+			sc.instructions.push_back(GInstruction(GOP::PUSH_GLOBAL, var.index));
+		}
+		for (auto arg = lambda->arguments.rbegin(); arg != lambda->arguments.rend(); ++arg)
+		{
+			comp.stackVariables.push_back(*arg);
+		}
+		sc.arity = lambda->arguments.size();
+		lambda->body->compile(comp, sc.instructions, true);
+		sc.instructions.push_back(GInstruction(GOP::UPDATE, 0));
+		sc.instructions.push_back(GInstruction(GOP::POP, sc.arity));
+		sc.instructions.push_back(GInstruction(GOP::UNWIND));
+	}
+	else
+	{
+		sc.arity = 0;
+		binding.expression->compile(comp, sc.instructions, true);
+		sc.instructions.push_back(GInstruction(GOP::UPDATE, 0));
+		//sc.instructions.push_back(GInstruction(GOP::POP, 0));
+		sc.instructions.push_back(GInstruction(GOP::UNWIND));
+	}
+	return sc;
+}
+
+void GCompiler::compileInstance(Instance& instance)
+{
+	std::vector<SuperCombinator*> functions;
+	for (Binding& bind : instance.bindings)
+	{
+		std::string name = "#" + boost::get<TypeOperator>(instance.type).name + bind.name;
+		SuperCombinator& sc = compileBinding(*this, bind, name);
+		functions.push_back(&sc);
+	}
+	auto lowBound = classes.lower_bound(instance.className);
+	if (lowBound == classes.end() || classes.key_comp()(instance.className, lowBound->first))
+	{
+		//Key does not exist
+		lowBound = classes.insert(std::make_pair(instance.className, std::map<Type, std::vector<SuperCombinator*>>())).first;
+	}
+	std::map<Type, std::vector<SuperCombinator*>>& instances = lowBound->second;
+	instances.insert(std::make_pair(instance.type, functions));
+}
 }

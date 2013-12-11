@@ -191,7 +191,7 @@ Type getReturnType(Type t)
 
 void ConstructorPattern::addVariables(TypeEnvironment& env, Type& type)
 {
-	Type t = env.getType(this->name);
+	Type t = env.getFreshType(this->name);
 	Type dataType = getReturnType(t);
 
 	TypeOperator* funcType = &boost::get<TypeOperator>(t);
@@ -313,8 +313,12 @@ TypeEnvironment::TypeEnvironment(Module* module)
 }
 
 TypeEnvironment::TypeEnvironment(TypeEnvironment && env)
-	: parent(env.parent)
-	, module(env.module)
+	: module(std::move(env.module))
+	, parent(std::move(env.parent))
+	, namedTypes(std::move(env.namedTypes))
+	, types(std::move(env.types))
+	, nonGeneric(std::move(env.nonGeneric))
+	, constraints(std::move(env.constraints))
 {
 }
 
@@ -334,7 +338,7 @@ void TypeEnvironment::registerType(Type& type)
 	types.push_back(&type);
 }
 
-bool findInModule(TypeEnvironment& env, Module& module, const std::string& name, Type& returnValue)
+const Type* findInModule(TypeEnvironment& env, Module& module, const std::string& name)
 {
 	auto found = std::find_if(module.bindings.begin(), module.bindings.end(), 
 		[&name](const Binding& bind)
@@ -343,8 +347,7 @@ bool findInModule(TypeEnvironment& env, Module& module, const std::string& name,
 	});
 	if (found != module.bindings.end())
 	{
-		returnValue = fresh(env, found->expression->getType());
-		return true;
+		return &found->expression->getType();
 	}
 	for (auto& def : module.dataDefinitions)
 	{
@@ -352,8 +355,7 @@ bool findInModule(TypeEnvironment& env, Module& module, const std::string& name,
 		{
 			if (ctor.name == name)
 			{
-				returnValue = fresh(env, ctor.type);
-				return true;
+				return &ctor.type;
 			}
 		}
 	}
@@ -363,33 +365,37 @@ bool findInModule(TypeEnvironment& env, Module& module, const std::string& name,
 		{
 			if (decl.first == name)
 			{
-				returnValue = fresh(env, decl.second.type);
-				return true;
+				return &decl.second.type;
 			}
 		}
 	}
 	for (auto& import : module.imports)
 	{
-		if (findInModule(env, *import, name, returnValue))
-			return true;
+		if (const Type* ret = findInModule(env, *import, name))
+			return ret;
 	}
-	return false;
+	return nullptr;
 }
 
-Type TypeEnvironment::getType(const std::string& name)
+const Type& TypeEnvironment::getType(const std::string& name)
 {
 	auto found = namedTypes.find(name);
 	if (found != namedTypes.end())
-		return fresh(*this, *found->second);
+		return *found->second;
 	if (parent != nullptr)
 		return parent->getType(name);
 	if (module != nullptr)
 	{
-		Type ret;
-		if (findInModule(*this, *module, name, ret))
-			return std::move(ret);
+		const Type* t = findInModule(*this, *module, name);
+		if (t != nullptr)
+			return *t;
 	}
 	throw std::runtime_error("Could not find the identifier " + name);
+}
+
+Type TypeEnvironment::getFreshType(const std::string& name)
+{
+	return fresh(*this, getType(name));
 }
 
 void TypeEnvironment::updateConstraints(const TypeVariable& replaced, const TypeVariable& newVar)
@@ -617,7 +623,7 @@ public:
 Type& Name::typecheck(TypeEnvironment& env)
 {
 	env.registerType(this->type);
-	this->type = env.getType(this->name);
+	this->type = env.getFreshType(this->name);
 	return this->type;
 }
 
@@ -694,6 +700,13 @@ void typecheckDependecyGraph(TypeEnvironment& env, Graph& graph)
 
 		groupIndex++;
 		groupedBindings.clear();
+	}
+	for (auto& vert : graph.m_vertices)
+	{
+		Binding* bind = vert.m_property;
+		bind->type.type = bind->expression->getType();
+		//TODO update constraints here if they are not defined
+		//bind->type.constraints
 	}
 }
 
@@ -843,12 +856,18 @@ void Name::compile(GCompiler& env, std::vector<GInstruction>& instructions, bool
 			std::string directVarName = "#" + *nameOfInstanceType + name;
 			Variable fastVar = env.getVariable(directVarName);
 			assert(fastVar.accessType == VariableType::TOPLEVEL);
-			instructions.push_back(GInstruction(GOP::PUSH_GLOBAL, var.index));
+			instructions.push_back(GInstruction(GOP::PUSH_GLOBAL, fastVar.index));
 		}
 		else
 		{
-
-			assert(0);
+			Variable dictVar = env.getVariable("$dict");
+			if (dictVar.accessType == VariableType::STACK)
+			{
+			}
+			else
+			{
+				assert(0);
+			}
 		}
 		break;
 	default:
@@ -868,6 +887,7 @@ void Rational::compile(GCompiler& env, std::vector<GInstruction>& instructions, 
 	assert(0);
 }
 
+
 void Let::compile(GCompiler& env, std::vector<GInstruction>& instructions, bool strict)
 {
 	isRecursive = true;
@@ -878,6 +898,10 @@ void Let::compile(GCompiler& env, std::vector<GInstruction>& instructions, bool 
 	{
 		if (Lambda* lambda = dynamic_cast<Lambda*>(bind.expression.get()))
 		{
+			if (!bind.type.constraints.empty())
+			{
+				env.newStackVariable("$dict");
+			}
 			for (auto arg = lambda->arguments.rbegin(); arg != lambda->arguments.rend(); ++arg)
 			{
 				env.stackVariables.push_back(*arg);
@@ -912,6 +936,44 @@ void Lambda::compile(GCompiler& env, std::vector<GInstruction>& instructions, bo
 {
 	assert(0);
 }
+
+class ClassEnvironment
+{
+public:
+
+	std::vector<std::string> tupleArgs;
+};
+
+bool hasConstraints(TypeEnvironment& env, const Type& type)
+{
+	if (const TypeVariable* var = boost::get<TypeVariable>(&type))
+	{
+		return !env.getConstraints(*var).empty();
+	}
+	else if (const TypeOperator* op = boost::get<TypeOperator>(&type))
+	{
+		for (const Type& t : op->types)
+		{
+			if (hasConstraints(env, t))
+				return true;
+		}
+	}
+	return false;
+}
+
+void tryAddClassDictionary(GCompiler& compiler, std::vector<GInstruction>& instructions, const Type& type)
+{
+	if (!hasConstraints(compiler.typeEnv, type))
+		return;
+
+	Variable dictVar = compiler.getVariable("$dict");
+	if (dictVar.accessType == VariableType::STACK)
+	{
+		instructions.push_back(GInstruction(GOP::PUSH, dictVar.index));
+	}
+	//Do nothing since we should be able to infer the actual function later from the type context
+}
+
 void Apply::compile(GCompiler& env, std::vector<GInstruction>& instructions, bool strict)
 {
 	if (Name* nameFunc = dynamic_cast<Name*>(function.get()))
@@ -928,7 +990,18 @@ void Apply::compile(GCompiler& env, std::vector<GInstruction>& instructions, boo
 		catch (std::runtime_error&)
 		{
 		}
+		try
+		{
+			const Type& type = env.typeEnv.getType(nameFunc->name);
+			tryAddClassDictionary(env, instructions, type);
+		}
+		catch (std::runtime_error&)
+		{
+			//Did not find the function as a top  level function (probably)
+			//This means the function cannot possibly need a dictionary so skip it
+		}
 	}
+
 	for (int ii = arguments.size() - 1; ii >= 0; --ii)
 	{
 		//TODO

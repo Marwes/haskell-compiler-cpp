@@ -24,17 +24,27 @@ GMachine::GMachine()
 	heap.reserve(1024);//Just make sure the heap is large enough for small examples for now
 }
 
+void loadDictionary(GCompiler& comp, std::vector<GInstruction>& instructions, const TypeDeclaration& typeDecl)
+{
+	
+}
 
 void compileBinding(GCompiler& comp, Binding& binding, const std::string& name)
 {
 	comp.stackVariables.clear();
 	if (Lambda* lambda = dynamic_cast<Lambda*>(binding.expression.get()))
 	{
+		SuperCombinator& sc = comp.getGlobal(name);
+		if (!binding.type.constraints.empty())
+		{
+			comp.newStackVariable("$dict");
+			Variable var = comp.getVariable("#" + binding.type.constraints[0].name + "#");
+			sc.instructions.push_back(GInstruction(GOP::PUSH_GLOBAL, var.index));
+		}
 		for (auto arg = lambda->arguments.rbegin(); arg != lambda->arguments.rend(); ++arg)
 		{
 			comp.stackVariables.push_back(*arg);
 		}
-		SuperCombinator& sc = comp.getGlobal(name);
 		sc.arity = lambda->arguments.size();
 		lambda->body->compile(comp, sc.instructions, true);
 		sc.instructions.push_back(GInstruction(GOP::UPDATE, 0));
@@ -45,7 +55,7 @@ void compileBinding(GCompiler& comp, Binding& binding, const std::string& name)
 	{
 		SuperCombinator& sc = comp.getGlobal(name);
 		sc.arity = 0;
-		binding.expression->compile(comp, comp.getGlobal(name).instructions, true);
+		binding.expression->compile(comp, sc.instructions, true);
 		sc.instructions.push_back(GInstruction(GOP::UPDATE, 0));
 		//sc.instructions.push_back(GInstruction(GOP::POP, 0));
 		sc.instructions.push_back(GInstruction(GOP::UNWIND));
@@ -58,7 +68,7 @@ void GMachine::compile(std::istream& input)
 	Parser parser(tokens);
 	Module module = parser.module();
 
-	module.typecheck();
+	TypeEnvironment typeEnv = module.typecheck();
 
 	//Assign unique numbers for the tags so they can be correctly retrieved
 	for (DataDefinition& dataDef : module.dataDefinitions)
@@ -71,14 +81,10 @@ void GMachine::compile(std::istream& input)
 		}
 	}
 
-	GCompiler comp(&module);
+	GCompiler comp(typeEnv, &module);
 	for (Instance& instance : module.instances)
 	{
-		for (Binding& bind : instance.bindings)
-		{
-			std::string name = "#" + boost::get<TypeOperator>(instance.type).name + bind.name;
-			compileBinding(comp, bind, name);
-		}
+		comp.compileInstance(instance);
 	}
 	for (Binding& bind : module.bindings)
 	{

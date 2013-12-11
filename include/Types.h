@@ -130,6 +130,15 @@ public:
 inline bool operator==(const Type& l, const Type& r) { return l.operator==(static_cast<const TypeVariant&>(r)); }
 inline bool operator==(const TypeOperator& l, const TypeOperator& r) { return l.name == r.name && l.types == r.types; }
 inline bool operator!=(const TypeOperator& l, const TypeOperator& r) { return !(l == r); }
+inline bool operator<(const Type& l, const Type& r) { return l.operator<(static_cast<const TypeVariant&>(r)); }
+inline bool operator<(const TypeOperator& l, const TypeOperator& r)
+{
+	if (l.name == r.name)
+	{
+		return true;
+	}
+	return l.name < r.name;
+}
 
 Type functionType(const Type& arg, const Type& result);
 

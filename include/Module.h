@@ -7,6 +7,19 @@
 namespace MyVMNamespace
 {
 
+class TypeDeclaration
+{
+public:
+	TypeDeclaration() {}
+	TypeDeclaration(std::string name, Type type);
+	TypeDeclaration(std::string name, Type type, std::vector<TypeOperator> constraints);
+	TypeDeclaration(TypeDeclaration && binding);
+
+	std::string name;
+	Type type;
+	std::vector<TypeOperator> constraints;
+};
+
 class Binding
 {
 public:
@@ -15,18 +28,7 @@ public:
 
 	std::string name;
 	std::unique_ptr<Expression> expression;
-};
-class TypeDeclaration
-{
-public:
-	TypeDeclaration() {}
-	TypeDeclaration(std::string name, Type type);
-	TypeDeclaration(std::string name, Type type, std::vector<Type> constraints);
-	TypeDeclaration(TypeDeclaration && binding);
-
-	std::string name;
-	Type type;
-	std::vector<Type> constraints;
+	TypeDeclaration type;
 };
 
 class Instance
@@ -71,7 +73,7 @@ public:
 	Module(std::vector<Binding> && bindings, std::vector<TypeDeclaration> && typeDeclaration);
 	Module(Module && other);
 
-	void typecheck();
+	TypeEnvironment typecheck();
 
 	std::vector<Binding> bindings;
 	std::vector<TypeDeclaration> typeDeclaration;

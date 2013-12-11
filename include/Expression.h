@@ -13,6 +13,7 @@ namespace MyVMNamespace
 class Environment;
 class Binding;
 class Module;
+class Instance;
 
 class Expression;
 
@@ -47,6 +48,7 @@ struct Variable
 	VariableType accessType;
 	int index;
 	Class* klass;
+	Type* type;
 };
 
 
@@ -61,7 +63,8 @@ public:
 	void bindName(const std::string& name, Type& type);
 	void registerType(Type& type);
 
-	Type getType(const std::string& name);
+	const Type& getType(const std::string& name);
+	Type getFreshType(const std::string& name);
 
 	void addNonGeneric(const Type& type);
 	bool isGeneric(const TypeVariable& var) const;
@@ -90,22 +93,35 @@ typedef boost::graph_traits<Graph>::edge_descriptor Edge;
 void addBindingsToGraph(Graph& graph, std::vector<Binding>& bindings);
 void typecheckDependecyGraph(TypeEnvironment& env, Graph& graph);
 
+struct InstanceDictionary
+{
+	std::vector<TypeOperator> constraints;
+	std::vector<SuperCombinator*> dictionary;
+};
+
 class GCompiler
 {
 public:
-	GCompiler(Module* module);
+	GCompiler(TypeEnvironment& typeEnv, Module* module);
 
 	void newStackVariable(const std::string& name);
 	void popStack(size_t n);
 	Variable getVariable(const std::string& name);
 	SuperCombinator& getGlobal(const std::string& name);
 
+	int getDictionaryIndex(std::vector<TypeOperator>& dict);
+
+	void compileInstance(Instance& instance);
 
 	std::vector<std::string> stackVariables;
 	std::map<std::string, std::unique_ptr<SuperCombinator>> globals;
 	std::map<SuperCombinator*, int> globalIndices;
 	std::vector<Constructor> dataDefinitions;
+	std::vector<InstanceDictionary> instanceDicionaries;
+
+	TypeEnvironment& typeEnv;
 private:
+	std::map<std::string, std::map<Type, std::vector<SuperCombinator*>>> classes;
 	Module* module;
 	int index;
 };
