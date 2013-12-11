@@ -29,39 +29,6 @@ void loadDictionary(GCompiler& comp, std::vector<GInstruction>& instructions, co
 	
 }
 
-void compileBinding(GCompiler& comp, Binding& binding, const std::string& name)
-{
-	comp.stackVariables.clear();
-	if (Lambda* lambda = dynamic_cast<Lambda*>(binding.expression.get()))
-	{
-		SuperCombinator& sc = comp.getGlobal(name);
-		if (!binding.type.constraints.empty())
-		{
-			comp.newStackVariable("$dict");
-			Variable var = comp.getVariable("#" + binding.type.constraints[0].name + "#");
-			sc.instructions.push_back(GInstruction(GOP::PUSH_GLOBAL, var.index));
-		}
-		for (auto arg = lambda->arguments.rbegin(); arg != lambda->arguments.rend(); ++arg)
-		{
-			comp.stackVariables.push_back(*arg);
-		}
-		sc.arity = lambda->arguments.size();
-		lambda->body->compile(comp, sc.instructions, true);
-		sc.instructions.push_back(GInstruction(GOP::UPDATE, 0));
-		sc.instructions.push_back(GInstruction(GOP::POP, sc.arity));
-		sc.instructions.push_back(GInstruction(GOP::UNWIND));
-	}
-	else
-	{
-		SuperCombinator& sc = comp.getGlobal(name);
-		sc.arity = 0;
-		binding.expression->compile(comp, sc.instructions, true);
-		sc.instructions.push_back(GInstruction(GOP::UPDATE, 0));
-		//sc.instructions.push_back(GInstruction(GOP::POP, 0));
-		sc.instructions.push_back(GInstruction(GOP::UNWIND));
-	}
-}
-
 void GMachine::compile(std::istream& input)
 {
 	Tokenizer tokens(input);
@@ -88,7 +55,7 @@ void GMachine::compile(std::istream& input)
 	}
 	for (Binding& bind : module.bindings)
 	{
-		compileBinding(comp, bind, bind.name);
+		comp.compileBinding(bind, bind.name);
 	}
 
 	superCombinators = std::move(comp.globals);

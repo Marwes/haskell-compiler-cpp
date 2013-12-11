@@ -111,6 +111,7 @@ public:
 
 	int getDictionaryIndex(std::vector<TypeOperator>& dict);
 
+	SuperCombinator& compileBinding(Binding& binding, const std::string& name);
 	void compileInstance(Instance& instance);
 
 	std::vector<std::string> stackVariables;
