@@ -190,6 +190,7 @@ public:
 
 	virtual void accept(ExpressionVisitor& visitor);
 
+	Type type;
     int value;
 };
 

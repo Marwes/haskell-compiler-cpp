@@ -53,7 +53,7 @@ Number::Number(int value)
 
 Type& Number::getType()
 {
-	return intType;
+	return type;
 }
 
 Let::Let(std::vector<Binding>&& bindings, std::unique_ptr<Expression>&& expression)
@@ -400,6 +400,8 @@ Type TypeEnvironment::getFreshType(const std::string& name)
 
 void TypeEnvironment::updateConstraints(const TypeVariable& replaced, const TypeVariable& newVar)
 {
+	if (replaced == newVar)
+		return;
 	//Add all constraints from the replaced variable
 	auto found = constraints.find(replaced);
 	if (found != constraints.end())
@@ -451,7 +453,18 @@ void TypeEnvironment::tryReplace(Type& toReplace, TypeVariable& replaceMe, const
 					{
 						assert(module != nullptr);
 						if (!hasInstance(*module, className, replaceWith))
-							throw TypeError(*this, replaceWith, toReplace);
+						{
+							//Infer the Num type class as an Int for now
+							//(Just assuming that Int has a Num instance)
+							if (className == "Num" && replaceWith == intType)
+							{
+								continue;
+							}
+							else
+							{
+								throw TypeError(*this, replaceWith, toReplace);
+							}
+						}
 					}
 				}
 			}
@@ -634,7 +647,8 @@ Type& Rational::typecheck(TypeEnvironment& env)
 
 Type& Number::typecheck(TypeEnvironment& env)
 {
-	return intType;
+	env.addConstraint(boost::get<TypeVariable>(type), "Num");
+	return type;
 }
 
 void addBindingsToGraph(Graph& graph, std::vector<Binding>& bindings)
