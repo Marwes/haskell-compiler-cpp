@@ -73,6 +73,8 @@ public:
 
 	void addConstraint(const TypeVariable& var, const std::string& className);
 	void updateConstraints(const TypeVariable& oldVar, const TypeVariable& newVar);
+	void lockVariable(TypeVariable var);
+	bool isVariableLocked(TypeVariable var);
 	const std::vector<std::string>& getConstraints(const TypeVariable& var) const;
 private:
 	Module* module;
@@ -81,6 +83,8 @@ private:
 	std::vector<Type*> types;
 	std::vector<Type> nonGeneric;
 	std::map<TypeVariable, std::vector<std::string>> constraints;
+	//Variables which can't have more constraints added to them
+	std::set<TypeVariable> lockedVariables;
 };
 
 

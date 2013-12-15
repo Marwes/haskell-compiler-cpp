@@ -55,6 +55,11 @@ public:
 	{
 		setDebugType();
 	}
+	Type(TypeOperator&& op)
+		: TypeVariant(std::move(op))
+	{
+		setDebugType();
+	}
 
 	Type& operator=(const Type& t)
 	{
@@ -150,6 +155,13 @@ public:
 	TypeError(TypeEnvironment& env, const Type& expected, const Type& actual);
 	TypeError(const Type& expected, const Type& actual);
 	TypeError(const std::string& expected, const Type& actual);
+	TypeError(const std::string& errorMessage);
+};
+
+class CannotAddConstraintError : public TypeError
+{
+public:
+	CannotAddConstraintError(TypeVariable var, const std::string& klass);
 };
 
 }

@@ -167,7 +167,7 @@ GOP toGOP(const std::string& op)
 
 void PatternName::addVariables(TypeEnvironment& env, Type& type)
 {
-	this->type = type;
+	unify(env, this->type, type);
 	env.bindName(name, this->type);
 	env.addNonGeneric(this->type);
 }
@@ -402,15 +402,33 @@ void TypeEnvironment::updateConstraints(const TypeVariable& replaced, const Type
 {
 	if (replaced == newVar)
 		return;
-	//Add all constraints from the replaced variable
-	auto found = constraints.find(replaced);
-	if (found != constraints.end())
+	if (parent == nullptr)
 	{
-		std::vector<std::string>& x = constraints[newVar];
-		for (std::string& className : found->second)
+		//Add all constraints from the replaced variable
+		auto found = constraints.find(replaced);
+		if (found != constraints.end())
 		{
-			x.push_back(className);
+			std::vector<std::string>& newConstraints = constraints[newVar];
+			for (std::string& className : found->second)
+			{
+				//Only add the constraint if it is not already in the constraints of the replaced variable
+				if (std::find(newConstraints.begin(), newConstraints.end(), className) == newConstraints.end())
+				{
+					if (isVariableLocked(replaced))
+					{
+						//Can't add a constraint to a variable that is locked which can be because of
+						//typedeclarations or maybe number literals
+						throw CannotAddConstraintError(replaced, className);
+					}
+					newConstraints.push_back(className);
+				}
+			}
+			constraints.erase(found);
 		}
+	}
+	else
+	{
+		parent->updateConstraints(replaced, newVar);
 	}
 }
 
@@ -445,25 +463,22 @@ void TypeEnvironment::tryReplace(Type& toReplace, TypeVariable& replaceMe, const
 			}
 			else
 			{
-				auto varConstraints = constraints.find(replaceMe);
-				if (varConstraints != constraints.end())
+				auto varConstraints = getConstraints(replaceMe);
+				//Check that the TypeOperator fulfills all constraints of the variable
+				for (const std::string& className : varConstraints)
 				{
-					//Check that the TypeOperator fulfills all constraints of the variable
-					for (const std::string& className : varConstraints->second)
+					assert(module != nullptr);
+					if (!hasInstance(*module, className, replaceWith))
 					{
-						assert(module != nullptr);
-						if (!hasInstance(*module, className, replaceWith))
+						//Infer the Num type class as an Int for now
+						//(Just assuming that Int has a Num instance)
+						if (className == "Num" && replaceWith == intType)
 						{
-							//Infer the Num type class as an Int for now
-							//(Just assuming that Int has a Num instance)
-							if (className == "Num" && replaceWith == intType)
-							{
-								continue;
-							}
-							else
-							{
-								throw TypeError(*this, replaceWith, toReplace);
-							}
+							continue;
+						}
+						else
+						{
+							throw TypeError(*this, replaceWith, toReplace);
 						}
 					}
 				}
@@ -517,17 +532,37 @@ bool TypeEnvironment::isGeneric(const TypeVariable& var) const
 
 void TypeEnvironment::addConstraint(const TypeVariable& var, const std::string& className)
 {
-	constraints[var].push_back(className);
+	if (parent == nullptr)
+		constraints[var].push_back(className);
+	else
+		parent->addConstraint(var, className);
 }
 
 
 const std::vector<std::string>& TypeEnvironment::getConstraints(const TypeVariable& var) const
 {
-	auto found = constraints.find(var);
-	if (found != constraints.end())
-		return found->second;
-	static const std::vector<std::string> empty;
-	return empty;
+	if (parent == nullptr)
+	{
+		auto found = constraints.find(var);
+		if (found != constraints.end())
+			return found->second;
+		static const std::vector<std::string> empty;
+		return empty;
+	}
+	else
+	{
+		return parent->getConstraints(var);
+	}
+}
+
+
+void TypeEnvironment::lockVariable(TypeVariable var)
+{
+	lockedVariables.insert(var);
+}
+bool TypeEnvironment::isVariableLocked(TypeVariable var)
+{
+	return lockedVariables.find(var) != lockedVariables.end();
 }
 
 class RecursiveUnification : public std::runtime_error
@@ -647,8 +682,7 @@ Type& Rational::typecheck(TypeEnvironment& env)
 
 Type& Number::typecheck(TypeEnvironment& env)
 {
-	env.addConstraint(boost::get<TypeVariable>(type), "Num");
-	return type;
+	return intType;
 }
 
 void addBindingsToGraph(Graph& graph, std::vector<Binding>& bindings)
@@ -817,6 +851,8 @@ Type& Case::typecheck(TypeEnvironment& env)
 
 //compile functions
 
+//Find the position of the typevariable 'var' and then match this with the actual type
+//In the function
 const std::string* findMatchingTypeVariable(const Type& in, const Type& matcher, TypeVariable var)
 {
 	if (const TypeVariable* inVar = boost::get<TypeVariable>(&in))
@@ -840,11 +876,18 @@ const std::string* findMatchingTypeVariable(const Type& in, const Type& matcher,
 	return nullptr;
 }
 
-const std::string* findInstanceTypeVariable(const Class& klass, const std::string& name, const Type& type)
+const std::string* findInstanceType(const Class& klass, const std::string& name, const Type& type)
 {
 	const TypeDeclaration& decl = klass.declarations.at(name);
 	
-	return findMatchingTypeVariable(decl.type, type, klass.variable);
+	const std::string* ret = findMatchingTypeVariable(decl.type, type, klass.variable);
+	if (ret == nullptr && klass.name == "Num")
+	{
+		//Default to Int if the Num class is undefined
+		static std::string intName("Int");
+		return &intName;
+	}
+	return ret;
 }
 
 void Name::compile(GCompiler& env, std::vector<GInstruction>& instructions, bool strict)
@@ -864,7 +907,7 @@ void Name::compile(GCompiler& env, std::vector<GInstruction>& instructions, bool
 		instructions.push_back(GInstruction(GOP::PACK, var.index));
 		break;
 	case VariableType::TYPECLASSFUNCTION:
-		if (const std::string* nameOfInstanceType = findInstanceTypeVariable(*var.klass, name, type))
+		if (const std::string* nameOfInstanceType = findInstanceType(*var.klass, name, type))
 		{
 			//We have found the actual type for this class function so get that function directly
 			std::string directVarName = "#" + *nameOfInstanceType + name;
@@ -877,6 +920,7 @@ void Name::compile(GCompiler& env, std::vector<GInstruction>& instructions, bool
 			Variable dictVar = env.getVariable("$dict");
 			if (dictVar.accessType == VariableType::STACK)
 			{
+				
 			}
 			else
 			{

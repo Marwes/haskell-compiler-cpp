@@ -139,4 +139,24 @@ TypeError::TypeError(const std::string& expected, const Type& actual)
 	: std::runtime_error(createTypeErrorString(expected, actual))
 {
 }
+
+
+TypeError::TypeError(const std::string& errorMessage)
+	: std::runtime_error(errorMessage)
+{
+
+}
+
+std::string createConstraintError(TypeVariable var, const std::string& klass)
+{
+	std::stringstream err;
+	err << "Variable " << var << " can't be added the constraint for " << klass;
+	return err.str();
+}
+
+CannotAddConstraintError::CannotAddConstraintError(TypeVariable var, const std::string& klass)
+	: TypeError(createConstraintError(var, klass))
+{
+
+}
 }
