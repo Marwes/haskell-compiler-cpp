@@ -253,6 +253,25 @@ main = 2 $+ 3 $- 8");
 	REQUIRE(result.getNode()->number == -3);
 }
 
+
+TEST_CASE("compiler/typeclass/unordered", "")
+{
+	std::stringstream expr(
+"class Num a where\n\
+	($+) :: a -> a -> a\n\
+	($-) :: a -> a -> a\n\
+instance Num Int where\n\
+	($-) x y = x - y\n\
+	($+) x y = primIntAdd x y\n\
+main = 2 $+ 3 $- 8");
+	GMachine machine;
+	machine.compile(expr);
+
+	Address result = machine.executeMain();
+	REQUIRE(result.getType() == NUMBER);
+	REQUIRE(result.getNode()->number == -3);
+}
+
 TEST_CASE("compiler/typeclass/sum", "")
 {
 	std::stringstream expr(
