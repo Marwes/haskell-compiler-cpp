@@ -973,8 +973,6 @@ void Name::compile(GCompiler& env, std::vector<GInstruction>& instructions, bool
 		instructions.push_back(GInstruction(GOP::PUSH, var.index));
 		break;
 	case VariableType::TOPLEVEL:
-		if (var.index == -1)
-			instructions.size();
 		instructions.push_back(GInstruction(GOP::PUSH_GLOBAL, var.index));
 		break;
 	case VariableType::CONSTRUCTOR:
@@ -987,8 +985,6 @@ void Name::compile(GCompiler& env, std::vector<GInstruction>& instructions, bool
 			std::string directVarName = "#" + *nameOfInstanceType + name;
 			Variable fastVar = env.getVariable(directVarName);
 			assert(fastVar.accessType == VariableType::TOPLEVEL);
-			if (fastVar.index == -1)
-				instructions.size();
 			instructions.push_back(GInstruction(GOP::PUSH_GLOBAL, fastVar.index));
 		}
 		else
