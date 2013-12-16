@@ -2,6 +2,7 @@
 #include "GMachine.h"
 #include "Tokenizer.h"
 #include "Parser.h"
+#include "Typecheck.h"
 
 namespace MyVMNamespace
 {

@@ -1,5 +1,6 @@
 #include <sstream>
 #include "Types.h"
+#include "Typecheck.h"
 #include "Expression.h"
 
 namespace MyVMNamespace

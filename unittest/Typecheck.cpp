@@ -2,6 +2,7 @@
 #include "TestUtil.h"
 #include "Tokenizer.h"
 #include "Parser.h"
+#include "Typecheck.h"
 
 using namespace MyVMNamespace;
 
