@@ -234,10 +234,6 @@ Instance Parser::instance()
 	requireNext(SymbolEnum::LBRACE);
 
 	inst.bindings = sepBy1(&Parser::binding, SymbolEnum::SEMICOLON);
-	for (Binding& bind : inst.bindings)
-	{
-		bind.type.constraints.push_back(boost::get<TypeOperator>(inst.type));//TODO unchecked right now
-	}
 
 	--tokenizer;
 	requireNext(SymbolEnum::RBRACE);
