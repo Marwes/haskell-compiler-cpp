@@ -292,3 +292,22 @@ main = sum1 [1, 2, 3]");
 	REQUIRE(result.getType() == NUMBER);
 	REQUIRE(result.getNode()->number == 6);
 }
+
+TEST_CASE("compiler/typeclass/multiple", "")
+{
+	std::stringstream expr(
+"class Number a where\n\
+	number :: a -> Int\n\
+instance Number Int where\n\
+	number x = 1\n\
+data Test = Test\n\
+instance Number Test where\n\
+	number x = 2\n\
+main = number 0 - number Test");
+	GMachine machine;
+	machine.compile(expr);
+
+	Address result = machine.executeMain();
+	REQUIRE(result.getType() == NUMBER);
+	REQUIRE(result.getNode()->number == -1);
+}
