@@ -14,6 +14,7 @@ enum class GOP : unsigned char
 	PUSH_GLOBAL,
 	PUSH_INT,
 	PUSH,
+	PUSH_DICTIONARY_MEMBER,
 	MKAP,
 	EVAL,
 	PACK,

@@ -332,13 +332,17 @@ TypeEnvironment TypeEnvironment::child()
 void TypeEnvironment::bindName(const std::string& name, Type& type)
 {
 	namedTypes.insert(std::make_pair(name, &type));
+	registerType(type);
 }
 void TypeEnvironment::registerType(Type& type)
 {
-	types.push_back(&type);
+	if (parent == nullptr)
+		types.push_back(&type);
+	else
+		parent->registerType(type);
 }
 
-const Type* findInModule(TypeEnvironment& env, Module& module, const std::string& name)
+const Type* findInModule(const TypeEnvironment& env, Module& module, const std::string& name)
 {
 	auto found = std::find_if(module.bindings.begin(), module.bindings.end(), 
 		[&name](const Binding& bind)
@@ -377,7 +381,7 @@ const Type* findInModule(TypeEnvironment& env, Module& module, const std::string
 	return nullptr;
 }
 
-const Type& TypeEnvironment::getType(const std::string& name)
+const Type& TypeEnvironment::getType(const std::string& name) const
 {
 	auto found = namedTypes.find(name);
 	if (found != namedTypes.end())
@@ -396,6 +400,48 @@ const Type& TypeEnvironment::getType(const std::string& name)
 Type TypeEnvironment::getFreshType(const std::string& name)
 {
 	return fresh(*this, getType(name));
+}
+
+struct ConstraintFinder : public boost::static_visitor<>
+{
+	ConstraintFinder(const TypeEnvironment& env, std::vector<TypeOperator>& constraints, const Type& actualType)
+		: env(env)
+		, constraints(constraints)
+		, actualType(actualType)
+	{}
+
+	void operator()(const TypeVariable& var) const
+	{
+		for (auto name : env.getConstraints(var))
+		{
+			std::vector<Type> args(1);
+			args[0] = actualType;
+			TypeOperator op(name, std::move(args));
+			if (std::find(constraints.begin(), constraints.end(), op) == constraints.end())
+				constraints.push_back(std::move(op));
+		}
+	}
+	void operator()(const TypeOperator& op) const
+	{
+		auto actualOp = boost::get<TypeOperator>(actualType);
+		assert(op.types.size() == actualOp.types.size());
+		for (size_t ii = 0; ii < op.types.size(); ii++)
+		{
+			boost::apply_visitor(ConstraintFinder(env, constraints, actualOp.types[ii]), op.types[ii]);
+		}
+	}
+
+	const TypeEnvironment& env;
+	std::vector<TypeOperator>& constraints;
+	const Type& actualType;
+};
+
+std::vector<TypeOperator> TypeEnvironment::getConstraints(const std::string& name, const Type& functionType) const
+{
+	const Type& type = getType(name);
+	std::vector<TypeOperator> constraints;
+	boost::apply_visitor(ConstraintFinder(*this, constraints, functionType), type);
+	return constraints;
 }
 
 void TypeEnvironment::updateConstraints(const TypeVariable& replaced, const TypeVariable& newVar)
@@ -423,7 +469,6 @@ void TypeEnvironment::updateConstraints(const TypeVariable& replaced, const Type
 					newConstraints.push_back(className);
 				}
 			}
-			constraints.erase(found);
 		}
 	}
 	else
@@ -460,6 +505,7 @@ void TypeEnvironment::tryReplace(Type& toReplace, TypeVariable& replaceMe, const
 			{
 				//Merge the constraints from both variables
 				updateConstraints(x, boost::get<TypeVariable>(replaceWith));
+				constraints.erase(x);
 			}
 			else
 			{
@@ -499,10 +545,6 @@ void TypeEnvironment::tryReplace(Type& toReplace, TypeVariable& replaceMe, const
 
 void TypeEnvironment::replace(TypeVariable replaceMe, const Type& replaceWith)
 {
-	for (auto& pair : namedTypes)
-	{
-		tryReplace(*pair.second, replaceMe, replaceWith);
-	}
 	for (Type* type : types)
 	{
 		tryReplace(*type, replaceMe, replaceWith);
@@ -784,24 +826,54 @@ Type& Let::typecheck(TypeEnvironment& env)
 	return expression->typecheck(child);
 }
 
+class EachFunctionArg
+{
+public:
+	EachFunctionArg(Type& t)
+		: type(&t)
+	{}
+
+	Type* next()
+	{
+		if (TypeOperator* op = boost::get<TypeOperator>(type))
+		{
+			if (op->name == "->")
+			{
+				type = &op->types[1];
+				return &op->types[0];
+			}
+		}
+		return nullptr;
+	}
+	Type* type;
+};
+
 Type& Lambda::typecheck(TypeEnvironment& env)
 {
 	TypeEnvironment child = env.child();
-	std::vector<Type> argTypes(arguments.size());
-	for (size_t ii = 0; ii < argTypes.size(); ++ii)
-	{
-		child.bindName(arguments[ii], argTypes[ii]);
-		child.addNonGeneric(boost::get<TypeVariable>(argTypes[ii]));
-	}
-	Type* returnType = &body->typecheck(child);
 
-	for (auto arg = argTypes.rbegin(); arg != argTypes.rend(); ++arg)
+	Type ret;
+	Type* returnType = &ret;
+	for (std::string& arg : arguments)
 	{
-		this->type = functionType(*arg, *returnType);
+		this->type = functionType(TypeVariable(), *returnType);
 
-		returnType = &this->type;
+		returnType = &type;
 	}
-	return *returnType;
+	EachFunctionArg argTypes(type);
+	for (std::string& arg : arguments)
+	{
+		Type* argType = argTypes.next();
+		assert(argType != nullptr);
+		child.bindName(arg, *argType);
+		child.addNonGeneric(boost::get<TypeVariable>(*argType));
+
+		//At the end of this loop this will be a pointer to the actual return type
+		returnType = argTypes.type;
+	}
+	*returnType = body->typecheck(child);
+
+	return this->type;
 }
 
 Type& Apply::typecheck(TypeEnvironment& env)
@@ -901,6 +973,8 @@ void Name::compile(GCompiler& env, std::vector<GInstruction>& instructions, bool
 		instructions.push_back(GInstruction(GOP::PUSH, var.index));
 		break;
 	case VariableType::TOPLEVEL:
+		if (var.index == -1)
+			instructions.size();
 		instructions.push_back(GInstruction(GOP::PUSH_GLOBAL, var.index));
 		break;
 	case VariableType::CONSTRUCTOR:
@@ -913,6 +987,8 @@ void Name::compile(GCompiler& env, std::vector<GInstruction>& instructions, bool
 			std::string directVarName = "#" + *nameOfInstanceType + name;
 			Variable fastVar = env.getVariable(directVarName);
 			assert(fastVar.accessType == VariableType::TOPLEVEL);
+			if (fastVar.index == -1)
+				instructions.size();
 			instructions.push_back(GInstruction(GOP::PUSH_GLOBAL, fastVar.index));
 		}
 		else
@@ -1019,17 +1095,47 @@ bool hasConstraints(TypeEnvironment& env, const Type& type)
 	return false;
 }
 
-void tryAddClassDictionary(GCompiler& compiler, std::vector<GInstruction>& instructions, const Type& type)
+bool tryAddClassDictionary(GCompiler& compiler, std::vector<GInstruction>& instructions, Expression* function)
 {
-	if (!hasConstraints(compiler.typeEnv, type))
-		return;
-
-	Variable dictVar = compiler.getVariable("$dict");
-	if (dictVar.accessType == VariableType::STACK)
+	if (Name* nameFunc = dynamic_cast<Name*>(function))
 	{
-		instructions.push_back(GInstruction(GOP::PUSH, dictVar.index));
+		const Type* type = nullptr;
+		try
+		{
+			type = &compiler.typeEnv.getType(nameFunc->name);
+		}
+		catch (std::runtime_error& exc)
+		{
+			return false;
+		}
+		if (!hasConstraints(compiler.typeEnv, *type))
+			return false;
+
+		Variable dictVar = compiler.getVariable("$dict");
+		if (dictVar.accessType == VariableType::STACK)
+		{
+			int index = compiler.getInstanceDictionaryIndex(nameFunc->name);
+			if (index < 0)
+			{
+				//Only the dictionary is requested
+				instructions.push_back(GInstruction(GOP::PUSH, dictVar.index));
+			}
+			else
+			{
+				instructions.push_back(GInstruction(GOP::PUSH_DICTIONARY_MEMBER, index));
+			}
+		}
+		else//Should be able to infer the actual dictionary from the context
+		{
+			std::vector<TypeOperator> constraints = compiler.typeEnv.getConstraints(nameFunc->name, nameFunc->getType());
+
+			int index = compiler.getDictionaryIndex(constraints);//TODO
+			assert(index >= 0);
+			instructions.push_back(GInstruction(GOP::PUSH_GLOBAL, index));
+		}
+		return true;
 	}
-	//Do nothing since we should be able to infer the actual function later from the type context
+	return false;
 }
 
 void Apply::compile(GCompiler& env, std::vector<GInstruction>& instructions, bool strict)
@@ -1048,31 +1154,23 @@ void Apply::compile(GCompiler& env, std::vector<GInstruction>& instructions, boo
 		catch (std::runtime_error&)
 		{
 		}
-		try
-		{
-			const Type& type = env.typeEnv.getType(nameFunc->name);
-			tryAddClassDictionary(env, instructions, type);
-		}
-		catch (std::runtime_error&)
-		{
-			//Did not find the function as a top  level function (probably)
-			//This means the function cannot possibly need a dictionary so skip it
-		}
 	}
 
+	bool addedDict = tryAddClassDictionary(env, instructions, function.get());
 	for (int ii = arguments.size() - 1; ii >= 0; --ii)
 	{
 		//TODO
 		arguments[ii]->compile(env, instructions, false);
 		env.newStackVariable("");
 	}
+
 	function->compile(env, instructions, strict);
 	env.popStack(arguments.size());
 	if (strict && instructions[instructions.size() - 2].op == GOP::PACK)
 		return;
 	if (!strict && instructions.back().op == GOP::PACK)
 		return;
-	for (size_t ii = 0; ii < arguments.size(); ++ii)
+	for (size_t ii = 0; ii < arguments.size() + size_t(addedDict); ++ii)
 		instructions.push_back(GInstruction(GOP::MKAP));
 	if (strict)
 		instructions.push_back(GInstruction(GOP::EVAL));

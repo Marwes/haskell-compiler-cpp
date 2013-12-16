@@ -59,12 +59,24 @@ void GMachine::compile(std::istream& input)
 	}
 
 	superCombinators = std::move(comp.globals);
-	globals.resize(superCombinators.size());
+	globals.resize(superCombinators.size() + comp.instanceDicionaries.size());
 	for (auto& sc : superCombinators)
 	{
 		int index = comp.globalIndices[sc.second.get()];
 		heap.push_back(Node(superCombinators[sc.first].get()));
 		globals[index] = Address::global(&heap.back());
+	}
+	for (InstanceDictionary& dict : comp.instanceDicionaries)
+	{
+		int index = comp.instanceIndices[dict.constraints];
+		Address* ctor = new Address[dict.dictionary.size() + 1];
+		heap.push_back(Node(0, ctor));
+		globals[index] = Address::constructor(&heap.back());
+		for (size_t ii = 0; ii < dict.dictionary.size(); ii++)
+		{
+			ctor[ii] = globals[comp.globalIndices[dict.dictionary[ii]]];
+		}
+		ctor[dict.dictionary.size()] = Address::indirection(nullptr);//endmarker
 	}
 }
 
@@ -145,6 +157,37 @@ std::ostream& operator<<(std::ostream& out, const Address& addr)
 	return out;
 }
 
+int add(int l, int r)
+{
+	return l + r;
+}
+int subtract(int l, int r)
+{
+	return l - r;
+}
+int multiply(int l, int r)
+{
+	return l * r;
+}
+int divide(int l, int r)
+{
+	return l / r;
+}
+int remainder(int l, int r)
+{
+	return l % r;
+}
+
+template<int (func)(int, int)>
+void binop(GEnvironment& environment, std::vector<Node>& heap)
+{
+	Address rhs = environment.stack.pop();
+	Address lhs = environment.stack.top();
+	int result = func(lhs.getNode()->number, rhs.getNode()->number);
+	heap.push_back(Node(result));
+	environment.stack.top() = Address::number(&heap.back());
+}
+
 void GMachine::execute(GEnvironment& environment)
 {
 	const std::vector<GInstruction>& code = environment.combinator->instructions;
@@ -203,6 +246,7 @@ void GMachine::execute(GEnvironment& environment)
 				ConstructorNode& ctor = top.getNode()->constructor;
 				for (int ii = 0; ii < instruction.value; ii++)
 				{
+					assert(ctor.arguments[ii].getType() != NodeType::INDIRECTION || ctor.arguments[ii].getNode() != nullptr);
 					stack.push(ctor.arguments[ii]);
 				}
 			}
@@ -229,6 +273,14 @@ void GMachine::execute(GEnvironment& environment)
 			{
 				Address addr = environment.stack[instruction.value];
 				environment.stack.push(addr);
+			}
+			break;
+		case GOP::PUSH_DICTIONARY_MEMBER:
+			{
+				assert(stack.base().getType() == NodeType::CONSTRUCTOR);//Must be instance dictionary
+				ConstructorNode& ctor = stack.base().getNode()->constructor;
+				Address& func = ctor.arguments[instruction.value];
+				stack.push(func);
 			}
 			break;
 		case GOP::PUSH_GLOBAL:
@@ -321,7 +373,7 @@ void GMachine::execute(GEnvironment& environment)
 				environment.stack[instruction.value] = Address::indirection(&heap.back());
 			}
 			break;
-#define BINOP(op, opname) \
+#define BINOP2(op, opname) \
 		case GOP:: opname:\
 			{\
 			Address rhs = environment.stack.pop(); \
@@ -331,12 +383,14 @@ void GMachine::execute(GEnvironment& environment)
 			environment.stack.top() = Address::number(&heap.back()); \
 			}\
             break;
+#define BINOP(f, name) case GOP:: name: binop<f>(environment, heap); break;
 
-			BINOP(+, ADD)
-			BINOP(-, SUBTRACT)
-			BINOP(*, MULTIPLY)
-			BINOP(/ , DIVIDE)
-			BINOP(%, REMAINDER)
+			BINOP(add, ADD)
+
+			BINOP(subtract, SUBTRACT)
+			BINOP(multiply, MULTIPLY)
+			BINOP(divide , DIVIDE)
+			BINOP(remainder, REMAINDER)
 
 		case GOP::NEGATE:
 			{
@@ -346,14 +400,15 @@ void GMachine::execute(GEnvironment& environment)
 			}
 			break;
 
-			BINOP(== , COMPARE_EQ)
-			BINOP(!= , COMPARE_NEQ)
-			BINOP(> , COMPARE_GT)
-			BINOP(>=, COMPARE_GE)
-			BINOP(< , COMPARE_LT)
-			BINOP(<=, COMPARE_LE)
+			BINOP2(== , COMPARE_EQ)
+			BINOP2(!= , COMPARE_NEQ)
+			BINOP2(> , COMPARE_GT)
+			BINOP2(>=, COMPARE_GE)
+			BINOP2(< , COMPARE_LT)
+			BINOP2(<=, COMPARE_LE)
 
 #undef BINOP
+#undef BINOP2
 
 		default:
 			std::cout << "Unimplemented instruction " << int(code[index].op) << std::endl;

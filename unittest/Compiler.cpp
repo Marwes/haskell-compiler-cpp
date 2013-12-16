@@ -242,11 +242,12 @@ TEST_CASE("compiler/typeclass/sum", "")
     ($+) :: a -> a -> a\n\
 instance Num Int where\n\
     ($+) x y = primIntAdd x y\n\
-sum :: Num a => [a] -> a\n\
-sum xs = case xs of\n\
-    : y ys -> y $+ sum ys\n\
-    [] -> 0\n\
-main = sum [1, 2, 3]");
+sum1 :: Num a => [a] -> a\n\
+sum1 xs = case xs of\n\
+    : y ys -> case ys of\n\
+        : z zs -> y $+ sum1 (z : zs)\n\
+        [] -> y\n\
+main = sum1 [1, 2, 3]");
 	GMachine machine;
 	machine.compile(expr);
 

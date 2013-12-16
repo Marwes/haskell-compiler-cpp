@@ -140,7 +140,7 @@ inline bool operator<(const TypeOperator& l, const TypeOperator& r)
 {
 	if (l.name == r.name)
 	{
-		return true;
+		return l.types < r.types;
 	}
 	return l.name < r.name;
 }

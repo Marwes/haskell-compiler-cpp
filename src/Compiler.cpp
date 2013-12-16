@@ -111,18 +111,16 @@ SuperCombinator& GCompiler::getGlobal(const std::string& name)
 }
 
 
-int GCompiler::getDictionaryIndex(std::vector<TypeOperator>& constraints)
+int GCompiler::getDictionaryIndex(const std::vector<TypeOperator>& constraints)
 {
-	for (size_t ii = 0; ii < instanceDicionaries.size(); ii++)
+	auto found = instanceIndices.find(constraints);
+	if (found != instanceIndices.end())
 	{
-		if (instanceDicionaries[ii].constraints == constraints)
-		{
-			return int(ii);
-		}
+		return found->second;
 	}
 	//Add a new dictionary
 	std::vector<SuperCombinator*> dict;
-	for (TypeOperator& op : constraints)
+	for (const TypeOperator& op : constraints)
 	{
 		std::map<Type, std::vector<SuperCombinator*>>& klass = classes[op.name];
 		std::vector<SuperCombinator*>& instanceFunctions = klass[op.types[0]];
@@ -132,27 +130,46 @@ int GCompiler::getDictionaryIndex(std::vector<TypeOperator>& constraints)
 		}
 	}
 	instanceDicionaries.push_back(InstanceDictionary { constraints, std::move(dict) });
-
-	return instanceDicionaries.size() - 1;
+	return instanceIndices[instanceDicionaries.back().constraints] = index++;
 }
+
+int GCompiler::getInstanceDictionaryIndex(const std::string& function) const
+{
+	for (const TypeOperator& op : currentBinding->type.constraints)
+	{
+		auto klass = classes.find(op.name);
+		int ii = 0;
+		for (SuperCombinator* comb : klass->second.begin()->second)
+		{
+			//Test if the end of the name is equal to the function
+			if (comb->name.size() >= function.size()
+				&& std::equal(comb->name.end() - function.size(), comb->name.end(), function.begin()))
+				return ii;
+			ii++;
+		}
+	}
+	return -1;
+}
+
 
 SuperCombinator& GCompiler::compileBinding(Binding& binding, const std::string& name)
 {
+	currentBinding = &binding;
+
 	SuperCombinator& sc = getGlobal(name);
 	stackVariables.clear();
 	if (Lambda* lambda = dynamic_cast<Lambda*>(binding.expression.get()))
 	{
+		sc.arity = lambda->arguments.size();
 		if (!binding.type.constraints.empty())
 		{
+			sc.arity++;
 			newStackVariable("$dict");
-			Variable var = getVariable("#" + binding.type.constraints[0].name + "#");
-			sc.instructions.push_back(GInstruction(GOP::PUSH_GLOBAL, var.index));
 		}
 		for (auto arg = lambda->arguments.rbegin(); arg != lambda->arguments.rend(); ++arg)
 		{
 			stackVariables.push_back(*arg);
 		}
-		sc.arity = lambda->arguments.size();
 		lambda->body->compile(*this, sc.instructions, true);
 		sc.instructions.push_back(GInstruction(GOP::UPDATE, 0));
 		sc.instructions.push_back(GInstruction(GOP::POP, sc.arity));
@@ -166,6 +183,8 @@ SuperCombinator& GCompiler::compileBinding(Binding& binding, const std::string& 
 		//sc.instructions.push_back(GInstruction(GOP::POP, 0));
 		sc.instructions.push_back(GInstruction(GOP::UNWIND));
 	}
+
+	currentBinding = nullptr;
 	return sc;
 }
 
