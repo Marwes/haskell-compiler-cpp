@@ -56,7 +56,7 @@ std::shared_ptr<Module> createPrelude()
 		args[0] = TypeVariable();
 		TypeOperator listType("[]", args);
 		Constructor ctor(":", functionType(args[0], functionType(listType, listType)), 0, 2);
-		Constructor ctor2("[]", listType, 0, 0);
+		Constructor ctor2("[]", listType, 1, 0);
 		DataDefinition def;
 		def.name = "[]";
 		def.constructors.push_back(ctor);
