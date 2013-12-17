@@ -9,6 +9,7 @@ GCompiler::GCompiler(TypeEnvironment& typeEnv, Module* module)
 	: module(module)
 	, uniqueGlobalIndex(0)
 	, typeEnv(typeEnv)
+	, currentBinding(nullptr)
 {
 }
 
@@ -123,7 +124,7 @@ int GCompiler::getDictionaryIndex(const std::vector<TypeOperator>& constraints)
 	std::vector<SuperCombinator*> dict;
 	for (const TypeOperator& op : constraints)
 	{
-		std::map<Type, std::vector<SuperCombinator*>>& klass = classes[op.name];
+		std::map<Type, std::vector<SuperCombinator*>>& klass = classDictionaries[op.name];
 		std::vector<SuperCombinator*>& instanceFunctions = klass[op.types[0]];
 		for (SuperCombinator* comb : instanceFunctions)
 		{
@@ -138,7 +139,7 @@ int GCompiler::getInstanceDictionaryIndex(const std::string& function) const
 {
 	for (const TypeOperator& op : currentBinding->type.constraints)
 	{
-		auto klass = classes.find(op.name);
+		auto klass = classDictionaries.find(op.name);
 		int ii = 0;
 		for (SuperCombinator* comb : klass->second.begin()->second)
 		{
@@ -205,11 +206,11 @@ void GCompiler::compileInstance(Instance& instance)
 		SuperCombinator& sc = compileBinding(bind, name);
 		functions.push_back(&sc);
 	}
-	auto lowBound = classes.lower_bound(instance.className);
-	if (lowBound == classes.end() || classes.key_comp()(instance.className, lowBound->first))
+	auto lowBound = classDictionaries.lower_bound(instance.className);
+	if (lowBound == classDictionaries.end() || classDictionaries.key_comp()(instance.className, lowBound->first))
 	{
 		//Key does not exist
-		lowBound = classes.insert(std::make_pair(instance.className, std::map<Type, std::vector<SuperCombinator*>>())).first;
+		lowBound = classDictionaries.insert(std::make_pair(instance.className, std::map < Type, std::vector < SuperCombinator* >> ())).first;
 	}
 	std::map<Type, std::vector<SuperCombinator*>>& instances = lowBound->second;
 	instances.insert(std::make_pair(instance.type, functions));

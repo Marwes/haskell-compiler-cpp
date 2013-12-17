@@ -44,7 +44,9 @@ public:
 	Variable getVariable(const std::string& name);
 	SuperCombinator& getGlobal(const std::string& name);
 
-	int getDictionaryIndex(const std::vector<TypeOperator>& dict);
+	//Returns the global index for the dictionary defined for the constraints in the constraints argument
+	int getDictionaryIndex(const std::vector<TypeOperator>& constraints);
+	//Returns the index that retrives the function from the dictionary which is specified by 'function'
 	int getInstanceDictionaryIndex(const std::string& function) const;
 
 	SuperCombinator& compileBinding(Binding& binding, const std::string& name);
@@ -61,10 +63,14 @@ public:
 
 	TypeEnvironment& typeEnv;
 private:
-	std::map<std::string, std::map<Type, std::vector<SuperCombinator*>>> classes;
+	//Keys are the class name which gives a map with keys which are the type which the dictionary is for
+	//The last vector contains pointers to the functions which are defined for that type
+	std::map<std::string, std::map<Type, std::vector<SuperCombinator*>>> classDictionaries;
+	//The module in which to lookup other functions from
 	Module* module;
 	//A number used to always get a unique index for each globalQ
 	int uniqueGlobalIndex;
+	//The binding which is currently being compiled
 	Binding* currentBinding;
 };
 
