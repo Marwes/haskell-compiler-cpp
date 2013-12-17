@@ -20,7 +20,7 @@ public:
 	void bindName(const std::string& name, Type& type);
 	void registerType(Type& type);
 
-	const Type& getType(const std::string& name) const;
+	const Type* getType(const std::string& name) const;
 	Type getFreshType(const std::string& name);
 	std::vector<TypeOperator> getConstraints(const std::string& name, const Type& functionType) const;
 

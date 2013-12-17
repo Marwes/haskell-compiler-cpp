@@ -594,15 +594,9 @@ bool tryAddClassDictionary(GCompiler& compiler, std::vector<GInstruction>& instr
 {
 	if (Name* nameFunc = dynamic_cast<Name*>(function))
 	{
-		const Type* type = nullptr;
-		try
-		{
-			type = &compiler.typeEnv.getType(nameFunc->name);
-		}
-		catch (std::runtime_error&)
-		{
+		const Type* type = compiler.typeEnv.getType(nameFunc->name);
+		if (type == nullptr)
 			return false;
-		}
 		if (!hasConstraints(compiler.typeEnv, *type))
 			return false;
 

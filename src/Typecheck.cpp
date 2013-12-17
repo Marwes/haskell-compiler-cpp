@@ -179,25 +179,28 @@ const Type* findInModule(const TypeEnvironment& env, Module& module, const std::
 	return nullptr;
 }
 
-const Type& TypeEnvironment::getType(const std::string& name) const
+const Type* TypeEnvironment::getType(const std::string& name) const
 {
 	auto found = namedTypes.find(name);
 	if (found != namedTypes.end())
-		return *found->second;
+		return found->second;
 	if (parent != nullptr)
 		return parent->getType(name);
 	if (module != nullptr)
 	{
 		const Type* t = findInModule(*this, *module, name);
 		if (t != nullptr)
-			return *t;
+			return t;
 	}
-	throw std::runtime_error("Could not find the identifier " + name);
+	return nullptr;
 }
 
 Type TypeEnvironment::getFreshType(const std::string& name)
 {
-	return fresh(*this, getType(name));
+	const Type* t = getType(name);
+	if (t == nullptr)
+		throw std::runtime_error("Could not find the identifier " + name);
+	return fresh(*this, *t);
 }
 
 struct ConstraintFinder : public boost::static_visitor<>
@@ -236,9 +239,11 @@ struct ConstraintFinder : public boost::static_visitor<>
 
 std::vector<TypeOperator> TypeEnvironment::getConstraints(const std::string& name, const Type& functionType) const
 {
-	const Type& type = getType(name);
+	const Type* type = getType(name);
+	if (type == nullptr)
+		throw std::runtime_error("Did not find the type for " + name + " when looking up the cosnstraints");
 	std::vector<TypeOperator> constraints;
-	boost::apply_visitor(ConstraintFinder(*this, constraints, functionType), type);
+	boost::apply_visitor(ConstraintFinder(*this, constraints, functionType), *type);
 	return constraints;
 }
 
