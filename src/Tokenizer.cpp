@@ -46,10 +46,11 @@ bool Tokenizer::getChar(char& c)
 {
 	if (input.get(c))
 	{
-		++indentLevel;
+		++currentLocation.column;
 		if (c == '\n' || c == '\r')
 		{
-			this->indentLevel = 0;
+			currentLocation.column = 0;
+			currentLocation.row++;
 		}
 		return true;
 	}
@@ -76,12 +77,12 @@ bool Tokenizer::readToken(Token& token, bool& newline)
 	//Skipe all whitespace before the token
 	while (getChar(c) && isspace(c))
 	{
-		if (indentLevel == 0)//newline detected
+		if (currentLocation.column == 0)//newline detected
 		{
 			newline = true;
 		}
 	}
-	token.indent = indentLevel;
+	token.sourceLocation = this->currentLocation;
 	token.name.clear();
 	token.name.push_back(c);
 
@@ -110,7 +111,7 @@ bool Tokenizer::readToken(Token& token, bool& newline)
 			token.type = SymbolEnum::OPERATOR;
 		}
 		input.unget();
-		--this->indentLevel;
+		--this->currentLocation.column;
 		return true;
 	}
 	else if (isdigit(c))
@@ -121,7 +122,7 @@ bool Tokenizer::readToken(Token& token, bool& newline)
 		}
 		token.type = SymbolEnum::NUMBER;
 		input.unget();
-		--this->indentLevel;
+		--this->currentLocation.column;
 		return true;
 	}
 	else if (isalpha(c) || c == '_')
@@ -132,7 +133,7 @@ bool Tokenizer::readToken(Token& token, bool& newline)
 		}
 		token.type = nameOrKeyWord(token.name);
 		input.unget();
-		--this->indentLevel;
+		--this->currentLocation.column;
 		return true;
 	}
 	else if (c == ';')
@@ -212,11 +213,11 @@ const Token& Tokenizer::tokenizeModule()
 	{
 		if (tok.type != SymbolEnum::LBRACKET || tok.type != SymbolEnum::MODULE)
 		{
-			unprocessedTokens.push_back(Token(SymbolEnum::INDENTSTART, "{n}", tok.indent));
+			unprocessedTokens.push_back(Token(SymbolEnum::INDENTSTART, "{n}", tok.sourceLocation));
 		}
 		if (newline)
 		{
-			unprocessedTokens.push_back(Token(SymbolEnum::INDENTLEVEL, "<n>", tok.indent));
+			unprocessedTokens.push_back(Token(SymbolEnum::INDENTLEVEL, "<n>", tok.sourceLocation));
 		}
 		success = true;
 	}
@@ -237,14 +238,14 @@ bool Tokenizer::tokenize(bool (*parseError)(const Token&))
 		{
 			if (previousTokenWasKeyword())
 			{
-				unprocessedTokens.push_back(Token(SymbolEnum::INDENTSTART, "{n}", tok.indent));
+				unprocessedTokens.push_back(Token(SymbolEnum::INDENTSTART, "{n}", tok.sourceLocation));
 			}
 		}
 		success = true;
 	}
 	if (newline)
 	{
-		unprocessedTokens.push_back(Token(SymbolEnum::INDENTLEVEL, "<n>", tok.indent));
+		unprocessedTokens.push_back(Token(SymbolEnum::INDENTLEVEL, "<n>", tok.sourceLocation));
 	}
 	nextLayoutIndependentToken(parseError);
 	return success;
@@ -267,13 +268,13 @@ bool Tokenizer::nextLayoutIndependentToken(bool (*parseError)(const Token&))
 			if (indentLevels.size() > 0)//m:ms
 			{
 				int m = indentLevels.back();
-				if (m == tok.indent)//m == n
+				if (m == tok.sourceLocation.column)//m == n
 				{
 					tokens.push_back(Token(SymbolEnum::SEMICOLON, ";"));
 					unprocessedTokens.pop_back();
 					return true;
 				}
-				else if (tok.indent < m)// n < m
+				else if (tok.sourceLocation.column < m)// n < m
 				{
 					//TODO
 					indentLevels.pop_back();
@@ -289,7 +290,7 @@ bool Tokenizer::nextLayoutIndependentToken(bool (*parseError)(const Token&))
 		}
 		else if (tok.type == SymbolEnum::INDENTSTART)//{n} token
 		{
-			int n = tok.indent;
+			int n = tok.sourceLocation.column;
 			if (!indentLevels.empty())//m:ms
 			{
 				int m = indentLevels.back();
@@ -310,7 +311,7 @@ bool Tokenizer::nextLayoutIndependentToken(bool (*parseError)(const Token&))
 			}
 			tokens.push_back(Token(SymbolEnum::LBRACE, "{"));
 			tokens.push_back(Token(SymbolEnum::RBRACE, "}"));
-			unprocessedTokens.back() = Token(SymbolEnum::INDENTLEVEL, "<n>", tok.indent);
+			unprocessedTokens.back() = Token(SymbolEnum::INDENTLEVEL, "<n>", tok.sourceLocation);
 			return true;
 		}
 		else if (tok.type == SymbolEnum::RBRACE)
@@ -370,10 +371,10 @@ Token::Token()
 {
 }
 
-Token::Token(SymbolEnum type, const std::string& name, int indent)
+Token::Token(SymbolEnum type, const std::string& name, Location location)
 	: type(type)
 	, name(name)
-	, indent(indent)
+	, sourceLocation(location)
 {
 }
 

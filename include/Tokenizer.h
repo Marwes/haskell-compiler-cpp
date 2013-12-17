@@ -42,15 +42,25 @@ namespace MyVMNamespace
 DECLARE_ENUM(SymbolEnum, SYMBOLENUM);
 
 
+struct Location
+{
+	Location()
+		: column(-1)
+		, row(-1)
+	{}
+
+	int column, row;
+};
+
 class Token
 {
 public:
 	Token();
-	Token(SymbolEnum type, const std::string& name, int indent = 0);
+	Token(SymbolEnum type, const std::string& name, Location location = Location());
 
 	SymbolEnum type;
 	std::string name;
-	int indent;
+	Location sourceLocation;
 };
 
 
@@ -62,8 +72,8 @@ public:
 		: input(input)
 		, tokens(backTrack)
 		, offset(0)
-		, indentLevel(0)
 	{
+		currentLocation.column = currentLocation.row = 0;
 	}
 
 	const Token& tokenizeModule();
@@ -117,7 +127,7 @@ private:
 	std::vector<Token> unprocessedTokens;
 	std::vector<int> indentLevels;
 	int offset;
-	int indentLevel;
+	Location currentLocation;
 };
 
 }
