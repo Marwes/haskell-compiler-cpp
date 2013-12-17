@@ -63,7 +63,8 @@ public:
 private:
 	std::map<std::string, std::map<Type, std::vector<SuperCombinator*>>> classes;
 	Module* module;
-	int index;
+	//A number used to always get a unique index for each globalQ
+	int uniqueGlobalIndex;
 	Binding* currentBinding;
 };
 

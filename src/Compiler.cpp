@@ -7,7 +7,7 @@ namespace MyVMNamespace
 {
 GCompiler::GCompiler(TypeEnvironment& typeEnv, Module* module)
 	: module(module)
-	, index(0)
+	, uniqueGlobalIndex(0)
 	, typeEnv(typeEnv)
 {
 }
@@ -105,7 +105,7 @@ SuperCombinator& GCompiler::getGlobal(const std::string& name)
 	{
 		auto& ptr = globals[name] = std::unique_ptr<SuperCombinator>(new SuperCombinator());
 		ptr->name = name;
-		globalIndices[ptr.get()] = index++;
+		globalIndices[ptr.get()] = uniqueGlobalIndex++;
 		return *ptr;
 	}
 	return *found->second;
@@ -131,7 +131,7 @@ int GCompiler::getDictionaryIndex(const std::vector<TypeOperator>& constraints)
 		}
 	}
 	instanceDicionaries.push_back(InstanceDictionary { constraints, std::move(dict) });
-	return instanceIndices[instanceDicionaries.back().constraints] = index++;
+	return instanceIndices[instanceDicionaries.back().constraints] = uniqueGlobalIndex++;
 }
 
 int GCompiler::getInstanceDictionaryIndex(const std::string& function) const
