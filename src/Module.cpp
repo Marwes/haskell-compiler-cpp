@@ -76,6 +76,26 @@ std::shared_ptr<Module> createPrelude()
 		prelude->bindings.back().expression->getType() = functionType(varIntAdd, functionType(varIntAdd, varIntAdd));
 	}
 	{
+		prelude->bindings.push_back(Binding("primIntSubtract", std::unique_ptr<Expression>(new Name("undefined"))));
+		TypeVariable varIntAdd;
+		prelude->bindings.back().expression->getType() = functionType(varIntAdd, functionType(varIntAdd, varIntAdd));
+	}
+	{
+		prelude->bindings.push_back(Binding("primIntMultiply", std::unique_ptr<Expression>(new Name("undefined"))));
+		TypeVariable varIntAdd;
+		prelude->bindings.back().expression->getType() = functionType(varIntAdd, functionType(varIntAdd, varIntAdd));
+	}
+	{
+		prelude->bindings.push_back(Binding("primIntDivide", std::unique_ptr<Expression>(new Name("undefined"))));
+		TypeVariable varIntAdd;
+		prelude->bindings.back().expression->getType() = functionType(varIntAdd, functionType(varIntAdd, varIntAdd));
+	}
+	{
+		prelude->bindings.push_back(Binding("primIntRemainder", std::unique_ptr<Expression>(new Name("undefined"))));
+		TypeVariable varIntAdd;
+		prelude->bindings.back().expression->getType() = functionType(varIntAdd, functionType(varIntAdd, varIntAdd));
+	}
+	{
 		prelude->bindings.push_back(Binding("fromInteger", std::unique_ptr<Expression>(new Name("undefined"))));
 		TypeVariable var;
 		prelude->bindings.back().expression->getType() = functionType(TypeOperator("Int"), var);
