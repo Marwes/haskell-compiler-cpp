@@ -130,6 +130,7 @@ class ParseError : public std::runtime_error
 public:
 	ParseError(const std::string& errorMessage);
 	ParseError(const Token& found, SymbolEnum expected);
+	ParseError(Tokenizer& tokenizer, SymbolEnum expected);
 };
 
 

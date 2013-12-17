@@ -47,6 +47,7 @@ bool Tokenizer::getChar(char& c)
 	if (input.get(c))
 	{
 		++currentLocation.column;
+		++currentLocation.absolute;
 		if (c == '\n' || c == '\r')
 		{
 			currentLocation.column = 0;
@@ -84,6 +85,8 @@ bool Tokenizer::readToken(Token& token, bool& newline)
 	}
 	token.sourceLocation = this->currentLocation;
 	token.name.clear();
+	if (c == '\0')
+		return false;
 	token.name.push_back(c);
 
 	//Decide how to tokenize depending on what the first char is
@@ -112,6 +115,7 @@ bool Tokenizer::readToken(Token& token, bool& newline)
 		}
 		input.unget();
 		--this->currentLocation.column;
+		--this->currentLocation.absolute;
 		return true;
 	}
 	else if (isdigit(c))
@@ -123,6 +127,7 @@ bool Tokenizer::readToken(Token& token, bool& newline)
 		token.type = SymbolEnum::NUMBER;
 		input.unget();
 		--this->currentLocation.column;
+		--this->currentLocation.absolute;
 		return true;
 	}
 	else if (isalpha(c) || c == '_')
@@ -134,6 +139,7 @@ bool Tokenizer::readToken(Token& token, bool& newline)
 		token.type = nameOrKeyWord(token.name);
 		input.unget();
 		--this->currentLocation.column;
+		--this->currentLocation.absolute;
 		return true;
 	}
 	else if (c == ';')

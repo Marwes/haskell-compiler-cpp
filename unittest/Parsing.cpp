@@ -463,7 +463,7 @@ TEST_CASE("parser/list/cons1", "")
 
 TEST_CASE("parser/list/cons2", "")
 {
-	const char* str = "[1,2,3]";
+	const char* str = "[1,2,3";
 	std::stringstream stream(str);
 	Tokenizer tokenizer(stream);
 	Parser parser(tokenizer);

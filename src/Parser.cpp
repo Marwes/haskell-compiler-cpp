@@ -29,6 +29,33 @@ ParseError::ParseError(const Token& found, SymbolEnum expected)
 {
 }
 
+std::string parseError(Tokenizer& tokenizer, SymbolEnum expected)
+{
+	std::istream& input = tokenizer.getInputStream();
+	const Token& token = *tokenizer;
+	input.clear();
+	auto originalPos = input.tellg();
+	int start = std::max(0, token.sourceLocation.absolute - 20);
+	input.seekg(start);
+	char buffer[40] = { '\0' };
+	input.read(buffer, 39);
+	input.seekg(originalPos);
+
+	std::ostringstream str;
+	str << "Error: Unexpected token at " << token.sourceLocation.row << ":" << token.sourceLocation.column << "\n";
+	str << "Found: " << enumToString(token.type) << " '" << token.name << "'\n";
+	str << "Around: '" << buffer << "'\n";
+	str << std::string(std::min(token.sourceLocation.absolute, 20) + 10, ' ') << "^";
+	return str.str();
+}
+
+ParseError::ParseError(Tokenizer& tokenizer, SymbolEnum expected)
+	: std::runtime_error(parseError(tokenizer, expected))
+{
+
+}
+
+
 Parser::Parser(Tokenizer& tokenizer)
     : tokenizer(tokenizer)
 {
@@ -112,7 +139,7 @@ Module Parser::module()
 	const Token& lBracket = tokenizer.tokenizeModule();
 	if (lBracket.type != SymbolEnum::LBRACE)
 	{
-		throw ParseError(*tokenizer, SymbolEnum::LBRACE);
+		throw ParseError(tokenizer, SymbolEnum::LBRACE);
 	}
 
 	Module module;
@@ -165,7 +192,7 @@ Module Parser::module()
 	const Token& rBracket = *tokenizer;
 	if (rBracket.type != SymbolEnum::RBRACE)
 	{
-		throw ParseError(*tokenizer, SymbolEnum::RBRACE);
+		throw ParseError(tokenizer, SymbolEnum::RBRACE);
 	}
 
 	const Token& none = tokenizer.nextToken();
@@ -313,14 +340,13 @@ std::unique_ptr<Expression> parseList(Parser& parser, Tokenizer& tokenizer)
 	}
 
 	const Token& maybeParens = *tokenizer;
-	if (maybeParens.type == SymbolEnum::RBRACKET)
+	if (maybeParens.type != SymbolEnum::RBRACKET)
 	{
-		return std::move(application);
+		throw ParseError(tokenizer, SymbolEnum::RBRACKET);
 	}
 	else
 	{
-		--tokenizer;
-		return nullptr;
+		return std::move(application);
 	}
 }
 
@@ -380,11 +406,11 @@ std::unique_ptr<Expression> Parser::subExpression(bool (*parseError)(const Token
 			const Token& rBracket = *tokenizer;
 			if (rBracket.type != SymbolEnum::RBRACE)
 			{
-				throw ParseError(*tokenizer, SymbolEnum::RBRACE);
+				throw ParseError(tokenizer, SymbolEnum::RBRACE);
 			}
 			const Token& inToken = tokenizer.nextToken(letExpressionEndError);
 			if (inToken.type != SymbolEnum::IN)
-				throw ParseError(*tokenizer, SymbolEnum::IN);
+				throw ParseError(tokenizer, SymbolEnum::IN);
 			return std::unique_ptr<Expression>(new Let(std::move(binds), expression()));
 		}
 		break;
@@ -399,7 +425,7 @@ std::unique_ptr<Expression> Parser::subExpression(bool (*parseError)(const Token
 			const Token& rBrace = *tokenizer;
 			if (rBrace.type != SymbolEnum::RBRACE)
 			{
-				throw ParseError(*tokenizer, SymbolEnum::RBRACE);
+				throw ParseError(tokenizer, SymbolEnum::RBRACE);
 			}
 			return std::unique_ptr<Expression>(new Case(std::move(expr), std::move(alts)));
 		}
@@ -531,12 +557,12 @@ Binding Parser::binding()
 		const Token& rParens = tokenizer.nextToken(errorIfNotRParens);
 		if (rParens.type != SymbolEnum::RPARENS)
 		{
-			throw ParseError(*tokenizer, SymbolEnum::RPARENS);
+			throw ParseError(tokenizer, SymbolEnum::RPARENS);
 		}
 	}
 	else if (nameToken.type != SymbolEnum::NAME)
 	{
-		throw ParseError(*tokenizer, SymbolEnum::NAME);
+		throw ParseError(tokenizer, SymbolEnum::NAME);
 	}
 
 	//Parse the arguments for the binding
@@ -555,7 +581,7 @@ Binding Parser::binding()
 	}
 	if (tokenizer->type != SymbolEnum::EQUALSSIGN)
 	{
-		throw ParseError(*tokenizer, SymbolEnum::EQUALSSIGN);
+		throw ParseError(tokenizer, SymbolEnum::EQUALSSIGN);
 	}
 	if (arguments.size() > 0)
 	{
@@ -595,7 +621,7 @@ std::vector<std::unique_ptr<Pattern>> Parser::patternParameter()
 					const Token& rParens = *tokenizer;
 					if (rParens.type != SymbolEnum::RPARENS)
 					{
-						throw ParseError(*tokenizer, SymbolEnum::RPARENS);
+						throw ParseError(tokenizer, SymbolEnum::RPARENS);
 					}
 					tupleArgs.insert(tupleArgs.begin(), std::move(pat));
 					parameters.push_back(std::unique_ptr<Pattern>(new ConstructorPattern(std::move(tupleArgs))));
@@ -624,7 +650,7 @@ std::unique_ptr<Pattern> Parser::pattern()
 		{
 			if (tokenizer.nextToken().type != SymbolEnum::RBRACKET)
 			{
-				throw ParseError(*tokenizer, SymbolEnum::RBRACKET);
+				throw ParseError(tokenizer, SymbolEnum::RBRACKET);
 			}
 			return std::unique_ptr<Pattern>(new ConstructorPattern("[]", std::vector<std::unique_ptr<Pattern>>()));
 		}
@@ -651,7 +677,7 @@ std::unique_ptr<Pattern> Parser::pattern()
 			const Token& rParens = *tokenizer;
 			if (rParens.type != SymbolEnum::RPARENS)
 			{
-				throw ParseError(*tokenizer, SymbolEnum::RPARENS);
+				throw ParseError(tokenizer, SymbolEnum::RPARENS);
 			}
 			return std::unique_ptr<Pattern>(new ConstructorPattern(tupleName(tupleArgs.size()), std::move(tupleArgs)));
 		}
@@ -703,17 +729,17 @@ TypeDeclaration Parser::typeDeclaration(std::map<std::string, TypeVariable>& typ
 		const Token& rParens = tokenizer.nextToken(errorIfNotRParens);
 		if (rParens.type != SymbolEnum::RPARENS)
 		{
-			throw ParseError(*tokenizer, SymbolEnum::RPARENS);
+			throw ParseError(tokenizer, SymbolEnum::RPARENS);
 		}
 	}
 	else if (nameToken.type != SymbolEnum::NAME)
 	{
-		throw ParseError(*tokenizer, SymbolEnum::NAME);
+		throw ParseError(tokenizer, SymbolEnum::NAME);
 	}
 	const Token& decl = tokenizer.nextToken();
 	if (decl.type != SymbolEnum::TYPEDECL)
 	{
-		throw ParseError(*tokenizer, SymbolEnum::TYPEDECL);
+		throw ParseError(tokenizer, SymbolEnum::TYPEDECL);
 	}
 	Type typeOrContext = type(typeVariableMapping);
 	const Token& maybeContextArrow = *tokenizer;
@@ -783,7 +809,7 @@ DataDefinition Parser::dataDefinition()
 	const Token& equalToken = *tokenizer;
 	if (equalToken.type != SymbolEnum::EQUALSSIGN)
 	{
-		throw ParseError(*tokenizer, SymbolEnum::EQUALSSIGN);
+		throw ParseError(tokenizer, SymbolEnum::EQUALSSIGN);
 	}
 	definition.name = dataName.name;
 	definition.constructors = sepBy1(&Parser::constructor, definition,
@@ -850,7 +876,7 @@ Type Parser::type(std::map<std::string, TypeVariable>& typeVariableMapping)
 				const Token& rParens = *tokenizer;
 				if (rParens.type != SymbolEnum::RPARENS)
 				{
-					throw ParseError(*tokenizer, SymbolEnum::RPARENS);
+					throw ParseError(tokenizer, SymbolEnum::RPARENS);
 				}
 				const Token& arrow = tokenizer.nextToken();
 				if (arrow.type == SymbolEnum::ARROW)

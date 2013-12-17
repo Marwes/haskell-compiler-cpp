@@ -49,7 +49,7 @@ struct Location
 		, row(-1)
 	{}
 
-	int column, row;
+	int column, row, absolute;
 };
 
 class Token
@@ -73,7 +73,7 @@ public:
 		, tokens(backTrack)
 		, offset(0)
 	{
-		currentLocation.column = currentLocation.row = 0;
+		currentLocation.column = currentLocation.row = currentLocation.absolute = 0;
 	}
 
 	const Token& tokenizeModule();
@@ -114,6 +114,11 @@ public:
 	bool operator!()
 	{
 		return !*this;
+	}
+
+	std::istream& getInputStream()
+	{
+		return input;
 	}
 
 private:
