@@ -70,7 +70,7 @@ class Module
 {
 public:
 	Module();
-	Module(std::vector<Binding> && bindings, std::vector<TypeDeclaration> && typeDeclaration);
+	Module(std::vector<Binding> bindings, std::vector<TypeDeclaration> typeDeclaration);
 	Module(Module && other);
 
 	TypeEnvironment typecheck();

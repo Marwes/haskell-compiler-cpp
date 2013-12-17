@@ -89,7 +89,7 @@ Module::Module()
 	imports.push_back(prelude);
 }
 
-Module::Module(std::vector<Binding> && bindings, std::vector<TypeDeclaration> && typeDeclaration)
+Module::Module(std::vector<Binding> bindings, std::vector<TypeDeclaration> typeDeclaration)
 	: bindings(std::move(bindings))
 	, typeDeclaration(std::move(typeDeclaration))
 {
