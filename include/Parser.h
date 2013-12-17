@@ -128,6 +128,7 @@ inline std::vector<TResult> Parser::sepBy1(TResult(Parser::*parse)(const T& t), 
 class ParseError : public std::runtime_error
 {
 public:
+	ParseError(const std::string& errorMessage);
 	ParseError(const Token& found, SymbolEnum expected);
 };
 
