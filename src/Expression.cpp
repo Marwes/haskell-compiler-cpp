@@ -134,20 +134,20 @@ std::vector<std::unique_ptr<Expression>> argVector(std::unique_ptr<Expression> &
 
 
 
-GOP toGOP(const std::string& op)
+bool toGOP(const std::string& op, GOP& ret)
 {
-	if (op == "+" || op == "primIntAdd") return GOP::ADD;
-	if (op == "-") return GOP::SUBTRACT;
-	if (op == "*") return GOP::MULTIPLY;
-	if (op == "/") return GOP::DIVIDE;
-	if (op == "%") return GOP::REMAINDER;
-	if (op == "==") return GOP::COMPARE_EQ;
-	if (op == "/=") return GOP::COMPARE_NEQ;
-	if (op == ">") return GOP::COMPARE_GT;
-	if (op == "<") return GOP::COMPARE_LT;
-	if (op == ">=") return GOP::COMPARE_GE;
-	if (op == "<=") return GOP::COMPARE_LE;
-	throw std::runtime_error("Unknown op" + op);
+	if (op == "+" || op == "primIntAdd") { ret = GOP::ADD; return true; }
+	if (op == "-" || op == "primIntSubtract") { ret = GOP::SUBTRACT; return true; }
+	if (op == "*" || op == "primIntMultiply") { ret = GOP::MULTIPLY; return true; }
+	if (op == "/" || op == "primIntDivide") { ret = GOP::DIVIDE; return true; }
+	if (op == "%" || op == "primIntRemainder") { ret = GOP::REMAINDER; return true; }
+	if (op == "==") { ret = GOP::COMPARE_EQ; return true; }
+	if (op == "/=") { ret = GOP::COMPARE_NEQ; return true; }
+	if (op == ">") { ret = GOP::COMPARE_GT; return true; }
+	if (op == "<") { ret = GOP::COMPARE_LT; return true; }
+	if (op == ">=") { ret = GOP::COMPARE_GE; return true; }
+	if (op == "<=") { ret = GOP::COMPARE_LE; return true; }
+	return false;
 }
 
 void PatternName::addVariables(TypeEnvironment& env, Type& type)
@@ -637,17 +637,14 @@ void Apply::compile(GCompiler& env, std::vector<GInstruction>& instructions, boo
 {
 	if (Name* nameFunc = dynamic_cast<Name*>(function.get()))
 	{
-		try
+		GOP op;
+		if (toGOP(nameFunc->name, op))
 		{
-			GOP op = toGOP(nameFunc->name);
 			assert(arguments.size() == 2);
 			arguments[0]->compile(env, instructions, true);
 			arguments[1]->compile(env, instructions, true);
 			instructions.push_back(GInstruction(op));
 			return;
-		}
-		catch (std::runtime_error&)
-		{
 		}
 	}
 
