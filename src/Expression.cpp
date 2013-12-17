@@ -545,28 +545,8 @@ void Let::compile(GCompiler& env, std::vector<GInstruction>& instructions, bool 
 
 	for (auto& bind : bindings)
 	{
-		if (Lambda* lambda = dynamic_cast<Lambda*>(bind.expression.get()))
-		{
-			if (!bind.type.constraints.empty())
-			{
-				env.newStackVariable("$dict");
-			}
-			for (auto arg = lambda->arguments.rbegin(); arg != lambda->arguments.rend(); ++arg)
-			{
-				env.stackVariables.push_back(*arg);
-			}
-			SuperCombinator& sc = env.getGlobal(bind.name);
-			sc.arity = lambda->arguments.size();
-			lambda->body->compile(env, sc.instructions, true);
-			sc.instructions.push_back(GInstruction(GOP::UPDATE, 0));
-			sc.instructions.push_back(GInstruction(GOP::POP, sc.arity));
-			sc.instructions.push_back(GInstruction(GOP::UNWIND));
-		}
-		else
-		{
-			env.newStackVariable(bind.name);
-			bind.expression->compile(env, instructions, false);
-		}
+		env.newStackVariable(bind.name);
+		bind.expression->compile(env, instructions, false);
 		if (isRecursive)
 		{
 			instructions.push_back(GInstruction(GOP::UPDATE, env.stackVariables.size() - 1));
@@ -583,7 +563,7 @@ void Let::compile(GCompiler& env, std::vector<GInstruction>& instructions, bool 
 }
 void Lambda::compile(GCompiler& env, std::vector<GInstruction>& instructions, bool strict)
 {
-	assert(0);
+	assert(0 && "Local binds are not possible, need to be dealt with using lambda lifting");
 }
 
 class ClassEnvironment

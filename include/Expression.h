@@ -81,6 +81,8 @@ public:
 	SuperCombinator& compileBinding(Binding& binding, const std::string& name);
 	void compileInstance(Instance& instance);
 
+	const Binding& getCurrentBinding() const;
+
 	std::vector<std::string> stackVariables;
 	std::map<std::string, std::unique_ptr<SuperCombinator>> globals;
 	std::map<SuperCombinator*, int> globalIndices;

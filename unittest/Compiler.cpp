@@ -27,9 +27,11 @@ TEST_CASE("compiler/arithmetic", "Test compiling an arithmetic expression")
 	REQUIRE(evaluateInt("let three = 3 in 2 * 4 + three") == 11);
 	REQUIRE(evaluateInt("let six = 3 * 2 in 2 * 4 + six") == 14);
 	REQUIRE(evaluateInt("let six = 3 * 2; four = six - 2 in 2 * four + six") == 14);
-	REQUIRE(evaluateInt("let f x = x * x in f 3") == 9);
-	REQUIRE(evaluateInt("let f x y = x * x + y; five = 5 in f 3 five") == 14);
-	REQUIRE(evaluateInt("let f x = x * x in f 3 + f 2") == 13);
+
+	//Lambda lifting is not implemented so just avoid local functiosnm for now (even though they happen to work)
+	//REQUIRE(evaluateInt("let f x = x * x in f 3") == 9);
+	//REQUIRE(evaluateInt("let f x y = x * x + y; five = 5 in f 3 five") == 14);
+	//REQUIRE(evaluateInt("let f x = x * x in f 3 + f 2") == 13);
 }
 
 TEST_CASE("compiler/compare", "Test compiling an arithmetic expression")

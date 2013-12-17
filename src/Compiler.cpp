@@ -151,12 +151,19 @@ int GCompiler::getInstanceDictionaryIndex(const std::string& function) const
 	return -1;
 }
 
+const Binding& GCompiler::getCurrentBinding() const
+{
+	assert(currentBinding != nullptr);
+	return *currentBinding;
+}
+
 
 SuperCombinator& GCompiler::compileBinding(Binding& binding, const std::string& name)
 {
 	currentBinding = &binding;
 
 	SuperCombinator& sc = getGlobal(name);
+	sc.arity = 0;
 	stackVariables.clear();
 	if (Lambda* lambda = dynamic_cast<Lambda*>(binding.expression.get()))
 	{
