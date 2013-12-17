@@ -6,6 +6,7 @@
 #include <set>
 #include "Types.h"
 #include "SuperCombinator.h"
+#include "Compiler.h"
 #include <boost/graph/adjacency_list.hpp>
 
 namespace MyVMNamespace
@@ -17,40 +18,6 @@ class Instance;
 
 class Expression;
 
-enum class PrimOps
-{
-	ADD,
-	SUBTRACT,
-	MULTIPLY,
-	DIVIDE,
-	REMAINDER,
-	COMPARE_EQ,
-	COMPARE_NEQ,
-	COMPARE_LT,
-	COMPARE_GT,
-	COMPARE_LE,
-	COMPARE_GE,
-};
-
-enum class VariableType
-{
-	NONE,
-	STACK,
-	TOPLEVEL,
-	CONSTRUCTOR,
-	TYPECLASSFUNCTION
-};
-
-class Class;
-
-struct Variable
-{
-	VariableType accessType;
-	int index;
-	Class* klass;
-	Type* type;
-};
-
 
 typedef boost::adjacency_list<boost::listS, boost::vecS, boost::directedS, Binding*> Graph;
 typedef boost::graph_traits<Graph>::vertex_descriptor Vertex;
@@ -58,45 +25,6 @@ typedef boost::graph_traits<Graph>::edge_descriptor Edge;
 
 void addBindingsToGraph(Graph& graph, std::vector<Binding>& bindings);
 void typecheckDependecyGraph(TypeEnvironment& env, Graph& graph);
-
-struct InstanceDictionary
-{
-	std::vector<TypeOperator> constraints;
-	std::vector<SuperCombinator*> dictionary;
-};
-
-class GCompiler
-{
-public:
-	GCompiler(TypeEnvironment& typeEnv, Module* module);
-
-	void newStackVariable(const std::string& name);
-	void popStack(size_t n);
-	Variable getVariable(const std::string& name);
-	SuperCombinator& getGlobal(const std::string& name);
-
-	int getDictionaryIndex(const std::vector<TypeOperator>& dict);
-	int getInstanceDictionaryIndex(const std::string& function) const;
-
-	SuperCombinator& compileBinding(Binding& binding, const std::string& name);
-	void compileInstance(Instance& instance);
-
-	const Binding& getCurrentBinding() const;
-
-	std::vector<std::string> stackVariables;
-	std::map<std::string, std::unique_ptr<SuperCombinator>> globals;
-	std::map<SuperCombinator*, int> globalIndices;
-	std::map<std::vector<TypeOperator>, int> instanceIndices;
-	std::vector<Constructor> dataDefinitions;
-	std::vector<InstanceDictionary> instanceDicionaries;
-
-	TypeEnvironment& typeEnv;
-private:
-	std::map<std::string, std::map<Type, std::vector<SuperCombinator*>>> classes;
-	Module* module;
-	int index;
-	Binding* currentBinding;
-};
 
 class ExpressionVisitor;
 

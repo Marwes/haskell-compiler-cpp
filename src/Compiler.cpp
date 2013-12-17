@@ -1,4 +1,5 @@
 #include <algorithm>
+#include "Compiler.h"
 #include "Expression.h"
 #include "Module.h"
 

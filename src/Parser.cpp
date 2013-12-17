@@ -51,37 +51,27 @@ bool isMultDivOp(const Token& token)
     return token.type == SymbolEnum::OPERATOR && (token.name == "*" || token.name == "/" || token.name == "%");
 }
 
-struct Operator
-{
-	PrimOps op;
-	int precedence;
+static const std::map<std::string, int> operators = {
+	std::make_pair("+", 1),
+	std::make_pair("-", 1),
+	std::make_pair("*", 3),
+	std::make_pair("/", 3),
+	std::make_pair("%", 3),
+	std::make_pair("==", 1),
+	std::make_pair("/=", 1),
+	std::make_pair("<", 1),
+	std::make_pair(">", 1),
+	std::make_pair("<=", 1),
+	std::make_pair(">=", 1),
 };
 
-static const std::map<std::string, Operator> operators = {
-	std::make_pair("+", Operator { PrimOps::ADD, 1 }),
-	std::make_pair("-", Operator { PrimOps::SUBTRACT, 1 }),
-	std::make_pair("*", Operator { PrimOps::MULTIPLY, 3 }),
-	std::make_pair("/", Operator { PrimOps::DIVIDE, 3 }),
-	std::make_pair("%", Operator { PrimOps::REMAINDER, 3 }),
-	std::make_pair("==", Operator { PrimOps::COMPARE_EQ, 1 }),
-	std::make_pair("/=", Operator { PrimOps::COMPARE_NEQ, 1 }),
-	std::make_pair("<", Operator { PrimOps::COMPARE_LT, 1 }),
-	std::make_pair(">", Operator { PrimOps::COMPARE_GT, 1 }),
-	std::make_pair("<=", Operator { PrimOps::COMPARE_LE, 1 }),
-	std::make_pair(">=", Operator { PrimOps::COMPARE_GE, 1 }),
-};
-
-PrimOps getOperand(const std::string& name)
-{
-	return operators.at(name).op;
-}
 
 int getPrecedence(const std::string& name)
 {
 	auto found = operators.find(name);
 	if (found == operators.end())
 		return 9;
-	return found->second.precedence;
+	return found->second;
 }
 
 bool toplevelError(const Token& t)
