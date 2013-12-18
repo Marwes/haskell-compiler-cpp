@@ -34,6 +34,35 @@ struct InstanceDictionary
 	std::vector<SuperCombinator*> dictionary;
 };
 
+class Assembly
+{
+public:
+	Assembly() {}
+	Assembly(Assembly && o)
+		: superCombinators(std::move(o.superCombinators))
+		, dataDefinitions(std::move(o.dataDefinitions))
+		, instanceDictionaries(std::move(o.instanceDictionaries))
+		, globalIndices(std::move(o.globalIndices))
+		, instanceIndices(std::move(o.instanceIndices))
+	{}
+
+	Assembly& operator=(Assembly && o)
+	{
+		superCombinators = std::move(o.superCombinators);
+		dataDefinitions = std::move(o.dataDefinitions);
+		instanceDictionaries = std::move(o.instanceDictionaries);
+		globalIndices = std::move(o.globalIndices);
+		instanceIndices = std::move(o.instanceIndices);
+		return *this;
+	}
+
+	std::map<std::string, std::unique_ptr<SuperCombinator>> superCombinators;
+	std::vector<Constructor> dataDefinitions;
+	std::vector<InstanceDictionary> instanceDictionaries;
+	std::map<SuperCombinator*, int> globalIndices;
+	std::map<std::vector<TypeOperator>, int> instanceIndices;
+};
+
 class GCompiler
 {
 public:
@@ -55,11 +84,7 @@ public:
 	const Binding& getCurrentBinding() const;
 
 	std::vector<std::string> stackVariables;
-	std::map<std::string, std::unique_ptr<SuperCombinator>> globals;
-	std::map<SuperCombinator*, int> globalIndices;
-	std::map<std::vector<TypeOperator>, int> instanceIndices;
-	std::vector<Constructor> dataDefinitions;
-	std::vector<InstanceDictionary> instanceDictionaries;
+	Assembly assembly;
 
 	TypeEnvironment& typeEnv;
 private:

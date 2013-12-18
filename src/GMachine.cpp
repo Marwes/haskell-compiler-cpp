@@ -56,10 +56,7 @@ Assembly compileInputStream(std::istream& file)
 		comp.compileBinding(bind, bind.name);
 	}
 
-	assembly.superCombinators = std::move(comp.globals);
-	assembly.globalIndices = std::move(comp.globalIndices);
-	assembly.instanceDictionaries = std::move(comp.instanceDictionaries);
-	assembly.instanceIndices = std::move(comp.instanceIndices);
+	assembly = std::move(comp.assembly);
 
 	return assembly;
 }

@@ -4,6 +4,7 @@
 #include "Stack.h"
 #include "Parser.h"
 #include "SuperCombinator.h"
+#include "Compiler.h"
 
 namespace MyVMNamespace
 {
@@ -127,35 +128,6 @@ public:
 
 	StackFrame<Address> stack;
 	SuperCombinator* combinator;
-};
-
-class Assembly
-{
-public:
-	Assembly() {}
-	Assembly(Assembly&& o)
-		: superCombinators(std::move(o.superCombinators))
-		, dataDefinitions(std::move(o.dataDefinitions))
-		, instanceDictionaries(std::move(o.instanceDictionaries))
-		, globalIndices(std::move(o.globalIndices))
-		, instanceIndices(std::move(o.instanceIndices))
-	{}
-
-	Assembly& operator=(Assembly&& o)
-	{
-		superCombinators = std::move(o.superCombinators);
-		dataDefinitions = std::move(o.dataDefinitions);
-		instanceDictionaries = std::move(o.instanceDictionaries);
-		globalIndices = std::move(o.globalIndices);
-		instanceIndices = std::move(o.instanceIndices);
-		return *this;
-	}
-
-	std::map<std::string, std::unique_ptr<SuperCombinator>> superCombinators;
-	std::vector<Constructor> dataDefinitions;
-	std::vector<InstanceDictionary> instanceDictionaries;
-	std::map<SuperCombinator*, int> globalIndices;
-	std::map<std::vector<TypeOperator>, int> instanceIndices;
 };
 
 class GMachine

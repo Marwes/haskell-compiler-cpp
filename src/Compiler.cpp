@@ -31,7 +31,7 @@ Variable findInModule(GCompiler& comp, Module& module, const std::string& name)
 	{
 		if (bind.name == name)
 		{
-			size_t index = comp.globalIndices[&comp.getGlobal(name)];
+			size_t index = comp.assembly.globalIndices[&comp.getGlobal(name)];
 			return Variable { VariableType::TOPLEVEL, index, nullptr };
 		}
 	}
@@ -86,10 +86,10 @@ Variable GCompiler::getVariable(const std::string& name)
 		int distanceFromStackTop = stackVariables.size() - index - 1;
 		return Variable { VariableType::STACK, index, nullptr };
 	}
-	auto foundGlobal = globals.find(name);
-	if (foundGlobal != globals.end())
+	auto foundGlobal = assembly.superCombinators.find(name);
+	if (foundGlobal != assembly.superCombinators.end())
 	{
-		int i = globalIndices[foundGlobal->second.get()];
+		int i = assembly.globalIndices[foundGlobal->second.get()];
 		return Variable { VariableType::TOPLEVEL, i, nullptr };
 	}
 	if (module != nullptr)
@@ -101,12 +101,12 @@ Variable GCompiler::getVariable(const std::string& name)
 
 SuperCombinator& GCompiler::getGlobal(const std::string& name)
 {
-	auto found = globals.find(name);
-	if (found == globals.end())
+	auto found = assembly.superCombinators.find(name);
+	if (found == assembly.superCombinators.end())
 	{
-		auto& ptr = globals[name] = std::unique_ptr<SuperCombinator>(new SuperCombinator());
+		auto& ptr = assembly.superCombinators[name] = std::unique_ptr<SuperCombinator>(new SuperCombinator());
 		ptr->name = name;
-		globalIndices[ptr.get()] = uniqueGlobalIndex++;
+		assembly.globalIndices[ptr.get()] = uniqueGlobalIndex++;
 		return *ptr;
 	}
 	return *found->second;
@@ -115,8 +115,8 @@ SuperCombinator& GCompiler::getGlobal(const std::string& name)
 
 int GCompiler::getDictionaryIndex(const std::vector<TypeOperator>& constraints)
 {
-	auto found = instanceIndices.find(constraints);
-	if (found != instanceIndices.end())
+	auto found = assembly.instanceIndices.find(constraints);
+	if (found != assembly.instanceIndices.end())
 	{
 		return found->second;
 	}
@@ -131,8 +131,8 @@ int GCompiler::getDictionaryIndex(const std::vector<TypeOperator>& constraints)
 			dict.push_back(comb);
 		}
 	}
-	instanceDictionaries.push_back(InstanceDictionary { constraints, std::move(dict) });
-	return instanceIndices[instanceDictionaries.back().constraints] = uniqueGlobalIndex++;
+	assembly.instanceDictionaries.push_back(InstanceDictionary { constraints, std::move(dict) });
+	return assembly.instanceIndices[assembly.instanceDictionaries.back().constraints] = uniqueGlobalIndex++;
 }
 
 int GCompiler::getInstanceDictionaryIndex(const std::string& function) const
