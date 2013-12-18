@@ -410,15 +410,8 @@ Type& Lambda::typecheck(TypeEnvironment& env)
 Type& Apply::typecheck(TypeEnvironment& env)
 {
 	env.registerType(this->type);
-	Type& funcType = function->typecheck(env);
-	Type& argType = arguments[0]->typecheck(env);
-
-	this->type = functionType(argType, TypeVariable());
-
-	unify(env, this->type, funcType);
-	//Copy construct a object since we are assigning it to iteself
-	this->type = Type(boost::get<TypeOperator>(this->type).types[1]);
-	for (size_t ii = 1; ii < arguments.size(); ii++)
+	this->type = function->typecheck(env);
+	for (size_t ii = 0; ii < arguments.size(); ii++)
 	{
 		auto& arg = arguments[ii];
 		Type& argType = arg->typecheck(env);
