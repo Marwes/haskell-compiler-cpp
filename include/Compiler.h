@@ -81,10 +81,11 @@ public:
 	SuperCombinator& compileBinding(Binding& binding, const std::string& name);
 	void compileInstance(Instance& instance);
 
+	Assembly compileModule(Module& module);
+
 	const Binding& getCurrentBinding() const;
 
 	std::vector<std::string> stackVariables;
-	Assembly assembly;
 
 	TypeEnvironment& typeEnv;
 private:
@@ -97,6 +98,7 @@ private:
 	int uniqueGlobalIndex;
 	//The binding which is currently being compiled
 	Binding* currentBinding;
+	Assembly* assembly;
 };
 
 }

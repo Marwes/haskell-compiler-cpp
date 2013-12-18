@@ -10,6 +10,7 @@ GCompiler::GCompiler(TypeEnvironment& typeEnv, Module* module)
 	, uniqueGlobalIndex(0)
 	, typeEnv(typeEnv)
 	, currentBinding(nullptr)
+	, assembly(nullptr)
 {
 }
 
@@ -25,13 +26,13 @@ void GCompiler::popStack(size_t n)
 	}
 }
 
-Variable findInModule(GCompiler& comp, Module& module, const std::string& name)
+Variable findInModule(GCompiler& comp, Assembly& assembly, Module& module, const std::string& name)
 {
 	for (Binding& bind : module.bindings)
 	{
 		if (bind.name == name)
 		{
-			size_t index = comp.assembly.globalIndices[&comp.getGlobal(name)];
+			size_t index = assembly.globalIndices[&comp.getGlobal(name)];
 			return Variable { VariableType::TOPLEVEL, index, nullptr };
 		}
 	}
@@ -70,7 +71,7 @@ Variable findInModule(GCompiler& comp, Module& module, const std::string& name)
 
 	for (auto& import : module.imports)
 	{
-		Variable ret = findInModule(comp, *import, name);
+		Variable ret = findInModule(comp, assembly, *import, name);
 		if (ret.index >= 0)
 			return ret;
 	}
@@ -86,27 +87,27 @@ Variable GCompiler::getVariable(const std::string& name)
 		int distanceFromStackTop = stackVariables.size() - index - 1;
 		return Variable { VariableType::STACK, index, nullptr };
 	}
-	auto foundGlobal = assembly.superCombinators.find(name);
-	if (foundGlobal != assembly.superCombinators.end())
+	auto foundGlobal = assembly->superCombinators.find(name);
+	if (foundGlobal != assembly->superCombinators.end())
 	{
-		int i = assembly.globalIndices[foundGlobal->second.get()];
+		int i = assembly->globalIndices[foundGlobal->second.get()];
 		return Variable { VariableType::TOPLEVEL, i, nullptr };
 	}
 	if (module != nullptr)
 	{
-		return findInModule(*this, *module, name);
+		return findInModule(*this, *assembly, *module, name);
 	}
 	return Variable { VariableType::NONE, -1, nullptr };
 }
 
 SuperCombinator& GCompiler::getGlobal(const std::string& name)
 {
-	auto found = assembly.superCombinators.find(name);
-	if (found == assembly.superCombinators.end())
+	auto found = assembly->superCombinators.find(name);
+	if (found == assembly->superCombinators.end())
 	{
-		auto& ptr = assembly.superCombinators[name] = std::unique_ptr<SuperCombinator>(new SuperCombinator());
+		auto& ptr = assembly->superCombinators[name] = std::unique_ptr<SuperCombinator>(new SuperCombinator());
 		ptr->name = name;
-		assembly.globalIndices[ptr.get()] = uniqueGlobalIndex++;
+		assembly->globalIndices[ptr.get()] = uniqueGlobalIndex++;
 		return *ptr;
 	}
 	return *found->second;
@@ -115,8 +116,8 @@ SuperCombinator& GCompiler::getGlobal(const std::string& name)
 
 int GCompiler::getDictionaryIndex(const std::vector<TypeOperator>& constraints)
 {
-	auto found = assembly.instanceIndices.find(constraints);
-	if (found != assembly.instanceIndices.end())
+	auto found = assembly->instanceIndices.find(constraints);
+	if (found != assembly->instanceIndices.end())
 	{
 		return found->second;
 	}
@@ -131,8 +132,8 @@ int GCompiler::getDictionaryIndex(const std::vector<TypeOperator>& constraints)
 			dict.push_back(comb);
 		}
 	}
-	assembly.instanceDictionaries.push_back(InstanceDictionary { constraints, std::move(dict) });
-	return assembly.instanceIndices[assembly.instanceDictionaries.back().constraints] = uniqueGlobalIndex++;
+	assembly->instanceDictionaries.push_back(InstanceDictionary { constraints, std::move(dict) });
+	return assembly->instanceIndices[assembly->instanceDictionaries.back().constraints] = uniqueGlobalIndex++;
 }
 
 int GCompiler::getInstanceDictionaryIndex(const std::string& function) const
@@ -214,5 +215,33 @@ void GCompiler::compileInstance(Instance& instance)
 	}
 	std::map<Type, std::vector<SuperCombinator*>>& instances = lowBound->second;
 	instances.insert(std::make_pair(instance.type, functions));
+}
+
+Assembly GCompiler::compileModule(Module& module)
+{
+	Assembly result;
+	assembly = &result;
+
+	//Assign unique numbers for the tags so they can be correctly retrieved
+	for (DataDefinition& dataDef : module.dataDefinitions)
+	{
+		int tag = 0;
+		for (Constructor& ctor : dataDef.constructors)
+		{
+			ctor.tag = tag++;
+			result.dataDefinitions.push_back(ctor);
+		}
+	}
+
+	for (Instance& instance : module.instances)
+	{
+		compileInstance(instance);
+	}
+	for (Binding& bind : module.bindings)
+	{
+		compileBinding(bind, bind.name);
+	}
+	assembly = nullptr;
+	return result;
 }
 }

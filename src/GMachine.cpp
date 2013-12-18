@@ -27,38 +27,13 @@ GMachine::GMachine()
 
 Assembly compileInputStream(std::istream& file)
 {
-	Assembly assembly;
-
 	Tokenizer tokens(file);
 	Parser parser(tokens);
 	Module module = parser.module();
-
 	TypeEnvironment typeEnv = module.typecheck();
-
-	//Assign unique numbers for the tags so they can be correctly retrieved
-	for (DataDefinition& dataDef : module.dataDefinitions)
-	{
-		int tag = 0;
-		for (Constructor& ctor : dataDef.constructors)
-		{
-			ctor.tag = tag++;
-			assembly.dataDefinitions.push_back(ctor);
-		}
-	}
-
 	GCompiler comp(typeEnv, &module);
-	for (Instance& instance : module.instances)
-	{
-		comp.compileInstance(instance);
-	}
-	for (Binding& bind : module.bindings)
-	{
-		comp.compileBinding(bind, bind.name);
-	}
 
-	assembly = std::move(comp.assembly);
-
-	return assembly;
+	return comp.compileModule(module);
 }
 
 void GMachine::compile(std::istream& input)
