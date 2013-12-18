@@ -59,7 +59,7 @@ public:
 	std::map<SuperCombinator*, int> globalIndices;
 	std::map<std::vector<TypeOperator>, int> instanceIndices;
 	std::vector<Constructor> dataDefinitions;
-	std::vector<InstanceDictionary> instanceDicionaries;
+	std::vector<InstanceDictionary> instanceDictionaries;
 
 	TypeEnvironment& typeEnv;
 private:

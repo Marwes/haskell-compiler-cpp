@@ -131,8 +131,8 @@ int GCompiler::getDictionaryIndex(const std::vector<TypeOperator>& constraints)
 			dict.push_back(comb);
 		}
 	}
-	instanceDicionaries.push_back(InstanceDictionary { constraints, std::move(dict) });
-	return instanceIndices[instanceDicionaries.back().constraints] = uniqueGlobalIndex++;
+	instanceDictionaries.push_back(InstanceDictionary { constraints, std::move(dict) });
+	return instanceIndices[instanceDictionaries.back().constraints] = uniqueGlobalIndex++;
 }
 
 int GCompiler::getInstanceDictionaryIndex(const std::string& function) const

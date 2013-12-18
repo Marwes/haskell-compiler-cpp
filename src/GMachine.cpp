@@ -25,14 +25,11 @@ GMachine::GMachine()
 	heap.reserve(1024);//Just make sure the heap is large enough for small examples for now
 }
 
-void loadDictionary(GCompiler& comp, std::vector<GInstruction>& instructions, const TypeDeclaration& typeDecl)
+Assembly compileInputStream(std::istream& file)
 {
-	
-}
+	Assembly assembly;
 
-void GMachine::compile(std::istream& input)
-{
-	Tokenizer tokens(input);
+	Tokenizer tokens(file);
 	Parser parser(tokens);
 	Module module = parser.module();
 
@@ -45,7 +42,7 @@ void GMachine::compile(std::istream& input)
 		for (Constructor& ctor : dataDef.constructors)
 		{
 			ctor.tag = tag++;
-			dataDefinitions.push_back(ctor);
+			assembly.dataDefinitions.push_back(ctor);
 		}
 	}
 
@@ -59,23 +56,34 @@ void GMachine::compile(std::istream& input)
 		comp.compileBinding(bind, bind.name);
 	}
 
-	superCombinators = std::move(comp.globals);
-	globals.resize(superCombinators.size() + comp.instanceDicionaries.size());
-	for (auto& sc : superCombinators)
+	assembly.superCombinators = std::move(comp.globals);
+	assembly.globalIndices = std::move(comp.globalIndices);
+	assembly.instanceDictionaries = std::move(comp.instanceDictionaries);
+	assembly.instanceIndices = std::move(comp.instanceIndices);
+
+	return assembly;
+}
+
+void GMachine::compile(std::istream& input)
+{
+	assembly = compileInputStream(input);
+
+	globals.resize(assembly.superCombinators.size() + assembly.instanceDictionaries.size());
+	for (auto& sc : assembly.superCombinators)
 	{
-		int index = comp.globalIndices[sc.second.get()];
-		heap.push_back(Node(superCombinators[sc.first].get()));
+		int index = assembly.globalIndices[sc.second.get()];
+		heap.push_back(Node(assembly.superCombinators[sc.first].get()));
 		globals[index] = Address::global(&heap.back());
 	}
-	for (InstanceDictionary& dict : comp.instanceDicionaries)
+	for (InstanceDictionary& dict : assembly.instanceDictionaries)
 	{
-		int index = comp.instanceIndices[dict.constraints];
+		int index = assembly.instanceIndices[dict.constraints];
 		Address* ctor = new Address[dict.dictionary.size() + 1];
 		heap.push_back(Node(0, ctor));
 		globals[index] = Address::constructor(&heap.back());
 		for (size_t ii = 0; ii < dict.dictionary.size(); ii++)
 		{
-			ctor[ii] = globals[comp.globalIndices[dict.dictionary[ii]]];
+			ctor[ii] = globals[assembly.globalIndices[dict.dictionary[ii]]];
 		}
 		ctor[dict.dictionary.size()] = Address::indirection(nullptr);//endmarker
 	}
@@ -93,7 +101,7 @@ void slide(GEnvironment& environment, const GInstruction& instruction)
 
 Address GMachine::executeMain()
 {
-	SuperCombinator* main = superCombinators.at("main").get();
+	SuperCombinator* main = assembly.superCombinators.at("main").get();
 	int mainIndex = -1;
 	for (size_t ii = 0; ii < globals.size(); ++ii)
 	{
