@@ -4,6 +4,15 @@
 namespace MyVMNamespace
 {
 
+struct Location
+{
+	Location()
+		: column(-1)
+		, row(-1)
+	{}
+
+	int column, row, absolute;
+};
 
 }
 

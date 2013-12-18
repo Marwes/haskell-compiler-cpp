@@ -10,8 +10,15 @@
 namespace MyVMNamespace
 {
 
-Name::Name(std::string name)
-    : name(std::move(name))
+Expression::Expression(Location sourceLocation)
+	: sourceLocation(sourceLocation)
+{
+
+}
+
+Name::Name(std::string name, Location location)
+	: Expression(location)
+	, name(std::move(name))
 {
 }
 
@@ -20,8 +27,9 @@ Type& Name::getType()
 	return type;
 }
 
-Rational::Rational(double value)
-	: value(value)
+Rational::Rational(double value, Location location)
+	: Expression(location)
+	, value(value)
 {
 }
 
@@ -30,8 +38,8 @@ Type& Rational::getType()
 	return doubleType;
 }
 
-Number::Number(int value)
-	: Rational(0)
+Number::Number(int value, Location location)
+	: Rational(0, location)
 	, value(value)
 {
 }
@@ -41,8 +49,9 @@ Type& Number::getType()
 	return type;
 }
 
-Let::Let(std::vector<Binding>&& bindings, std::unique_ptr<Expression>&& expression)
-	: bindings(std::move(bindings))
+Let::Let(std::vector<Binding> bindings, std::unique_ptr<Expression> expression, Location location)
+	: Expression(location)
+	, bindings(std::move(bindings))
 	, expression(std::move(expression))
 	, isRecursive(false)
 {
@@ -102,8 +111,9 @@ Type& Let::getType()
 	return expression->getType();
 }
 
-Lambda::Lambda(std::vector<std::string> && arguments, std::unique_ptr<Expression> && body)
-	: arguments(std::move(arguments))
+Lambda::Lambda(std::vector<std::string> arguments, std::unique_ptr<Expression> body, Location location)
+	: Expression(location)
+	, arguments(std::move(arguments))
 	, body(std::move(body))
 {
 }
@@ -113,8 +123,9 @@ Type& Lambda::getType()
 	return this->type;
 }
 
-Apply::Apply(std::unique_ptr<Expression> && function, std::vector<std::unique_ptr<Expression>> && arguments)
-	: function(std::move(function))
+Apply::Apply(std::unique_ptr<Expression> function, std::vector<std::unique_ptr<Expression>> arguments, Location location)
+	: Expression(location)
+	, function(std::move(function))
 	, arguments(std::move(arguments))
 {
 }
@@ -196,8 +207,9 @@ void ConstructorPattern::compileGCode(GCompiler& env, std::vector<size_t>& branc
 	instructions.push_back(GInstruction(GOP::JUMP));
 }
 
-Case::Case(std::unique_ptr<Expression> && expr, std::vector<Alternative> && alternatives)
-	: expression(std::move(expr))
+Case::Case(std::unique_ptr<Expression> expr, std::vector<Alternative> alternatives, Location location)
+	: Expression(location)
+	, expression(std::move(expr))
 	, alternatives(std::move(alternatives))
 {}
 

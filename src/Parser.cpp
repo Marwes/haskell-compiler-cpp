@@ -411,7 +411,7 @@ std::unique_ptr<Expression> Parser::subExpression(bool (*parseError)(const Token
 			const Token& inToken = tokenizer.nextToken(letExpressionEndError);
 			if (inToken.type != SymbolEnum::IN)
 				throw ParseError(tokenizer, SymbolEnum::IN);
-			return std::unique_ptr<Expression>(new Let(std::move(binds), expression()));
+			return std::unique_ptr<Expression>(new Let(std::move(binds), expression(), token.sourceLocation));
 		}
 		break;
 	case SymbolEnum::CASE:
@@ -427,13 +427,13 @@ std::unique_ptr<Expression> Parser::subExpression(bool (*parseError)(const Token
 			{
 				throw ParseError(tokenizer, SymbolEnum::RBRACE);
 			}
-			return std::unique_ptr<Expression>(new Case(std::move(expr), std::move(alts)));
+			return std::unique_ptr<Expression>(new Case(std::move(expr), std::move(alts), token.sourceLocation));
 		}
 		break;
     case SymbolEnum::NAME:
-        return std::unique_ptr<Expression>(new Name(token.name));
+        return std::unique_ptr<Expression>(new Name(token.name, token.sourceLocation));
     case SymbolEnum::NUMBER:
-        return std::unique_ptr<Expression>(new Number(atoi(token.name.c_str())));
+        return std::unique_ptr<Expression>(new Number(atoi(token.name.c_str()), token.sourceLocation));
     default:
         return nullptr;
     }
@@ -468,11 +468,12 @@ std::unique_ptr<Expression> Parser::parseOperatorExpression(std::unique_ptr<Expr
 		{
 			return nullptr;
 		}
-		std::unique_ptr<Expression> name(new Name(op.name));
+		std::unique_ptr<Expression> name(new Name(op.name, op.sourceLocation));
 		std::vector<std::unique_ptr<Expression>> args(2);
 		args[0] = std::move(lhs);
 		args[1] = std::move(rhs);
-		lhs = std::unique_ptr<Expression>(new Apply(std::move(name), std::move(args)));
+		Location loc = args[0]->sourceLocation;
+		lhs = std::unique_ptr<Expression>(new Apply(std::move(name), std::move(args), loc));
 	}
 	--tokenizer;
 	return lhs;
@@ -507,7 +508,8 @@ std::unique_ptr<Expression> Parser::application()
 	}
 	if (expressions.size() > 0)
 	{
-		lhs = std::unique_ptr<Expression>(new Apply(std::move(lhs), std::move(expressions)));
+		Location loc = lhs->sourceLocation;
+		lhs = std::unique_ptr<Expression>(new Apply(std::move(lhs), std::move(expressions), loc));
 	}
 	--tokenizer;
     return lhs;

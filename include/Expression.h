@@ -7,6 +7,7 @@
 #include "Types.h"
 #include "SuperCombinator.h"
 #include "Compiler.h"
+#include "Util.h"
 #include <boost/graph/adjacency_list.hpp>
 
 namespace MyVMNamespace
@@ -31,6 +32,8 @@ class ExpressionVisitor;
 class Expression
 {
 public:
+	Expression(Location sourceLocation = Location());
+
     virtual ~Expression() { }
 
 	virtual Type& typecheck(TypeEnvironment& env) = 0;
@@ -40,12 +43,14 @@ public:
 	virtual Type& getType() = 0;
 
 	virtual void accept(ExpressionVisitor& visitor) = 0;
+
+	Location sourceLocation;
 };
 
 class Name : public Expression
 {
 public:
-    Name(std::string name);
+	Name(std::string name, Location location = Location());
 
 	virtual Type& typecheck(TypeEnvironment& env);
 
@@ -63,7 +68,7 @@ private:
 class Rational : public Expression
 {
 public:
-	Rational(double value);
+	Rational(double value, Location location = Location());
 
 	virtual Type& typecheck(TypeEnvironment& env);
 
@@ -79,7 +84,7 @@ public:
 class Number : public Rational
 {
 public:
-    Number(int value);
+    Number(int value, Location location = Location());
 
 	virtual Type& typecheck(TypeEnvironment& env);
 
@@ -96,7 +101,7 @@ public:
 class Let : public Expression
 {
 public:
-	Let(std::vector<Binding> && arguments, std::unique_ptr<Expression>&& expression);
+	Let(std::vector<Binding> arguments, std::unique_ptr<Expression> expression, Location location = Location());
 
 	virtual Type& typecheck(TypeEnvironment& env);
 
@@ -114,7 +119,7 @@ public:
 class Lambda : public Expression
 {
 public:
-	Lambda(std::vector<std::string> && arguments, std::unique_ptr<Expression> && expression);
+	Lambda(std::vector<std::string> arguments, std::unique_ptr<Expression> expression, Location location = Location());
 
 	virtual Type& typecheck(TypeEnvironment& env);
 
@@ -133,7 +138,7 @@ private:
 class Apply : public Expression
 {
 public:
-	Apply(std::unique_ptr<Expression> && function, std::vector<std::unique_ptr<Expression>> && arguments);
+	Apply(std::unique_ptr<Expression> function, std::vector<std::unique_ptr<Expression>> arguments, Location location = Location());
 
 	virtual Type& typecheck(TypeEnvironment& env);
 
@@ -228,7 +233,7 @@ public:
 class Case : public Expression
 {
 public:
-	Case(std::unique_ptr<Expression> && expr, std::vector<Alternative> && alternatives);
+	Case(std::unique_ptr<Expression> expr, std::vector<Alternative> alternatives, Location location = Location());
 
 	virtual Type& typecheck(TypeEnvironment& env);
 
