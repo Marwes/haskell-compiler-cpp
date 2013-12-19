@@ -5,9 +5,9 @@
 
 namespace MyVMNamespace
 {
-GCompiler::GCompiler(TypeEnvironment& typeEnv, Module* module)
+GCompiler::GCompiler(TypeEnvironment& typeEnv, Module* module, int globalStartIndex)
 	: module(module)
-	, uniqueGlobalIndex(0)
+	, uniqueGlobalIndex(globalStartIndex)
 	, typeEnv(typeEnv)
 	, currentBinding(nullptr)
 	, assembly(nullptr)

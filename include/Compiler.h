@@ -66,7 +66,7 @@ public:
 class GCompiler
 {
 public:
-	GCompiler(TypeEnvironment& typeEnv, Module* module);
+	GCompiler(TypeEnvironment& typeEnv, Module* module, int globalStartIndex = 0);
 
 	void newStackVariable(const std::string& name);
 	void popStack(size_t n);

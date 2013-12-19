@@ -25,22 +25,23 @@ GMachine::GMachine()
 	heap.reserve(1024);//Just make sure the heap is large enough for small examples for now
 }
 
-Assembly compileInputStream(std::istream& file)
+Assembly compileInputStream(std::istream& file, int startIndex)
 {
 	Tokenizer tokens(file);
 	Parser parser(tokens);
 	Module module = parser.module();
 	TypeEnvironment typeEnv = module.typecheck();
-	GCompiler comp(typeEnv, &module);
+	GCompiler comp(typeEnv, &module, startIndex);
 
 	return comp.compileModule(module);
 }
 
 void GMachine::compile(std::istream& input)
 {
-	assembly = compileInputStream(input);
+	assemblies.push_back(compileInputStream(input, globals.size()));
+	Assembly& assembly = assemblies.back();
 
-	globals.resize(assembly.superCombinators.size() + assembly.instanceDictionaries.size());
+	globals.resize(globals.size() + assembly.superCombinators.size() + assembly.instanceDictionaries.size());
 	for (auto& sc : assembly.superCombinators)
 	{
 		int index = assembly.globalIndices[sc.second.get()];
@@ -61,6 +62,18 @@ void GMachine::compile(std::istream& input)
 	}
 }
 
+
+SuperCombinator* GMachine::getCombinator(const std::string& name)
+{
+	for (Assembly& assembly : assemblies)
+	{
+		auto found = assembly.superCombinators.find(name);
+		if (found != assembly.superCombinators.end())
+			return found->second.get();
+	}
+	return  nullptr;
+}
+
 void slide(GEnvironment& environment, const GInstruction& instruction)
 {
 	Address top = environment.stack.top();
@@ -73,7 +86,7 @@ void slide(GEnvironment& environment, const GInstruction& instruction)
 
 Address GMachine::executeMain()
 {
-	SuperCombinator* main = assembly.superCombinators.at("main").get();
+	SuperCombinator* main = getCombinator("main");
 	int mainIndex = -1;
 	for (size_t ii = 0; ii < globals.size(); ++ii)
 	{
