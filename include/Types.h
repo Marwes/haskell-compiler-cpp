@@ -16,25 +16,24 @@ std::unique_ptr<T> make_unique(Args ... args)
 
 namespace MyVMNamespace
 {
-
 class TypeOperator;
+class TypeEnvironment;
 
 class TypeVariable
 {
 public:
-	TypeVariable()
-		: id(nextId++)
-	{
-	}
+	TypeVariable();
+	TypeVariable(TypeEnvironment& env);
 
-	int id;
+	bool operator==(const TypeVariable& r) const { return id == r.id; }
+	bool operator!=(const TypeVariable& r) const { return !(*this == r); }
+	bool operator<(const TypeVariable& r) const { return id < r.id; }
 private:
-	static int nextId;
+	int id;
+	friend class TypeEnvironment;
+	friend std::ostream& operator<<(std::ostream& str, const TypeVariable& x);
 };
 
-inline bool operator==(const TypeVariable& l, const TypeVariable& r) { return l.id == r.id; }
-inline bool operator!=(const TypeVariable& l, const TypeVariable& r) { return !(l == r); }
-inline bool operator<(const TypeVariable& l, const TypeVariable& r) { return l.id < r.id; }
 
 typedef boost::variant<TypeVariable, boost::recursive_wrapper<TypeOperator>> TypeVariant;
 class Type : public TypeVariant
@@ -45,6 +44,8 @@ public:
 	{
 		setDebugType();
 	}
+	Type(TypeEnvironment& env);
+
 	Type(const TypeVariable& op)
 		: TypeVariant(op)
 	{

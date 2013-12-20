@@ -9,17 +9,14 @@ Type doubleType(TypeOperator("Double"));
 
 Type binop = functionType(intType, functionType(intType, intType));
 
-Type createPairCtor()
+Type createPairCtor(TypeEnvironment& env)
 {
 	std::vector<Type> args(2);
-	args[0] = TypeVariable();
-	args[1] = TypeVariable();
+	args[0] = TypeVariable(env);
+	args[1] = TypeVariable(env);
 	Type pair(TypeOperator("(,)", args));
 	return functionType(args[0], functionType(args[1], pair));
 }
-
-Type pairCtor = createPairCtor();
-Type undefinedType = TypeVariable();
 
 inline bool occurs(const TypeVariable& type, const Type& collection)
 {
@@ -58,14 +55,14 @@ public:
 	{
 		if (env.isGeneric(type))
 		{
-			if (mappings.count(type.id) != 0)
+			if (mappings.count(type) != 0)
 			{
-				return mappings[type.id];
+				return mappings[type];
 			}
 			else
 			{
 				TypeVariable var;
-				mappings[type.id] = var;
+				mappings[type] = var;
 				env.updateConstraints(type, var);
 				return var;
 			}
@@ -84,7 +81,7 @@ public:
 
 private:
 	TypeEnvironment& env;
-	std::map<int, TypeVariable> mappings;
+	std::map<TypeVariable, TypeVariable> mappings;
 };
 
 Type fresh(TypeEnvironment& env, const Type& type)
@@ -96,6 +93,7 @@ Type fresh(TypeEnvironment& env, const Type& type)
 TypeEnvironment::TypeEnvironment(Module* module)
 	: parent(nullptr)
 	, module(module == nullptr ? Module::prelude.get() : module)
+	, uniqueVariableId(0)
 {
 	bindName("+", binop);
 	bindName("-", binop);
@@ -117,6 +115,7 @@ TypeEnvironment::TypeEnvironment(TypeEnvironment && env)
 	, types(std::move(env.types))
 	, nonGeneric(std::move(env.nonGeneric))
 	, constraints(std::move(env.constraints))
+	, uniqueVariableId(0)
 {
 }
 
@@ -126,6 +125,14 @@ TypeEnvironment TypeEnvironment::child()
 	c.parent = this;
 	return c;
 }
+
+TypeVariable TypeEnvironment::newTypeVariable()
+{
+	TypeVariable var;
+	var.id = uniqueVariableId++;
+	return var;
+}
+
 
 void TypeEnvironment::bindName(const std::string& name, Type& type)
 {

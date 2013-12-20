@@ -163,6 +163,7 @@ bool toGOP(const std::string& op, GOP& ret)
 
 void PatternName::addVariables(TypeEnvironment& env, Type& type)
 {
+	this->type = env.newTypeVariable();
 	unify(env, this->type, type);
 	env.bindName(name, this->type);
 	env.addNonGeneric(this->type);
@@ -243,6 +244,7 @@ public:
 
 Type& Name::typecheck(TypeEnvironment& env)
 {
+	this->type = env.newTypeVariable();
 	env.registerType(this->type);
 	this->type = env.getFreshType(this->name);
 	return this->type;
@@ -309,11 +311,20 @@ void typecheckDependecyGraph(TypeEnvironment& env, Graph& graph)
 		}
 		for (Binding* bind : groupedBindings)
 		{
-			env.bindName(bind->name, bind->expression->getType());
+			Type& type = bind->expression->getType();
+			if (type == Type(TypeVariable()))
+			{
+				type = env.newTypeVariable();
+			}
+			env.bindName(bind->name, type);
 		}
 		for (Binding* bind : groupedBindings)
 		{
 			Type newType = bind->expression->getType();
+			if (newType == Type(TypeVariable()))
+			{
+				newType = env.newTypeVariable();
+			}
 			env.addNonGeneric(newType);
 			Type& actual = bind->expression->typecheck(env);
 			unify(env, newType, actual);
@@ -383,11 +394,11 @@ Type& Lambda::typecheck(TypeEnvironment& env)
 {
 	TypeEnvironment child = env.child();
 
-	Type ret;
+	Type ret(env);
 	Type* returnType = &ret;
 	for (std::string& arg : arguments)
 	{
-		this->type = functionType(TypeVariable(), *returnType);
+		this->type = functionType(TypeVariable(env), *returnType);
 
 		returnType = &type;
 	}
@@ -409,13 +420,14 @@ Type& Lambda::typecheck(TypeEnvironment& env)
 
 Type& Apply::typecheck(TypeEnvironment& env)
 {
+	this->type = env.newTypeVariable();
 	env.registerType(this->type);
 	this->type = function->typecheck(env);
 	for (size_t ii = 0; ii < arguments.size(); ii++)
 	{
 		auto& arg = arguments[ii];
 		Type& argType = arg->typecheck(env);
-		Type temp = functionType(argType, TypeVariable());
+		Type temp = functionType(argType, TypeVariable(env));
 
 		unify(env, temp, this->type);
 

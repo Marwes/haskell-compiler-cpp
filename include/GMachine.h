@@ -158,4 +158,7 @@ private:
 	bool debug;
 };
 
+
+std::ostream& operator<<(std::ostream& out, const Address& addr);
+
 };

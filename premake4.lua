@@ -32,6 +32,21 @@ solution "VM"
         configuration "Debug"
         configuration "Release"
 
+    project "repl"
+        language "C++"
+        kind "ConsoleApp"
+        targetdir "bin"
+        includedirs { "include", BOOST_DIR }
+        links { "vm" }
+
+        files {
+           "repl/include/*.h",
+           "repl/src/*.cpp"
+        }
+
+        configuration "Debug"
+        configuration "Release"
+
     project "unittest"
         language "C++"
         kind "ConsoleApp"

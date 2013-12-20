@@ -2,11 +2,28 @@
 #include "Types.h"
 #include "Typecheck.h"
 #include "Expression.h"
+#include "Typecheck.h"
 
 namespace MyVMNamespace
 {
+int defaultTypeVariableId = -1;
+TypeVariable::TypeVariable()
+	: id(defaultTypeVariableId--)
+{}
 
-int TypeVariable::nextId;
+
+TypeVariable::TypeVariable(TypeEnvironment& env)
+{
+	*this = env.newTypeVariable();
+}
+
+Type::Type(TypeEnvironment& env)
+	: TypeVariant(env)
+{
+	setDebugType();
+}
+
+
 std::ostream& operator<<(std::ostream& str, const TypeVariable& x)
 {
 	return str << x.id;
@@ -64,7 +81,7 @@ struct TypeToString : boost::static_visitor<>
 			}
 		}
 
-		*out << var.id;
+		*out << var;
 	}
 
 	void operator()(const TypeOperator& x) const
@@ -160,4 +177,6 @@ CannotAddConstraintError::CannotAddConstraintError(TypeVariable var, const std::
 {
 
 }
+
+
 }

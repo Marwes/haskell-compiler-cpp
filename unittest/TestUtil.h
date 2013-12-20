@@ -5,15 +5,15 @@
 using namespace MyVMNamespace;
 
 //Check if the types are the same, ignoring which type variable they are
-inline bool sameTypes(std::map<int, int>& idmap, const Type& lhs, const Type& rhs)
+inline bool sameTypes(std::map<TypeVariable, TypeVariable>& idmap, const Type& lhs, const Type& rhs)
 {
 	if (lhs.which() == 0 && rhs.which() == 0)
 	{
 		auto& l = boost::get<TypeVariable>(lhs);
 		auto& r = boost::get<TypeVariable>(rhs);
-		if (idmap.count(l.id) > 0)
-			return idmap[l.id] == r.id;
-		idmap[l.id] = r.id;
+		if (idmap.count(l) > 0)
+			return idmap[l] == r;
+		idmap[l] = r;
 		return true;
 	}
 	else if (lhs.which() == rhs.which())
@@ -34,7 +34,7 @@ inline bool sameTypes(std::map<int, int>& idmap, const Type& lhs, const Type& rh
 }
 inline bool sameTypes(const Type& lhs, const Type& rhs)
 {
-	std::map<int, int> idmap;
+	std::map<TypeVariable, TypeVariable> idmap;
 	return sameTypes(idmap, lhs, rhs);
 }
 

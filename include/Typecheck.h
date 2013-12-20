@@ -17,6 +17,8 @@ public:
 
 	TypeEnvironment child();
 
+	TypeVariable newTypeVariable();
+
 	void bindName(const std::string& name, Type& type);
 	void registerType(Type& type);
 
@@ -43,6 +45,8 @@ private:
 	std::map<TypeVariable, std::vector<std::string>> constraints;
 	//Variables which can't have more constraints added to them
 	std::set<TypeVariable> lockedVariables;
+
+	int uniqueVariableId;
 };
 
 
