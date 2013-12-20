@@ -113,3 +113,16 @@ TEST_CASE("gmachine/tuple2", "")
 	REQUIRE(result.getType() == NUMBER);
 	REQUIRE(result.getNode()->number == 15);
 }
+
+TEST_CASE("gmachine/multiple_assemblies", "")
+{
+	GMachine machine;
+	std::stringstream main("main = 3 * 3");
+	machine.compile(main);
+	std::stringstream first("f x = x + 2");
+	machine.compile(first);
+
+	Address result = machine.executeMain();
+	REQUIRE(result.getType() == NUMBER);
+	REQUIRE(result.getNode()->number == 9);
+}
