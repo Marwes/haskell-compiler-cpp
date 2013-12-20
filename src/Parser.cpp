@@ -357,14 +357,7 @@ std::unique_ptr<Expression> Parser::subExpression(bool (*parseError)(const Token
 	{
 	case SymbolEnum::LPARENS:
 		{
-			std::vector<std::unique_ptr<Expression>> expressions;
-			const Token* comma;
-			do
-			{
-				auto expr = expression();
-				expressions.push_back(std::move(expr));
-				comma = &tokenizer.nextToken();
-			} while (comma->type == SymbolEnum::COMMA);
+			std::vector<std::unique_ptr<Expression>> expressions = sepBy1(&Parser::expression, SymbolEnum::COMMA);
 
 			const Token& maybeParens = *tokenizer;
 			if (maybeParens.type == SymbolEnum::RPARENS)
@@ -394,14 +387,7 @@ std::unique_ptr<Expression> Parser::subExpression(bool (*parseError)(const Token
 		{
 			requireNext(SymbolEnum::LBRACE);
 
-			std::vector<Binding> binds;
-			const Token* semicolon;
-			do
-			{
-				auto bind = binding();
-				binds.push_back(std::move(bind));
-				semicolon = &tokenizer.nextToken();
-			} while (semicolon->type == SymbolEnum::SEMICOLON);
+			std::vector<Binding> binds = sepBy1(&Parser::binding, SymbolEnum::SEMICOLON);
 
 			const Token& rBracket = *tokenizer;
 			if (rBracket.type != SymbolEnum::RBRACE)
