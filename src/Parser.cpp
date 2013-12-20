@@ -463,6 +463,7 @@ std::unique_ptr<Expression> Parser::parseOperatorExpression(std::unique_ptr<Expr
 			const Token& lookahead = *tokenizer;
 			--tokenizer;
 			rhs = parseOperatorExpression(std::move(rhs), getPrecedence(lookahead.name));
+			++tokenizer;
 		}
 		if (rhs == nullptr)
 		{
