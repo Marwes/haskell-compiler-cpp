@@ -39,7 +39,12 @@ Assembly compileInputStream(std::istream& file, int startIndex)
 
 void GMachine::compile(std::istream& input)
 {
-	assemblies.push_back(compileInputStream(input, globals.size()));
+	addAssembly(compileInputStream(input, globals.size()));
+}
+
+Assembly& GMachine::addAssembly(Assembly&& inputAssembly)
+{
+	assemblies.push_back(std::move(inputAssembly));
 	Assembly& assembly = assemblies.back();
 
 	globals.resize(globals.size() + assembly.superCombinators.size() + assembly.instanceDictionaries.size());
@@ -61,6 +66,7 @@ void GMachine::compile(std::istream& input)
 		}
 		ctor[dict.dictionary.size()] = Address::indirection(nullptr);//endmarker
 	}
+	return assembly;
 }
 
 

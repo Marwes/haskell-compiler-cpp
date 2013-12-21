@@ -146,14 +146,16 @@ public:
 	void execute(GEnvironment& environment);
 	Address executeMain();
 
+	Assembly& addAssembly(Assembly&& assembly);
+
 	SuperCombinator* getCombinator(const std::string& name);
 
 private:
 	Array<Address> stack;
 	std::vector<Address> globals;
 	std::vector<Node> heap;
-
 	std::vector<Assembly> assemblies;
+
 
 	bool debug;
 };

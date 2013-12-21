@@ -13,6 +13,8 @@ GCompiler::GCompiler(TypeEnvironment& typeEnv, Module* module, int globalStartIn
 	, assembly(nullptr)
 	, assemblies(std::move(assemblies))
 {
+	if (this->assemblies.count("Prelude") == 0)
+		this->assemblies.insert(std::make_pair("Prelude", &Module::prelude));
 }
 
 void GCompiler::newStackVariable(const std::string& name)

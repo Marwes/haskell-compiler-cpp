@@ -90,13 +90,13 @@ Type fresh(TypeEnvironment& env, const Type& type)
 	return boost::apply_visitor(f, type);
 }
 
-TypeEnvironment::TypeEnvironment(Module* module, std::map<std::string, Assembly*> assemblies)
+TypeEnvironment::TypeEnvironment(Module* module, std::map<std::string, Assembly*> inputAssemblies)
 	: parent(nullptr)
 	, module(module)
-	, assemblies(std::move(assemblies))
+	, assemblies(std::move(inputAssemblies))
 	, uniqueVariableId(0)
 {
-	if (assemblies.size() == 0)
+	if (assemblies.count("Prelude") == 0)
 	{
 		assemblies.insert(std::make_pair("Prelude", &Module::prelude));
 	}
