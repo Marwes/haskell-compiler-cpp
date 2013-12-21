@@ -37,7 +37,7 @@ TypeDeclaration::TypeDeclaration(TypeDeclaration && other)
 {
 }
 
-std::shared_ptr<Module> createPrelude()
+Assembly createPrelude()
 {
 	std::shared_ptr<Module> prelude(std::make_shared<Module>());
 	prelude->imports.clear();//Remove prelude from itself
@@ -100,20 +100,23 @@ std::shared_ptr<Module> createPrelude()
 		TypeVariable var;
 		prelude->bindings.back().expression->getType() = functionType(TypeOperator("Int"), var);
 	}
-	return prelude;
+	
+	TypeEnvironment typeEnv = prelude->typecheck();
+	GCompiler comp(typeEnv, prelude.get());
+	return comp.compileModule(*prelude);
 }
-const std::shared_ptr<Module> Module::prelude(createPrelude());
+Assembly Module::prelude(createPrelude());
 
 Module::Module()
 {
-	imports.push_back(prelude);
+	imports.push_back("Prelude");
 }
 
 Module::Module(std::vector<Binding> bindings, std::vector<TypeDeclaration> typeDeclaration)
 	: bindings(std::move(bindings))
 	, typeDeclaration(std::move(typeDeclaration))
 {
-	imports.push_back(prelude);
+	imports.push_back("Prelude");
 }
 
 Module::Module(Module && other)
@@ -126,7 +129,13 @@ Module::Module(Module && other)
 {
 }
 
-Class* getClass(Module& module, const std::string& name)
+Class* getClass(Assembly& module, const std::string& name)
+{
+	assert(0 && "Need to store classes in assembly");
+	return nullptr;
+}
+
+Class* getClass(TypeEnvironment& env, Module& module, const std::string& name)
 {
 	for (Class& klass : module.classes)
 	{
@@ -135,17 +144,32 @@ Class* getClass(Module& module, const std::string& name)
 	}
 	for (auto& m : module.imports)
 	{
-		if (Class* klass = getClass(*m, name))
+		Assembly* assembly = env.getAssembly(m);
+		if (assembly != nullptr)
 		{
-			return klass;
+			if (Class* klass = getClass(*assembly, name))
+			{
+				return klass;
+			}
 		}
 	}
 	return nullptr;
 }
 
-TypeEnvironment Module::typecheck()
+TypeEnvironment Module::typecheck(std::map<std::string, Assembly*> assemblies)
 {
-	TypeEnvironment env(this);
+	for (const std::string& import : imports)
+	{
+		if (import == "Prelude")
+		{
+			assemblies.insert(std::make_pair("Prelude", &Module::prelude));
+		}
+		else
+		{
+			assert(0 && "import modules");
+		}
+	}
+	TypeEnvironment env(this, assemblies);
 	Graph graph;
 
 	for (Class& klass : classes)
@@ -155,7 +179,7 @@ TypeEnvironment Module::typecheck()
 
 	for (auto& instance : instances)
 	{
-		Class* klass = getClass(*this, instance.className);
+		Class* klass = getClass(env, *this, instance.className);
 		assert(klass != nullptr);
 		//Type newType = klass->declarations[bind.name].type;
 		for (Binding& bind : instance.bindings)

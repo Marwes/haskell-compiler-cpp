@@ -8,11 +8,12 @@ namespace MyVMNamespace
 {
 
 class Module;
+class Assembly;
 
 class TypeEnvironment
 {
 public:
-	TypeEnvironment(Module* module);
+	TypeEnvironment(Module* module, std::map<std::string, Assembly*> assemblies = std::map<std::string, Assembly*>());
 	TypeEnvironment(TypeEnvironment && env);
 
 	TypeEnvironment child();
@@ -36,8 +37,15 @@ public:
 	void lockVariable(TypeVariable var);
 	bool isVariableLocked(TypeVariable var);
 	const std::vector<std::string>& getConstraints(const TypeVariable& var) const;
+
+	Assembly* getAssembly(const std::string& name) const
+	{
+		auto found = assemblies.find(name);
+		return found == assemblies.end() ? nullptr : found->second;
+	}
 private:
 	Module* module;
+	std::map<std::string, Assembly*> assemblies;
 	TypeEnvironment* parent;
 	std::map<std::string, Type*> namedTypes;
 	std::vector<Type*> types;

@@ -66,7 +66,7 @@ public:
 class GCompiler
 {
 public:
-	GCompiler(TypeEnvironment& typeEnv, Module* module, int globalStartIndex = 0);
+	GCompiler(TypeEnvironment& typeEnv, Module* module, int globalStartIndex = 0, std::map<std::string, Assembly*> assemblies = std::map<std::string, Assembly*>());
 
 	void newStackVariable(const std::string& name);
 	void popStack(size_t n);
@@ -85,6 +85,12 @@ public:
 
 	const Binding& getCurrentBinding() const;
 
+	Assembly* getAssembly(const std::string& name) const
+	{
+		auto found = assemblies.find(name);
+		return found == assemblies.end() ? nullptr : found->second;
+	}
+
 	std::vector<std::string> stackVariables;
 
 	TypeEnvironment& typeEnv;
@@ -99,6 +105,7 @@ private:
 	//The binding which is currently being compiled
 	Binding* currentBinding;
 	Assembly* assembly;
+	std::map<std::string, Assembly*> assemblies;
 };
 
 }

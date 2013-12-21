@@ -5,12 +5,13 @@
 
 namespace MyVMNamespace
 {
-GCompiler::GCompiler(TypeEnvironment& typeEnv, Module* module, int globalStartIndex)
+GCompiler::GCompiler(TypeEnvironment& typeEnv, Module* module, int globalStartIndex, std::map<std::string, Assembly*> assemblies)
 	: module(module)
 	, uniqueGlobalIndex(globalStartIndex)
 	, typeEnv(typeEnv)
 	, currentBinding(nullptr)
 	, assembly(nullptr)
+	, assemblies(std::move(assemblies))
 {
 }
 
@@ -26,6 +27,35 @@ void GCompiler::popStack(size_t n)
 	}
 }
 
+Variable findInModule(GCompiler& comp, Assembly& assembly, Assembly& import, const std::string& name)
+{
+	for (auto& pair : import.superCombinators)
+	{
+		if (pair.first == name)
+		{
+			size_t index = import.globalIndices[pair.second.get()];
+			return Variable{ VariableType::TOPLEVEL, index, nullptr, &pair.second->type };
+		}
+	}
+	for (Constructor& ctor : import.dataDefinitions)
+	{
+		if (ctor.name == name)
+		{
+			//TODO ctor.tag must be a way to retrieve this constructor
+			if (ctor.tag > (1 << 16))
+			{
+				throw std::runtime_error("Number of constructors are to large");
+			}if (ctor.arity > (1 << 16))
+			{
+				throw std::runtime_error("Arity of constructor " + std::string(ctor.name) + " are to large");
+			}
+			int index = (ctor.arity << 16) | ctor.tag;
+			return Variable{ VariableType::CONSTRUCTOR, index, nullptr };
+		}
+	}
+	return Variable{ VariableType::NONE, -1, nullptr, nullptr };
+}
+
 Variable findInModule(GCompiler& comp, Assembly& assembly, Module& module, const std::string& name)
 {
 	for (Binding& bind : module.bindings)
@@ -33,7 +63,7 @@ Variable findInModule(GCompiler& comp, Assembly& assembly, Module& module, const
 		if (bind.name == name)
 		{
 			size_t index = assembly.globalIndices[&comp.getGlobal(name)];
-			return Variable { VariableType::TOPLEVEL, index, nullptr };
+			return Variable { VariableType::TOPLEVEL, index, nullptr, &bind.expression->getType() };
 		}
 	}
 
@@ -68,12 +98,33 @@ Variable findInModule(GCompiler& comp, Assembly& assembly, Module& module, const
 			index++;
 		}
 	}
+	if (name.size() > 0 && name[0] == '#')
+	{
+		for (Instance& instance : module.instances)
+		{
+			const std::string& instanceName = boost::get<TypeOperator>(instance.type).name;
+			if (name.compare(1, instanceName.size(), instanceName) == 0)
+			{
+				for (Binding& binding : instance.bindings)
+				{
+					if (name.compare(instanceName.size() + 1, name.size(), binding.name) == 0)
+					{
+						return Variable{ VariableType::NONE, -1, nullptr, &binding.expression->getType() };
+					}
+				}
+			}
+		}
+	}
 
 	for (auto& import : module.imports)
 	{
-		Variable ret = findInModule(comp, assembly, *import, name);
-		if (ret.index >= 0)
-			return ret;
+		Assembly* importedAssembly = comp.getAssembly(import);
+		if (importedAssembly != nullptr)
+		{
+			Variable ret = findInModule(comp, assembly, *importedAssembly, name);
+			if (ret.index >= 0)
+				return ret;
+		}
 	}
 	return Variable { VariableType::NONE, -1, nullptr };
 }
@@ -87,11 +138,14 @@ Variable GCompiler::getVariable(const std::string& name)
 		int distanceFromStackTop = stackVariables.size() - index - 1;
 		return Variable { VariableType::STACK, index, nullptr };
 	}
-	auto foundGlobal = assembly->superCombinators.find(name);
-	if (foundGlobal != assembly->superCombinators.end())
+	if (assembly != nullptr)
 	{
-		int i = assembly->globalIndices[foundGlobal->second.get()];
-		return Variable { VariableType::TOPLEVEL, i, nullptr };
+		auto foundGlobal = assembly->superCombinators.find(name);
+		if (foundGlobal != assembly->superCombinators.end())
+		{
+			int i = assembly->globalIndices[foundGlobal->second.get()];
+			return Variable{ VariableType::TOPLEVEL, i, nullptr };
+		}
 	}
 	if (module != nullptr)
 	{
@@ -240,6 +294,13 @@ Assembly GCompiler::compileModule(Module& module)
 	for (Binding& bind : module.bindings)
 	{
 		compileBinding(bind, bind.name);
+	}
+	for (auto& pair : result.superCombinators)
+	{
+		const std::string& name = pair.first;
+		SuperCombinator& comb = *pair.second;
+		const Type* type = findInModule(*this, *assembly, module, name).type;
+		comb.type = *type;
 	}
 	assembly = nullptr;
 	return result;

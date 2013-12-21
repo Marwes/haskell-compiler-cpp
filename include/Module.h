@@ -73,7 +73,7 @@ public:
 	Module(std::vector<Binding> bindings, std::vector<TypeDeclaration> typeDeclaration);
 	Module(Module && other);
 
-	TypeEnvironment typecheck();
+	TypeEnvironment typecheck(std::map<std::string, Assembly*> assemblies = std::map<std::string, Assembly*>());
 
 	std::vector<Binding> bindings;
 	std::vector<TypeDeclaration> typeDeclaration;
@@ -81,9 +81,9 @@ public:
 	std::vector<Class> classes;
 	std::vector<Instance> instances;
 
-	std::vector<std::shared_ptr<Module>> imports;
+	std::vector<std::string> imports;
 
-	static const std::shared_ptr<Module> prelude;
+	static Assembly prelude;
 };
 
 }

@@ -31,7 +31,8 @@ Assembly compileInputStream(std::istream& file, int startIndex)
 	Parser parser(tokens);
 	Module module = parser.module();
 	TypeEnvironment typeEnv = module.typecheck();
-	GCompiler comp(typeEnv, &module, startIndex);
+	std::map<std::string, Assembly*> assemblies = { { "Prelude", &Module::prelude } };
+	GCompiler comp(typeEnv, &module, startIndex, assemblies);
 
 	return comp.compileModule(module);
 }
@@ -203,7 +204,7 @@ void GMachine::execute(GEnvironment& environment)
 			break;
 		case GOP::EVAL:
 			{
-				static SuperCombinator unwind { "__uniwnd", 0, std::vector<GInstruction>{ GInstruction(GOP::UNWIND) } };
+				static SuperCombinator unwind { "__uniwnd", Type(), 0, std::vector<GInstruction>{ GInstruction(GOP::UNWIND) } };
 				GEnvironment child = environment.child(&unwind);
 				child.stack.push(environment.stack.top());
 				execute(child);

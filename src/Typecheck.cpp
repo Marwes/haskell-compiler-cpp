@@ -90,11 +90,16 @@ Type fresh(TypeEnvironment& env, const Type& type)
 	return boost::apply_visitor(f, type);
 }
 
-TypeEnvironment::TypeEnvironment(Module* module)
+TypeEnvironment::TypeEnvironment(Module* module, std::map<std::string, Assembly*> assemblies)
 	: parent(nullptr)
-	, module(module == nullptr ? Module::prelude.get() : module)
+	, module(module)
+	, assemblies(std::move(assemblies))
 	, uniqueVariableId(0)
 {
+	if (assemblies.size() == 0)
+	{
+		assemblies.insert(std::make_pair("Prelude", &Module::prelude));
+	}
 	bindName("+", binop);
 	bindName("-", binop);
 	bindName("*", binop);
@@ -147,6 +152,22 @@ void TypeEnvironment::registerType(Type& type)
 		parent->registerType(type);
 }
 
+const Type* findInAssembly(const TypeEnvironment& env, Assembly& assembly, const std::string& name)
+{
+	auto found = assembly.superCombinators.find(name);
+	if (found != assembly.superCombinators.end())
+	{
+		return &found->second->type;
+	}
+	for (Constructor& ctor : assembly.dataDefinitions)
+	{
+		if (ctor.name == name)
+			return &ctor.type;
+	}
+	
+	return nullptr;
+}
+
 const Type* findInModule(const TypeEnvironment& env, Module& module, const std::string& name)
 {
 	auto found = std::find_if(module.bindings.begin(), module.bindings.end(),
@@ -180,8 +201,12 @@ const Type* findInModule(const TypeEnvironment& env, Module& module, const std::
 	}
 	for (auto& import : module.imports)
 	{
-		if (const Type* ret = findInModule(env, *import, name))
-			return ret;
+		Assembly* assembly = env.getAssembly(import);
+		if (assembly != nullptr)
+		{
+			if (const Type* ret = findInAssembly(env, *assembly, name))
+				return ret;
+		}
 	}
 	return nullptr;
 }
@@ -196,6 +221,13 @@ const Type* TypeEnvironment::getType(const std::string& name) const
 	if (module != nullptr)
 	{
 		const Type* t = findInModule(*this, *module, name);
+		if (t != nullptr)
+			return t;
+	}
+	else
+	{
+
+		const Type* t = findInAssembly(*this, Module::prelude, name);
 		if (t != nullptr)
 			return t;
 	}
@@ -287,7 +319,14 @@ void TypeEnvironment::updateConstraints(const TypeVariable& replaced, const Type
 	}
 }
 
-bool hasInstance(const Module& module, const std::string& className, const Type& op)
+bool hasInstance(const TypeEnvironment& env, const Assembly& assembly, const std::string& className, const Type& op)
+{
+	//TODO
+	std::cerr << "Need to store instances in assembly" << __FILE__ << " " << __LINE__ << std::endl;
+	return false;
+}
+
+bool hasInstance(const TypeEnvironment& env, const Module& module, const std::string& className, const Type& op)
 {
 	for (const Instance& instance : module.instances)
 	{
@@ -298,7 +337,8 @@ bool hasInstance(const Module& module, const std::string& className, const Type&
 	}
 	for (auto& import : module.imports)
 	{
-		if (hasInstance(*import, className, op))
+		Assembly* assembly = env.getAssembly(import);
+		if (assembly != nullptr && hasInstance(env, *assembly, className, op))
 			return true;
 	}
 	return false;
@@ -324,7 +364,7 @@ void TypeEnvironment::tryReplace(Type& toReplace, TypeVariable& replaceMe, const
 				for (const std::string& className : varConstraints)
 				{
 					assert(module != nullptr);
-					if (!hasInstance(*module, className, replaceWith))
+					if (!hasInstance(*this, *module, className, replaceWith))
 					{
 						//Infer the Num type class as an Int for now
 						//(Just assuming that Int has a Num instance)
