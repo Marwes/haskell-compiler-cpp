@@ -266,9 +266,10 @@ Instance Parser::instance()
 
 std::unique_ptr<Expression> Parser::expression()
 {
-	{
-		return parseOperatorExpression(application(), 0);
-	}
+	auto app = application();
+	if (app == nullptr)
+		return nullptr;
+	return parseOperatorExpression(std::move(app), 0);
 }
 
 std::string tupleName(size_t size)
@@ -421,6 +422,7 @@ std::unique_ptr<Expression> Parser::subExpression(bool (*parseError)(const Token
     case SymbolEnum::NUMBER:
         return std::unique_ptr<Expression>(new Number(atoi(token.name.c_str()), token.sourceLocation));
     default:
+		--tokenizer;
         return nullptr;
     }
 }
@@ -498,7 +500,6 @@ std::unique_ptr<Expression> Parser::application()
 		Location loc = lhs->sourceLocation;
 		lhs = std::unique_ptr<Expression>(new Apply(std::move(lhs), std::move(expressions), loc));
 	}
-	--tokenizer;
     return lhs;
 }
 

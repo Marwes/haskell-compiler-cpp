@@ -162,6 +162,23 @@ TEST_CASE("parser/three * 2 + 4", "three * 2 + 4")
 	REQUIRE(*second->arguments[1] == Number(2));
 }
 
+TEST_CASE("parser/operator/cons_1_nil", "Test if an operator expression handles []")
+{
+	const char* str = "[] ++ [1]";
+	std::stringstream stream(str);
+	Tokenizer tokenizer(stream);
+	Parser parser(tokenizer);
+
+	std::unique_ptr<Expression> expr = parser.expression();
+
+	Apply& apply = dynamic_cast<Apply&>(*expr);
+	REQUIRE(*apply.function == Name("++"));
+	REQUIRE(*apply.arguments[0] == Name("[]"));
+	Apply& apply2 = dynamic_cast<Apply&>(*apply.arguments[1]);
+	REQUIRE(*apply2.function == Name(":"));
+	REQUIRE(*apply2.arguments[0] == Number(1));
+	REQUIRE(*apply2.arguments[1] == Name("[]"));
+}
 
 TEST_CASE("parser/let three = 3 in three + 4", "")
 {
