@@ -497,3 +497,14 @@ TEST_CASE("parser/list/cons2", "")
 	REQUIRE(*apply3.function == Name(":"));
 	REQUIRE(*apply3.arguments[0] == Number(3));
 }
+
+
+TEST_CASE("parser/error/not_closed_parens", "")
+{
+	const char* str = "(1 + 2";
+	std::stringstream stream(str);
+	Tokenizer tokenizer(stream);
+	Parser parser(tokenizer);
+
+	REQUIRE_THROWS_AS(parser.expression(), ParseError);
+}

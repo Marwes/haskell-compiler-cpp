@@ -361,21 +361,18 @@ std::unique_ptr<Expression> Parser::subExpression(bool (*parseError)(const Token
 			std::vector<std::unique_ptr<Expression>> expressions = sepBy1(&Parser::expression, SymbolEnum::COMMA);
 
 			const Token& maybeParens = *tokenizer;
-			if (maybeParens.type == SymbolEnum::RPARENS)
+
+			if (maybeParens.type != SymbolEnum::RPARENS)
 			{
-				if (expressions.size() == 1)
-				{
-					return std::move(expressions[0]);
-				}
-				else
-				{
-					return newTuple(std::move(expressions));
-				}
+				throw ParseError(tokenizer, SymbolEnum::RPARENS);
+			}
+			if (expressions.size() == 1)
+			{
+				return std::move(expressions[0]);
 			}
 			else
 			{
-				--tokenizer;
-				return nullptr;
+				return newTuple(std::move(expressions));
 			}
 			break;
 		}
