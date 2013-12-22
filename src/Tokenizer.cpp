@@ -213,20 +213,18 @@ const Token& Tokenizer::tokenizeModule()
 	unprocessedTokens.reserve(unprocessedTokens.size() + 4);
 	unprocessedTokens.push_back(Token());
 	Token& tok = unprocessedTokens.back();
-	bool success = false;
 	bool newline = false;
-	if (readToken(tok, newline))
+	readToken(tok, newline);
+	
+	if (tok.type != SymbolEnum::LBRACKET && tok.type != SymbolEnum::MODULE)
 	{
-		if (tok.type != SymbolEnum::LBRACKET || tok.type != SymbolEnum::MODULE)
-		{
-			unprocessedTokens.push_back(Token(SymbolEnum::INDENTSTART, "{n}", tok.sourceLocation));
-		}
-		if (newline)
-		{
-			unprocessedTokens.push_back(Token(SymbolEnum::INDENTLEVEL, "<n>", tok.sourceLocation));
-		}
-		success = true;
+		unprocessedTokens.push_back(Token(SymbolEnum::INDENTSTART, "{n}", tok.sourceLocation));
 	}
+	if (newline)
+	{
+		unprocessedTokens.push_back(Token(SymbolEnum::INDENTLEVEL, "<n>", tok.sourceLocation));
+	}
+	
 	nextLayoutIndependentToken();
 	return **this;
 }
@@ -236,18 +234,14 @@ bool Tokenizer::tokenize(bool (*parseError)(const Token&))
 	unprocessedTokens.reserve(unprocessedTokens.size() + 4);
 	unprocessedTokens.push_back(Token());
 	Token& tok = unprocessedTokens.back();
-	bool success = false;
 	bool newline = false;
-	if (readToken(tok, newline))
+	bool success = readToken(tok, newline);
+	if (tok.type != SymbolEnum::LBRACE)
 	{
-		if (tok.type != SymbolEnum::LBRACE)
+		if (previousTokenWasKeyword())
 		{
-			if (previousTokenWasKeyword())
-			{
-				unprocessedTokens.push_back(Token(SymbolEnum::INDENTSTART, "{n}", tok.sourceLocation));
-			}
+			unprocessedTokens.push_back(Token(SymbolEnum::INDENTSTART, "{n}", tok.sourceLocation));
 		}
-		success = true;
 	}
 	if (newline)
 	{
@@ -318,6 +312,7 @@ bool Tokenizer::nextLayoutIndependentToken(bool (*parseError)(const Token&))
 			tokens.push_back(Token(SymbolEnum::LBRACE, "{"));
 			tokens.push_back(Token(SymbolEnum::RBRACE, "}"));
 			unprocessedTokens.back() = Token(SymbolEnum::INDENTLEVEL, "<n>", tok.sourceLocation);
+			offset--;
 			return true;
 		}
 		else if (tok.type == SymbolEnum::RBRACE)
