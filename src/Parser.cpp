@@ -270,6 +270,10 @@ Instance Parser::instance()
 	requireNext(SymbolEnum::LBRACE);
 
 	inst.bindings = sepBy1(&Parser::binding, SymbolEnum::SEMICOLON);
+	for (Binding& bind : inst.bindings)
+	{
+		bind.name = "#" + boost::get<TypeOperator>(inst.type).name + bind.name;
+	}
 
 	--tokenizer;
 	requireNext(SymbolEnum::RBRACE);

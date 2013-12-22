@@ -109,7 +109,7 @@ Variable findInModule(GCompiler& comp, Assembly& assembly, Module& module, const
 			{
 				for (Binding& binding : instance.bindings)
 				{
-					if (name.compare(instanceName.size() + 1, name.size(), binding.name) == 0)
+					if (name == binding.name)
 					{
 						return Variable{ VariableType::NONE, -1, nullptr, &binding.expression->getType() };
 					}
@@ -259,8 +259,7 @@ void GCompiler::compileInstance(Instance& instance)
 	std::vector<SuperCombinator*> functions;
 	for (Binding& bind : instance.bindings)
 	{
-		std::string name = "#" + boost::get<TypeOperator>(instance.type).name + bind.name;
-		SuperCombinator& sc = compileBinding(bind, name);
+		SuperCombinator& sc = compileBinding(bind, bind.name);
 		functions.push_back(&sc);
 	}
 	auto lowBound = classDictionaries.lower_bound(instance.className);
@@ -302,6 +301,7 @@ Assembly GCompiler::compileModule(Module& module)
 		const std::string& name = pair.first;
 		SuperCombinator& comb = *pair.second;
 		const Type* type = findInModule(*this, *assembly, module, name).type;
+		assert(type != nullptr);
 		comb.type = *type;
 	}
 	assembly = nullptr;

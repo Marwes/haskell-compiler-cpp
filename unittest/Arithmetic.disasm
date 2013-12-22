@@ -1,0 +1,6 @@
+.entrypoint
+ADD 0,1,2
+LOADI 0,0,0
+LOADI 10,0,0
+LOADI 5,0,0
+ADD 0,1,2

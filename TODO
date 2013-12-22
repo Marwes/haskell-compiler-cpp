@@ -1,0 +1,15 @@
+More tests that errors in parsing, compilig etc, are detected
+
+Add floating point numbers
+    Parsing of float literals
+    Instructions for addition
+
+Add comparison with proper types for Ints,...
+
+Generic number literals
+
+Typeclasses for Maybe, [a] ...
+
+Parsing of imports
+
+
