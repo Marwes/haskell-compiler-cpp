@@ -7,7 +7,9 @@ namespace MyVMNamespace
 Type intType(TypeOperator("Int"));
 Type doubleType(TypeOperator("Double"));
 
-Type binop = functionType(intType, functionType(intType, intType));
+
+TypeVariable var;
+Type binop = functionType(var, functionType(var, var));
 
 Type createPairCtor(TypeEnvironment& env)
 {

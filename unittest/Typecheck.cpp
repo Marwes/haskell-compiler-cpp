@@ -50,7 +50,7 @@ TEST_CASE("typecheck/function2", "")
 TEST_CASE("typecheck/function3", "")
 {
 	std::stringstream stream(
-"add x y = x + y\n\
+"add x y = primIntAdd x y\n\
 test x = 2 * add 3 x\n");
 	Tokenizer tokenizer(stream);
 	Parser parser(tokenizer);
@@ -119,7 +119,7 @@ TEST_CASE("typecheck/case2", "")
 		"let\n\
 		    x = undefined\n\
 			in case (1, x) of\n\
-			    (a, b) -> b + x\n");
+			    (a, b) -> primIntAdd b x\n");
 	Tokenizer tokenizer(stream);
 	Parser parser(tokenizer);
 
@@ -127,14 +127,14 @@ TEST_CASE("typecheck/case2", "")
 	TypeEnvironment env(nullptr);
 	Type& type = expr->typecheck(env);
 
-	REQUIRE(type == Type(TypeOperator("Int")));
+	REQUIRE(type > Type(TypeOperator("Int")));
 }
 
 TEST_CASE("typecheck/module", "")
 {
 	std::stringstream stream(
-"main = add2 3 * add2 3\n\
-add2 x = x + 2\n");
+"main = primIntAdd (add2 3) (add2 3)\n\
+add2 x = primIntAdd x 2\n");
 	Tokenizer tokenizer(stream);
 	Parser parser(tokenizer);
 
@@ -151,7 +151,7 @@ add2 x = x + 2\n");
 
 TEST_CASE("typecheck/module/recursive", "")
 {
-	std::stringstream stream("fib n = n * fib (n-1)");
+	std::stringstream stream("fib n = primIntMultiply n (fib (primIntSubtract n 1))");
 	Tokenizer tokenizer(stream);
 	Parser parser(tokenizer);
 
@@ -170,9 +170,9 @@ TEST_CASE("typecheck/letrec", "")
 	std::stringstream stream(
 "let\n\
     t = h 2\n\
-    f x = x + g x\n\
-    g y = y * f y\n\
-    h z = g z + 2\n\
+    f x = primIntAdd x (g x)\n\
+    g y = primIntMultiply y (f y)\n\
+    h z = primIntAdd (g z) 2\n\
 in f 2\n");
 	Tokenizer tokenizer(stream);
 	Parser parser(tokenizer);
@@ -222,8 +222,8 @@ test =\n\
 TEST_CASE("typecheck/module/mutual_recursion", "")
 {
 	std::stringstream stream(
-"test1 x = 3 * test2 x\n\
-test2 y = 2 * test1 y\n");
+"test1 x = primIntMultiply 3 (test2 x)\n\
+test2 y = primIntMultiply 2 (test1 y)\n");
 	Tokenizer tokenizer(stream);
 	Parser parser(tokenizer);
 
@@ -240,7 +240,7 @@ TEST_CASE("typecheck/nested_let", "")
 	std::stringstream stream(
 "test x =\n\
     let\n\
-        first = x + x\n\
+        first = primIntAdd x x\n\
     in let\n\
         second = [first, x]\n\
        in second\n");
@@ -254,7 +254,7 @@ TEST_CASE("typecheck/nested_let", "")
 	args[0] = TypeOperator("Int");
 	Type listType = TypeOperator("[]", args);
 	Type x = functionType(TypeOperator("Int"), listType);
-	REQUIRE(sameTypes(module.bindings[0].expression->getType(), x));
+	REQUIRE(module.bindings[0].expression->getType() > x);
 
 	Lambda& lambda = dynamic_cast<Lambda&>(*module.bindings[0].expression);
 	Let& let = dynamic_cast<Let&>(*lambda.body);
