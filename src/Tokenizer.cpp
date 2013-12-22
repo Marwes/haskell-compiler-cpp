@@ -216,7 +216,7 @@ const Token& Tokenizer::tokenizeModule()
 	bool newline = false;
 	readToken(tok, newline);
 	
-	if (tok.type != SymbolEnum::LBRACKET && tok.type != SymbolEnum::MODULE)
+	if (tok.type != SymbolEnum::LBRACE && tok.type != SymbolEnum::MODULE)
 	{
 		unprocessedTokens.push_back(Token(SymbolEnum::INDENTSTART, "{n}", tok.sourceLocation));
 	}
