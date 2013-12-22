@@ -16,6 +16,10 @@ bool operator==(const Number& lhs, const Number& rhs)
 {
     return lhs.value == rhs.value;
 }
+bool operator==(const Rational& lhs, const Rational& rhs)
+{
+	return lhs.value == rhs.value;
+}
 
 bool operator==(const Apply& lhs, const Apply& rhs)
 {
@@ -44,7 +48,13 @@ bool operator==(const Expression& lhs, const Expression& rhs)
         auto l = dynamic_cast<const Number*>(&lhs);
         if (r && l)
             return *r == *l;
-    }
+	}
+	{
+		auto r = dynamic_cast<const Rational*>(&rhs);
+		auto l = dynamic_cast<const Rational*>(&lhs);
+		if (r && l)
+			return *r == *l;
+	}
     return false;
 }
 
@@ -95,7 +105,22 @@ TEST_CASE("parser/3+2", "3 + 2")
     REQUIRE (func != NULL);
     REQUIRE (*func->arguments[0] == Number(3));
     REQUIRE (*func->arguments[1]== Number(2));
-    
+}
+
+
+TEST_CASE("parser/float_literal", "")
+{
+	std::stringstream stream("3.14 + 4.1");
+	Tokenizer tokenizer(stream);
+	Parser parser(tokenizer);
+
+	std::unique_ptr<Expression> maybeExpression = parser.run();
+	REQUIRE(maybeExpression.get() != NULL);
+
+	Apply* func = dynamic_cast<Apply*>(maybeExpression.get());
+	REQUIRE(func != NULL);
+	REQUIRE(*func->arguments[0] == Rational(3.14));
+	REQUIRE(*func->arguments[1] == Rational(4.1));
 }
 
 TEST_CASE("parser/3", "3 + 2 + 4")

@@ -124,7 +124,19 @@ bool Tokenizer::readToken(Token& token, bool& newline)
 		{
 			token.name.push_back(c);
 		}
-		token.type = SymbolEnum::NUMBER;
+		if (c == '.')
+		{
+			token.name.push_back(c);
+			while (getChar(c) && isdigit(c))
+			{
+				token.name.push_back(c);
+			}
+			token.type = SymbolEnum::FLOAT;
+		}
+		else
+		{
+			token.type = SymbolEnum::NUMBER;
+		}
 		input.unget();
 		--this->currentLocation.column;
 		--this->currentLocation.absolute;

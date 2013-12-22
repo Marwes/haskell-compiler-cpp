@@ -430,7 +430,9 @@ std::unique_ptr<Expression> Parser::subExpression(bool (*parseError)(const Token
         return std::unique_ptr<Expression>(new Name(token.name, token.sourceLocation));
     case SymbolEnum::NUMBER:
         return std::unique_ptr<Expression>(new Number(atoi(token.name.c_str()), token.sourceLocation));
-    default:
+	case SymbolEnum::FLOAT:
+		return std::unique_ptr<Expression>(new Rational(atof(token.name.c_str()), token.sourceLocation));
+	default:
 		--tokenizer;
         return nullptr;
     }

@@ -16,6 +16,7 @@ namespace MyVMNamespace
 	XX(t,NAME) \
 	XX(t,OPERATOR) \
 	XX(t,NUMBER) \
+	XX(t,FLOAT) \
 	XX(t,LPARENS) \
 	XX(t,RPARENS) \
 	XX(t,LBRACKET) \

@@ -162,3 +162,17 @@ TEST_CASE("tokenizer/apply2", "FUnction application")
 	}
 }
 
+TEST_CASE("tokenizer/float_literal", "")
+{
+	std::stringstream stream("3.14");
+	Tokenizer tokenizer(stream);
+
+	Token expected[] = {
+		Token(SymbolEnum::FLOAT, "3.14")
+	};
+	tokenizer.tokenize();
+	for (int ii = 0; tokenizer; ++tokenizer, ++ii)
+	{
+		REQUIRE(*tokenizer == expected[ii]);
+	}
+}

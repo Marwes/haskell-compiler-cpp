@@ -6,6 +6,20 @@
 
 using namespace MyVMNamespace;
 
+
+TEST_CASE("typecheck/float", "")
+{
+	std::stringstream stream("2.7");
+	Tokenizer tokenizer(stream);
+	Parser parser(tokenizer);
+
+	std::unique_ptr<Expression> expr = parser.expression();
+	TypeEnvironment env(nullptr);
+	Type& type = expr->typecheck(env);
+
+	REQUIRE(type == Type(TypeOperator("Double")));
+}
+
 TEST_CASE("typecheck/function1", "")
 {
     std::stringstream stream("test x = 2 * x\n");
