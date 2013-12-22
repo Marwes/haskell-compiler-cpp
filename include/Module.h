@@ -47,6 +47,18 @@ public:
 	std::vector<Binding> bindings;
 };
 
+inline std::string encodeBindingName(const std::string& classname, const std::string& name)
+{
+	return "#" + classname + name;
+}
+inline std::string decodeBindingName(const std::string& instancename, const std::string& name)
+{
+	assert(name[0] == '#');
+	assert(std::equal(name.begin() + 1, name.begin() + instancename.size() + 1, instancename.begin()));
+	return name.substr(instancename.size() + 1);
+}
+
+
 class Class
 {
 public:

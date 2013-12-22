@@ -200,5 +200,5 @@ TEST_CASE("module/instance", "")
 	REQUIRE(instance.bindings.size() == 1);
 	REQUIRE(instance.type == Type(TypeOperator("Int")));
 	Binding& eqBind = instance.bindings[0];
-	REQUIRE(eqBind.name == "==");
+	REQUIRE(eqBind.name == "#Int==");
 }

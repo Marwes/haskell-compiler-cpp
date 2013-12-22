@@ -272,7 +272,7 @@ Instance Parser::instance()
 	inst.bindings = sepBy1(&Parser::binding, SymbolEnum::SEMICOLON);
 	for (Binding& bind : inst.bindings)
 	{
-		bind.name = "#" + boost::get<TypeOperator>(inst.type).name + bind.name;
+		bind.name = encodeBindingName(boost::get<TypeOperator>(inst.type).name, bind.name);
 	}
 
 	--tokenizer;
