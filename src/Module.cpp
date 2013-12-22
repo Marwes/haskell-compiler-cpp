@@ -37,6 +37,19 @@ TypeDeclaration::TypeDeclaration(TypeDeclaration && other)
 {
 }
 
+void addPrimitiveFunctions(std::vector<Binding>& bindings, const std::string& typeName)
+{
+	Type type = functionType(TypeOperator(typeName), functionType(TypeOperator(typeName), TypeOperator(typeName)));
+
+	std::array<const char*, 4> functions = {"Add", "Subtract", "Multiply", "Divide"};
+	for (const char* func : functions)
+	{
+		std::string name = "prim" + typeName + func;
+		bindings.push_back(Binding(name, std::unique_ptr<Expression>(new Name("undefined"))));
+		bindings.back().expression->getType() = type;
+	}
+}
+
 Assembly createPrelude()
 {
 	std::shared_ptr<Module> prelude(std::make_shared<Module>());
@@ -65,31 +78,15 @@ Assembly createPrelude()
 		prelude->dataDefinitions.push_back(def);
 	}
 	prelude->bindings.push_back(Binding("undefined", std::unique_ptr<Expression>(new Name("undefined"))));
-	prelude->bindings.push_back(Binding("primIntEq", std::unique_ptr<Expression>(new Name("undefined"))));
 	{
+		prelude->bindings.push_back(Binding("primIntEq", std::unique_ptr<Expression>(new Name("undefined"))));
 		TypeVariable var;
 		prelude->bindings.back().expression->getType() = functionType(var, functionType(var, TypeOperator("Bool")));
 	}
-	{
-		prelude->bindings.push_back(Binding("primIntAdd", std::unique_ptr<Expression>(new Name("undefined"))));
-		TypeVariable varIntAdd;
-		prelude->bindings.back().expression->getType() = functionType(varIntAdd, functionType(varIntAdd, varIntAdd));
-	}
-	{
-		prelude->bindings.push_back(Binding("primIntSubtract", std::unique_ptr<Expression>(new Name("undefined"))));
-		TypeVariable varIntAdd;
-		prelude->bindings.back().expression->getType() = functionType(varIntAdd, functionType(varIntAdd, varIntAdd));
-	}
-	{
-		prelude->bindings.push_back(Binding("primIntMultiply", std::unique_ptr<Expression>(new Name("undefined"))));
-		TypeVariable varIntAdd;
-		prelude->bindings.back().expression->getType() = functionType(varIntAdd, functionType(varIntAdd, varIntAdd));
-	}
-	{
-		prelude->bindings.push_back(Binding("primIntDivide", std::unique_ptr<Expression>(new Name("undefined"))));
-		TypeVariable varIntAdd;
-		prelude->bindings.back().expression->getType() = functionType(varIntAdd, functionType(varIntAdd, varIntAdd));
-	}
+	
+	addPrimitiveFunctions(prelude->bindings, "Int");
+	addPrimitiveFunctions(prelude->bindings, "Double");
+
 	{
 		prelude->bindings.push_back(Binding("primIntRemainder", std::unique_ptr<Expression>(new Name("undefined"))));
 		TypeVariable varIntAdd;
@@ -185,7 +182,8 @@ TypeEnvironment Module::typecheck(std::map<std::string, Assembly*> assemblies)
 		//Type newType = klass->declarations[bind.name].type;
 		for (Binding& bind : instance.bindings)
 		{
-			bind.expression->getType() = klass->declarations[bind.name].type;
+			std::string decoded = decodeBindingName(boost::get<TypeOperator>(instance.type).name, bind.name);
+			bind.expression->getType() = klass->declarations[decoded].type;
 		}
 		addBindingsToGraph(graph, instance.bindings);
 	}
