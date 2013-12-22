@@ -140,7 +140,11 @@ std::ostream& operator<<(std::ostream& out, const Address& addr)
 	case NUMBER:
 		{
 			out << addr.getNode()->number;
-		}
+			   }
+	case DOUBLE:
+		{
+			out << addr.getNode()->numberDouble;
+			   }
 		break;
 	case GLOBAL:
 		{
@@ -158,35 +162,49 @@ std::ostream& operator<<(std::ostream& out, const Address& addr)
 	return out;
 }
 
-int add(int l, int r)
+template<class T>
+T add(T l, T r)
 {
 	return l + r;
 }
-int subtract(int l, int r)
+template<class T>
+T subtract(T l, T r)
 {
 	return l - r;
 }
-int multiply(int l, int r)
+template<class T>
+T multiply(T l, T r)
 {
 	return l * r;
 }
-int divide(int l, int r)
+template<class T>
+T divide(T l, T r)
 {
 	return l / r;
 }
-int remainder(int l, int r)
+template<class T>
+T remainder(T l, T r)
 {
 	return l % r;
 }
 
 template<int (func)(int, int)>
-void binop(GEnvironment& environment, std::vector<Node>& heap)
+void binopInt(GEnvironment& environment, std::vector<Node>& heap)
 {
 	Address rhs = environment.stack.pop();
 	Address lhs = environment.stack.top();
 	int result = func(lhs.getNode()->number, rhs.getNode()->number);
 	heap.push_back(Node(result));
 	environment.stack.top() = Address::number(&heap.back());
+}
+template<double(func)(double, double)>
+void binopDouble(GEnvironment& environment, std::vector<Node>& heap)
+{
+	Address rhs = environment.stack.pop();
+	Address lhs = environment.stack.top();
+	double result = func(lhs.getNode()->numberDouble, rhs.getNode()->numberDouble);
+	heap.push_back(Node(result));
+	environment.stack.top() = Address::numberDouble(&heap.back());
 }
 
 void GMachine::execute(GEnvironment& environment)
@@ -296,6 +314,12 @@ void GMachine::execute(GEnvironment& environment)
 				environment.stack.push(Address::number(&heap.back()));
 			}
 			break;
+		case GOP::PUSH_DOUBLE:
+			{
+				heap.push_back(Node(instruction.doubleValue));
+				environment.stack.push(Address::number(&heap.back()));
+			}
+			break;
 		case GOP::SLIDE:
 			{
 				slide(environment, instruction);
@@ -384,15 +408,22 @@ void GMachine::execute(GEnvironment& environment)
 			environment.stack.top() = Address::number(&heap.back()); \
 			}\
             break;
-#define BINOP(f, name) case GOP:: name: binop<f>(environment, heap); break;
+#define BINOP(f, name) case GOP:: name: binopInt<f>(environment, heap); break;
 
-			BINOP(add, ADD)
+			BINOP(add<int>, ADD)
+			BINOP(subtract<int>, SUBTRACT)
+			BINOP(multiply<int>, MULTIPLY)
+			BINOP(divide<int>, DIVIDE)
+			BINOP(remainder<int>, REMAINDER)
+			
+#define BINOP_DOUBLE(f, name) case GOP:: name: binopDouble<f>(environment, heap); break;
 
-			BINOP(subtract, SUBTRACT)
-			BINOP(multiply, MULTIPLY)
-			BINOP(divide , DIVIDE)
-			BINOP(remainder, REMAINDER)
+			BINOP_DOUBLE(add<double>, ADD_DOUBLE)
+			BINOP_DOUBLE(subtract<double>, SUBTRACT_DOUBLE)
+			BINOP_DOUBLE(multiply<double>, MULTIPLY_DOUBLE)
+			BINOP_DOUBLE(divide<double>, DIVIDE_DOUBLE)
 
+#undef BINOP_DOUBLE
 		case GOP::NEGATE:
 			{
 				Address x = environment.stack.top();

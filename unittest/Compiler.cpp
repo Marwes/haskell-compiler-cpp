@@ -44,6 +44,18 @@ TEST_CASE("compiler/compare", "Test compiling an arithmetic expression")
 	REQUIRE(evaluateInt("let one = 1 in one /= 2") == 1);
 }
 
+TEST_CASE("compiler/arithmetic/double", "Test compiling an arithmetic expression")
+{
+	GMachine machine;
+	std::stringstream expr(
+"main = primDoubleMultiply 3.0 1.5\n");
+	machine.compile(expr);
+
+	Address result = machine.executeMain();
+	REQUIRE(result.getType() == DOUBLE);//TODO
+	REQUIRE(result.getNode()->numberDouble == 3.0 * 1.5);
+}
+
 
 TEST_CASE("compiler/data", "")
 {

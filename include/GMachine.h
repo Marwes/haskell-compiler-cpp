@@ -12,6 +12,7 @@ namespace MyVMNamespace
 enum NodeType
 {
 	NUMBER,
+	DOUBLE,
 	APPLICATION,
 	GLOBAL,
 	INDIRECTION,
@@ -38,6 +39,13 @@ public:
 		Address a;
 		a.node = node;
 		a.type = NUMBER;
+		return a;
+	}
+	static Address numberDouble(Node* node)
+	{
+		Address a;
+		a.node = node;
+		a.type = DOUBLE;
 		return a;
 	}
 	static Address application(Node* node)
@@ -88,6 +96,9 @@ public:
 	Node(int number)
 		: number(number)
 	{}
+	Node(double number)
+		: numberDouble(number)
+	{}
 	Node(Address indirection)
 		: indirection(indirection)
 	{}
@@ -107,6 +118,7 @@ public:
 	union
 	{
 		int number;
+		double numberDouble;
 		struct
 		{
 			Address func;

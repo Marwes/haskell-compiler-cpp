@@ -310,6 +310,7 @@ bool subExpressionError(const Token& t)
 		&& t.type != SymbolEnum::CASE
 		&& t.type != SymbolEnum::NAME
 		&& t.type != SymbolEnum::NUMBER
+		&& t.type != SymbolEnum::FLOAT
 		&& t.type != SymbolEnum::SEMICOLON
 		&& t.type != SymbolEnum::LBRACKET;
 }
@@ -494,6 +495,7 @@ bool applicationError(const Token& t)
 		&& t.type != SymbolEnum::OF
 		&& t.type != SymbolEnum::NAME
 		&& t.type != SymbolEnum::NUMBER
+		&& t.type != SymbolEnum::FLOAT
 		&& t.type != SymbolEnum::OPERATOR
 		&& t.type != SymbolEnum::SEMICOLON
 		&& t.type != SymbolEnum::COMMA;
