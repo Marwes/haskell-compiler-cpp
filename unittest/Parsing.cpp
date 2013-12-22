@@ -498,6 +498,15 @@ TEST_CASE("parser/list/cons2", "")
 	REQUIRE(*apply3.arguments[0] == Number(3));
 }
 
+TEST_CASE("parser/module", "Test parsing a module that only contains the module declaration")
+{
+	std::stringstream stream("module Test where\n");
+	Tokenizer tokenizer(stream);
+	Parser parser(tokenizer);
+
+	Module module = parser.module();
+	REQUIRE(module.name == "Test");
+}
 
 TEST_CASE("parser/error/not_closed_parens", "")
 {

@@ -136,13 +136,25 @@ bool bindingError(const Token& t)
 
 Module Parser::module()
 {
-	const Token& lBracket = tokenizer.tokenizeModule();
-	if (lBracket.type != SymbolEnum::LBRACE)
+	Module module;
+	const Token& lBracketOrModule = tokenizer.tokenizeModule();
+	if (lBracketOrModule.type == SymbolEnum::MODULE)
+	{
+		const Token& modulename = requireNext(SymbolEnum::NAME);
+		module.name = modulename.name;
+		requireNext(SymbolEnum::WHERE);
+		requireNext(SymbolEnum::LBRACE);
+	}
+	else if (lBracketOrModule.type == SymbolEnum::LBRACE)
+	{
+		//No module declaration was found so default to Main
+		module.name = "Main";
+	}
+	else
 	{
 		throw ParseError(tokenizer, SymbolEnum::LBRACE);
 	}
 
-	Module module;
 
 	const Token* semicolon;
 	do

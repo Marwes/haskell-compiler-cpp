@@ -120,7 +120,8 @@ Module::Module(std::vector<Binding> bindings, std::vector<TypeDeclaration> typeD
 }
 
 Module::Module(Module && other)
-	: bindings(std::move(other.bindings))
+	: name(std::move(other.name))
+	, bindings(std::move(other.bindings))
 	, typeDeclaration(std::move(other.typeDeclaration))
 	, dataDefinitions(std::move(other.dataDefinitions))
 	, classes(std::move(other.classes))

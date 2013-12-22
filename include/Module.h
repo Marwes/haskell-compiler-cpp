@@ -75,6 +75,7 @@ public:
 
 	TypeEnvironment typecheck(std::map<std::string, Assembly*> assemblies = std::map<std::string, Assembly*>());
 
+	std::string name;
 	std::vector<Binding> bindings;
 	std::vector<TypeDeclaration> typeDeclaration;
 	std::vector<DataDefinition> dataDefinitions;
