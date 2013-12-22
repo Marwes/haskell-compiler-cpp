@@ -158,6 +158,10 @@ bool toGOP(const std::string& op, GOP& ret)
 	if (op == "<") { ret = GOP::COMPARE_LT; return true; }
 	if (op == ">=") { ret = GOP::COMPARE_GE; return true; }
 	if (op == "<=") { ret = GOP::COMPARE_LE; return true; }
+	if (op == "primDoubleAdd") { ret = GOP::ADD_DOUBLE; return true; }
+	if (op == "primDoubleSubtract") { ret = GOP::SUBTRACT_DOUBLE; return true; }
+	if (op == "primDoubleMultiply") { ret = GOP::MULTIPLY_DOUBLE; return true; }
+	if (op == "primDoubleDivide") { ret = GOP::DIVIDE_DOUBLE; return true; }
 	return false;
 }
 
@@ -550,7 +554,7 @@ void Number::compile(GCompiler& env, std::vector<GInstruction>& instructions, bo
 }
 void Rational::compile(GCompiler& env, std::vector<GInstruction>& instructions, bool strict)
 {
-	assert(0);
+	instructions.push_back(GInstruction(GOP::PUSH_DOUBLE, this->value));
 }
 
 
@@ -558,7 +562,7 @@ void Let::compile(GCompiler& env, std::vector<GInstruction>& instructions, bool 
 {
 	isRecursive = true;
 	if (isRecursive)
-		instructions.push_back(GInstruction(GOP::ALLOC, bindings.size()));
+		instructions.push_back(GInstruction(GOP::ALLOC, int(bindings.size())));
 
 	for (auto& bind : bindings)
 	{
@@ -566,12 +570,12 @@ void Let::compile(GCompiler& env, std::vector<GInstruction>& instructions, bool 
 		bind.expression->compile(env, instructions, false);
 		if (isRecursive)
 		{
-			instructions.push_back(GInstruction(GOP::UPDATE, env.stackVariables.size() - 1));
+			instructions.push_back(GInstruction(GOP::UPDATE, int(env.stackVariables.size() - 1)));
 			env.newStackVariable("");//Add an extra variable since there will also be an indirection on the stack
 		}
 	}
 	expression->compile(env, instructions, strict);
-	instructions.push_back(GInstruction(GOP::SLIDE, bindings.size()));
+	instructions.push_back(GInstruction(GOP::SLIDE, int(bindings.size())));
 	env.popStack(bindings.size());
 	if (isRecursive)
 	{
@@ -694,7 +698,7 @@ void Case::compile(GCompiler& env, std::vector<GInstruction>& instructions, bool
 		instructions[branches[ii]].value = instructions.size();
 
 		auto& pattern = dynamic_cast<ConstructorPattern&>(*alt.pattern);
-		instructions.push_back(GInstruction(GOP::SPLIT, pattern.patterns.size()));
+		instructions.push_back(GInstruction(GOP::SPLIT, int(pattern.patterns.size())));
 		env.popStack(1);
 
 		for (auto& varName : pattern.patterns)
@@ -706,7 +710,7 @@ void Case::compile(GCompiler& env, std::vector<GInstruction>& instructions, bool
 		alt.expression->compile(env, instructions, strict);
 
 		//Remove all the locals we allocated
-		instructions.push_back(GInstruction(GOP::SLIDE, pattern.patterns.size()));
+		instructions.push_back(GInstruction(GOP::SLIDE, int(pattern.patterns.size())));
 		for (auto& varName : pattern.patterns)
 		{
 			env.stackVariables.pop_back();

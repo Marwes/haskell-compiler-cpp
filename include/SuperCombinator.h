@@ -14,6 +14,7 @@ enum class GOP : unsigned char
 	UNWIND,
 	PUSH_GLOBAL,
 	PUSH_INT,
+	PUSH_DOUBLE,
 	PUSH,
 	PUSH_DICTIONARY_MEMBER,
 	MKAP,
@@ -30,6 +31,12 @@ enum class GOP : unsigned char
     REMAINDER,
 	NEGATE,
 
+	ADD_DOUBLE,
+	SUBTRACT_DOUBLE,
+	MULTIPLY_DOUBLE,
+	DIVIDE_DOUBLE,
+	NEGATE_DOUBLE,
+
 	COMPARE_EQ,
 	COMPARE_NEQ,
 	COMPARE_GT,
@@ -45,9 +52,17 @@ public:
 		: op(op)
 		, value(value)
 	{}
+	GInstruction(GOP op, double value)
+		: op(op)
+		, doubleValue(value)
+	{}
 
 	GOP op;
-	int value;
+	union
+	{
+		int value;
+		double doubleValue;
+	};
 };
 
 class SuperCombinator
