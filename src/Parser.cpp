@@ -370,7 +370,7 @@ std::unique_ptr<Expression> parseList(Parser& parser, Tokenizer& tokenizer)
 
 std::unique_ptr<Expression> Parser::subExpression(bool (*parseError)(const Token&))
 {
-	const Token& token = tokenizer.nextToken(parseError ? parseError : subExpressionError);
+	const Token& token = tokenizer.nextToken(parseError);
 	switch (token.type)
 	{
 	case SymbolEnum::LPARENS:
