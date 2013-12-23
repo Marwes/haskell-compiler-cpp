@@ -66,6 +66,12 @@ public:
 			}
 		}
 	}
+
+	void clearTypes()
+	{
+		types.clear();
+	}
+
 private:
 	Module* module;
 	std::map<std::string, Assembly*> assemblies;

@@ -168,13 +168,13 @@ const Type* findInAssembly(const TypeEnvironment& env, Assembly& assembly, const
 		if (ctor.name == name)
 			return &ctor.type;
 	}
-	for (auto& pair : assembly.classes)
+	for (Class& klass : assembly.classes)
 	{
-		for (auto& bind : pair.second)
+		for (auto& pair : klass.declarations)
 		{
-			if (bind.first == name)
+			if (pair.first == name)
 			{
-				return &bind.second.type;
+				return &pair.second.type;
 			}
 		}
 	}

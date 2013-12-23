@@ -65,7 +65,7 @@ public:
 	std::map<SuperCombinator*, int> globalIndices;
 	std::map<std::vector<TypeOperator>, int> instanceIndices;
 	std::vector<TypeOperator> instances;
-	std::map<std::string, std::map<std::string, TypeDeclaration>> classes;
+	std::vector<Class> classes;
 
 	static Assembly prelude;
 };
@@ -87,6 +87,7 @@ public:
 
 	SuperCombinator& compileBinding(Binding& binding, const std::string& name);
 	void compileInstance(Instance& instance);
+	Assembly compileExpression(Expression& expr, const std::string& name, bool strict);
 
 	Assembly compileModule(Module& module);
 

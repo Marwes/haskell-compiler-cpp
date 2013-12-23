@@ -15,6 +15,20 @@ instance Eq Int where
     (==) = primIntEq
     (/=) x y = not (primIntEq x y)
 
+class Num a where
+    (+) :: a -> a -> a
+    (-) :: a -> a -> a
+    (*) :: a -> a -> a
+
+instance Num Int where
+    (+) x y = primIntAdd x y
+    (-) x y = primIntSubtract x y
+    (*) x y = primIntMultiply x y
+
+instance Num Double where
+    (+) x y = primDoubleAdd x y
+    (-) x y = primDoubleSubtract x y
+    (*) x y = primDoubleMultiply x y
 
 (||) :: Bool -> Bool -> Bool
 (||) x y = case x of
@@ -40,10 +54,12 @@ map f xs = case xs of
     : y ys -> f y : map f ys
     [] -> []
 
-map :: (b -> a -> b) -> [a] -> [b]
+foldl :: (b -> a -> b) -> b -> [a] -> b
 foldl f x xs = case xs of
     : y ys -> foldl f (f x y) ys
     [] -> x
 
+add x y = x + y
+
 sum :: Num a => [a] -> a
-sum = foldl (+)
+sum = foldl add 0

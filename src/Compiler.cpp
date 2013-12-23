@@ -56,6 +56,18 @@ Variable findInModule(GCompiler& comp, Assembly& assembly, Assembly& import, con
 			return Variable{ VariableType::CONSTRUCTOR, index, nullptr };
 		}
 	}
+	for (Class& klass : import.classes)
+	{
+		size_t ii = 0;
+		for (auto& x : klass.declarations)
+		{
+			if (x.second.name == name)
+			{
+				return Variable { VariableType::TYPECLASSFUNCTION, ii, &klass, nullptr };
+			}
+			ii++;
+		}
+	}
 	return Variable{ VariableType::NONE, -1, nullptr, nullptr };
 }
 
@@ -125,7 +137,7 @@ Variable findInModule(GCompiler& comp, Assembly& assembly, Module& module, const
 		if (importedAssembly != nullptr)
 		{
 			Variable ret = findInModule(comp, assembly, *importedAssembly, name);
-			if (ret.index >= 0)
+			if (ret.accessType != VariableType::NONE)
 				return ret;
 		}
 	}
@@ -258,6 +270,19 @@ SuperCombinator& GCompiler::compileBinding(Binding& binding, const std::string& 
 	return sc;
 }
 
+
+Assembly GCompiler::compileExpression(Expression& expr, const std::string& name, bool strict)
+{
+	Assembly result;
+	assembly = &result;
+	SuperCombinator& sc = getGlobal(name);
+	sc.arity = 0;
+	sc.type = expr.getType();
+	expr.compile(*this, sc.instructions, strict);
+	assembly = nullptr;
+	return result;
+}
+
 void GCompiler::compileInstance(Instance& instance)
 {
 	assembly->instances.push_back(TypeOperator(instance.className, { instance.type }));
@@ -277,7 +302,7 @@ void GCompiler::compileInstance(Instance& instance)
 	instances.insert(std::make_pair(instance.type, functions));
 }
 
-void GCompiler::compileModule(Module& module)
+Assembly GCompiler::compileModule(Module& module)
 {
 	Assembly result;
 	assembly = &result;
@@ -292,10 +317,7 @@ void GCompiler::compileModule(Module& module)
 			result.dataDefinitions.push_back(ctor);
 		}
 	}
-	for (Class& klass : module.classes)
-	{
-		assembly->classes[klass.name] = klass.declarations;
-	}
+	assembly->classes = module.classes;
 
 	for (Instance& instance : module.instances)
 	{

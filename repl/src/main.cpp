@@ -87,13 +87,23 @@ public:
 		{
 			Type& type = expr->typecheck(globalTypeEnv);
 			//assert(type.which() != 0);
-
-			SuperCombinator comb;
-			comb.arity = 0;
-			expr->compile(compiler, comb.instructions, true);
-			Address addr = machine.evaluate(comb);
+			if (TypeVariable* var = boost::get<TypeVariable>(&type))
+			{
+				for (const std::string& constraint : globalTypeEnv.getConstraints(*var))
+				{
+					if (constraint == "Num")
+					{
+						type = TypeOperator("Int");
+					}
+				}
+			}
+			Assembly assembly = compiler.compileExpression(*expr, "_main", true);
+			SuperCombinator* comb = assembly.superCombinators.begin()->second.get();
+			machine.addAssembly(std::move(assembly));
+			Address addr = machine.evaluate(*comb);
 
 			std::cout << addr << std::endl;
+			globalTypeEnv.clearTypes();
 		}
 		else
 		{

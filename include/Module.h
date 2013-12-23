@@ -67,14 +67,12 @@ public:
 	Class(Class && other)
 		: name(std::move(other.name))
 		, variable(std::move(other.variable))
-		, instances(std::move(other.instances))
 		, declarations(std::move(other.declarations))
 	{}
 
 
 	std::string name;
 	TypeVariable variable;
-	std::vector<Instance> instances;
 	std::map<std::string, TypeDeclaration> declarations;
 };
 
