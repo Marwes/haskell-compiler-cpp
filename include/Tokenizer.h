@@ -123,7 +123,7 @@ private:
 	std::vector<Token> unprocessedTokens;
 	std::vector<int> indentLevels;
 	int offset;
-	Location currentLocation;
+	Location currentLocation, previousLocation;
 };
 
 }

@@ -46,8 +46,9 @@ bool Tokenizer::getChar(char& c)
 {
 	if (input.get(c))
 	{
-		++currentLocation.column;
+		previousLocation = currentLocation;
 		++currentLocation.absolute;
+		++currentLocation.column;
 		if (c == '\n' || c == '\r')
 		{
 			currentLocation.column = 0;
@@ -114,8 +115,7 @@ bool Tokenizer::readToken(Token& token, bool& newline)
 			token.type = SymbolEnum::OPERATOR;
 		}
 		input.unget();
-		--this->currentLocation.column;
-		--this->currentLocation.absolute;
+		currentLocation = previousLocation;
 		return true;
 	}
 	else if (isdigit(c))
@@ -138,8 +138,7 @@ bool Tokenizer::readToken(Token& token, bool& newline)
 			token.type = SymbolEnum::NUMBER;
 		}
 		input.unget();
-		--this->currentLocation.column;
-		--this->currentLocation.absolute;
+		currentLocation = previousLocation;
 		return true;
 	}
 	else if (isalpha(c) || c == '_')
@@ -150,8 +149,7 @@ bool Tokenizer::readToken(Token& token, bool& newline)
 		}
 		token.type = nameOrKeyWord(token.name);
 		input.unget();
-		--this->currentLocation.column;
-		--this->currentLocation.absolute;
+		currentLocation = previousLocation;
 		return true;
 	}
 	else if (c == ';')
@@ -354,7 +352,7 @@ bool Tokenizer::nextLayoutIndependentToken(bool (*parseError)(const Token&))
 			int m = indentLevels.back();
 			if (m != 0 && parseError && parseError(tok))
 			{
-				tokens.push_back(Token(SymbolEnum::RBRACE, "}"));
+				tokens.push_back(Token(SymbolEnum::RBRACE, "}", tok.sourceLocation));
 				indentLevels.pop_back();
 				return true;
 			}
