@@ -109,9 +109,7 @@ Address GMachine::executeMain()
 	sc.name == "__main";
 	sc.arity = 0;
 	sc.instructions = std::vector<GInstruction> { GInstruction(GOP::PUSH_GLOBAL, mainIndex), GInstruction(GOP::EVAL) };
-	GEnvironment env(baseStack(), &sc);
-	execute(env);
-	return env.stack.top();
+	return evaluate(sc);
 }
 
 std::ostream& operator<<(std::ostream& out, const Address& addr)
@@ -206,6 +204,14 @@ void binopDouble(GEnvironment& environment, std::vector<Node>& heap)
 	double result = func(lhs.getNode()->numberDouble, rhs.getNode()->numberDouble);
 	heap.push_back(Node(result));
 	environment.stack.top() = Address::numberDouble(&heap.back());
+}
+
+
+Address GMachine::evaluate(SuperCombinator& combinator)
+{
+	GEnvironment env(baseStack(), &combinator);
+	execute(env);
+	return env.stack.top();
 }
 
 void GMachine::execute(GEnvironment& environment)

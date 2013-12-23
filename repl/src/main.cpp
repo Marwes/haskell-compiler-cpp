@@ -81,14 +81,11 @@ public:
 		if (std::unique_ptr<Expression> expr = parser.expression())
 		{
 			Type& type = expr->typecheck(typeEnv);
-			assert(type.which() != 0);
+			//assert(type.which() != 0);
 			SuperCombinator comb;
 			comb.arity = 0;
-			comb.instructions;
 			expr->compile(compiler, comb.instructions, true);
-			GEnvironment env(machine.baseStack(), &comb);
-			machine.execute(env);
-			Address addr = machine.baseStack().base();
+			Address addr = machine.evaluate(comb);
 
 			std::cout << addr << std::endl;
 		}

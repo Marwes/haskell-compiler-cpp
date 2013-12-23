@@ -155,6 +155,7 @@ public:
 
 	void compile(std::istream& input);
 
+	Address evaluate(SuperCombinator& environment);
 	void execute(GEnvironment& environment);
 	Address executeMain();
 
