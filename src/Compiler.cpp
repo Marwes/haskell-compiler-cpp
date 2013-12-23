@@ -256,6 +256,7 @@ SuperCombinator& GCompiler::compileBinding(Binding& binding, const std::string& 
 
 void GCompiler::compileInstance(Instance& instance)
 {
+	assembly->instances.push_back(TypeOperator(instance.className, { instance.type }));
 	std::vector<SuperCombinator*> functions;
 	for (Binding& bind : instance.bindings)
 	{

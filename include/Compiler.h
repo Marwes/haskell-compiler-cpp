@@ -44,6 +44,7 @@ public:
 		, instanceDictionaries(std::move(o.instanceDictionaries))
 		, globalIndices(std::move(o.globalIndices))
 		, instanceIndices(std::move(o.instanceIndices))
+		, instances(std::move(o.instances))
 	{}
 
 	Assembly& operator=(Assembly && o)
@@ -61,6 +62,7 @@ public:
 	std::vector<InstanceDictionary> instanceDictionaries;
 	std::map<SuperCombinator*, int> globalIndices;
 	std::map<std::vector<TypeOperator>, int> instanceIndices;
+	std::vector<TypeOperator> instances;
 };
 
 class GCompiler

@@ -261,7 +261,9 @@ Type& Rational::typecheck(TypeEnvironment& env)
 
 Type& Number::typecheck(TypeEnvironment& env)
 {
-	return intType;
+	TypeVariable var = env.newTypeVariable();
+	env.addConstraint(var, "Num");
+	return type = var;
 }
 
 void addBindingsToGraph(Graph& graph, std::vector<Binding>& bindings)
@@ -333,6 +335,7 @@ void typecheckDependecyGraph(TypeEnvironment& env, Graph& graph)
 			Type& actual = bind->expression->typecheck(env);
 			unify(env, newType, actual);
 		}
+		env.removeNonGenerics(groupedBindings.size());
 
 		groupIndex++;
 		groupedBindings.clear();
@@ -536,7 +539,11 @@ void Name::compile(GCompiler& env, std::vector<GInstruction>& instructions, bool
 			}
 			else
 			{
-				assert(0);
+				std::stringstream err;
+				err << sourceLocation.column << ":" << sourceLocation.row;
+				err << " Could not find an instance for class " << var.klass->name << "\n";
+				err << "Type: " << type;
+				throw TypeError(err.str());
 			}
 		}
 		break;

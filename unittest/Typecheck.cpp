@@ -22,7 +22,7 @@ TEST_CASE("typecheck/float", "")
 
 TEST_CASE("typecheck/function1", "")
 {
-    std::stringstream stream("test x = 2 * x\n");
+    std::stringstream stream("test x = primIntMultiply 2 x\n");
     Tokenizer tokenizer(stream);
     Parser parser(tokenizer);
 
@@ -36,7 +36,7 @@ TEST_CASE("typecheck/function1", "")
 
 TEST_CASE("typecheck/function2", "")
 {
-	std::stringstream stream("test x y = 2 * x * y\n");
+	std::stringstream stream("test x y = primIntMultiply 2 (primIntMultiply x y)\n");
 	Tokenizer tokenizer(stream);
 	Parser parser(tokenizer);
 
@@ -51,7 +51,7 @@ TEST_CASE("typecheck/function3", "")
 {
 	std::stringstream stream(
 "add x y = primIntAdd x y\n\
-test x = 2 * add 3 x\n");
+test x = primIntMultiply 2 (add 3 x)\n");
 	Tokenizer tokenizer(stream);
 	Parser parser(tokenizer);
 
@@ -74,11 +74,14 @@ TEST_CASE("typecheck/tuple", "")
 	Type& type = expr->typecheck(env);
 
 	std::vector<Type> args(2);
-	args[0] = TypeOperator("Int");
-	args[1] = TypeOperator("Int");
 	auto wanted = Type(TypeOperator("(,)", args));
 
-	REQUIRE(type == wanted);
+	REQUIRE(type > wanted);
+	TypeOperator& op = boost::get<TypeOperator>(type);
+	auto& constraints1 = env.getConstraints(boost::get<TypeVariable>(op.types[0]));
+	REQUIRE(constraints1[0] == "Num");
+	auto& constraints2 = env.getConstraints(boost::get<TypeVariable>(op.types[1]));
+	REQUIRE(constraints2[0] == "Num");
 }
 
 
@@ -110,7 +113,8 @@ in case (1, x) of\n\
 	TypeEnvironment env(nullptr);
 	Type& type = expr->typecheck(env);
 
-	REQUIRE(type == Type(TypeOperator("Int")));
+	REQUIRE(type > Type(TypeVariable()));
+	REQUIRE(env.getConstraints(boost::get<TypeVariable>(type))[0] == "Num");
 }
 
 TEST_CASE("typecheck/case2", "")
@@ -231,8 +235,8 @@ test2 y = primIntMultiply 2 (test1 y)\n");
 	module.typecheck();
 
 	Type x = functionType(TypeVariable(), TypeOperator("Int"));
-	REQUIRE(sameTypes(module.bindings[0].expression->getType(), x));
-	REQUIRE(sameTypes(module.bindings[1].expression->getType(), x));
+	REQUIRE(module.bindings[0].expression->getType() > x);
+	REQUIRE(module.bindings[1].expression->getType() > x);
 }
 
 TEST_CASE("typecheck/nested_let", "")
@@ -276,7 +280,7 @@ main = head (tail [10, 20, 30])\n");
 	Parser parser(tokenizer);
 
 	Module module = parser.module();
-	module.typecheck();
+	TypeEnvironment typeEnv = module.typecheck();
 
 	std::vector<Type> args(1);
 	args[0] = TypeVariable();
@@ -284,16 +288,19 @@ main = head (tail [10, 20, 30])\n");
 	Type headType = functionType(listType, args[0]);
 	Type tailType = functionType(listType, listType);
 	
-	CHECK(module.bindings[0].expression->getType() > headType);
-	CHECK(module.bindings[1].expression->getType() > tailType);
-	CHECK(module.bindings[2].expression->getType() > Type(TypeOperator("Int")));
+	REQUIRE(module.bindings[0].expression->getType() > headType);
+	REQUIRE(module.bindings[1].expression->getType() > tailType);
+	REQUIRE(module.bindings[2].expression->getType() > Type(TypeVariable()));
+	Type& mainType = module.bindings[2].expression->getType();
+	auto& constraints = typeEnv.getConstraints(boost::get<TypeVariable>(mainType));
+	REQUIRE(constraints[0] == "Num");
 }
 
 TEST_CASE("typecheck/Maybe", "")
 {
 	std::stringstream stream(
 "data Maybe a = Just a | Nothing\n\
-test1 = Just 3\n\
+test1 = Just (primIntAdd 3 0)\n\
 test2 = Just undefined\n\
 test3 = Nothing\n");
 	Tokenizer tokenizer(stream);
@@ -309,17 +316,17 @@ test3 = Nothing\n");
 	args[0] = TypeVariable();
 	Type genericMaybe = TypeOperator("Maybe", args);
 
-	CHECK(sameTypes(module.bindings[0].expression->getType(), intMaybe));
-	CHECK(sameTypes(module.bindings[1].expression->getType(), genericMaybe));
-	CHECK(sameTypes(module.bindings[2].expression->getType(), genericMaybe));
+	REQUIRE(module.bindings[0].expression->getType() == intMaybe);
+	REQUIRE(sameTypes(module.bindings[1].expression->getType(), genericMaybe));
+	REQUIRE(sameTypes(module.bindings[2].expression->getType(), genericMaybe));
 }
 
 TEST_CASE("typecheck/pair", "Check that it is possible to have multiple pairs with differing types")
 {
 	std::stringstream stream(
 "test1 = (undefined, undefined)\n\
-test2 = (1, 2)\n\
-test3 = (undefined, 3)\n");
+test2 = (primIntAdd 1 1, primIntAdd 2 2)\n\
+test3 = (undefined, primIntAdd 3 3)\n");
 	Tokenizer tokenizer(stream);
 	Parser parser(tokenizer);
 
@@ -445,5 +452,8 @@ main = 2 === 2");
 
 	Module module = parser.module();
 
-	REQUIRE_THROWS_AS(module.typecheck(), TypeError);
+	REQUIRE_THROWS_AS(
+		TypeEnvironment env = module.typecheck();
+		GCompiler comp(env, &module);
+		comp.compileModule(module), TypeError);
 }

@@ -28,6 +28,7 @@ public:
 	std::vector<TypeOperator> getConstraints(const std::string& name, const Type& functionType) const;
 
 	void addNonGeneric(const Type& type);
+	void removeNonGenerics(size_t n);
 	bool isGeneric(const TypeVariable& var) const;
 	void replace(TypeVariable replaceMe, const Type& replaceWith);
 	void tryReplace(Type& toReplace, TypeVariable& replaceMe, const Type& replaceWith);

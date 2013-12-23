@@ -135,9 +135,14 @@ TypeEnvironment TypeEnvironment::child()
 
 TypeVariable TypeEnvironment::newTypeVariable()
 {
-	TypeVariable var;
-	var.id = uniqueVariableId++;
-	return var;
+	if (parent == nullptr)
+	{
+		TypeVariable var;
+		var.id = uniqueVariableId++;
+		return var;
+	}
+	else
+		return parent->newTypeVariable();
 }
 
 
@@ -321,10 +326,15 @@ void TypeEnvironment::updateConstraints(const TypeVariable& replaced, const Type
 	}
 }
 
-bool hasInstance(const TypeEnvironment& env, const Assembly& assembly, const std::string& className, const Type& op)
+bool hasInstance(const TypeEnvironment& env, const Assembly& assembly, const std::string& className, const Type& type)
 {
-	//TODO
-	std::cerr << "Need to store instances in assembly" << __FILE__ << " " << __LINE__ << std::endl;
+	for (const TypeOperator& op : assembly.instances)
+	{
+		if (op.name == className && type == op.types[0])
+		{
+			return true;
+		}
+	}
 	return false;
 }
 
@@ -365,8 +375,8 @@ void TypeEnvironment::tryReplace(Type& toReplace, TypeVariable& replaceMe, const
 				//Check that the TypeOperator fulfills all constraints of the variable
 				for (const std::string& className : varConstraints)
 				{
-					assert(module != nullptr);
-					if (!hasInstance(*this, *module, className, replaceWith))
+					//No module == cant find an instance (where 
+					if (module == nullptr || !hasInstance(*this, *module, className, replaceWith))
 					{
 						//Infer the Num type class as an Int for now
 						//(Just assuming that Int has a Num instance)
@@ -408,6 +418,14 @@ void TypeEnvironment::replace(TypeVariable replaceMe, const Type& replaceWith)
 void TypeEnvironment::addNonGeneric(const Type& type)
 {
 	nonGeneric.push_back(type);
+}
+
+void TypeEnvironment::removeNonGenerics(size_t n)
+{
+	for (size_t ii = 0; ii < n; ii++)
+	{
+		nonGeneric.pop_back();
+	}
 }
 
 bool TypeEnvironment::isGeneric(const TypeVariable& var) const

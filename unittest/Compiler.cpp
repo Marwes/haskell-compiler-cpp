@@ -317,7 +317,7 @@ instance Number Int where\n\
 data Test = Test\n\
 instance Number Test where\n\
 	number x = 2\n\
-main = number 0 - number Test");
+main = number (primIntAdd 0 0) - number Test");
 	GMachine machine;
 	machine.compile(expr);
 
