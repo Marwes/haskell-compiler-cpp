@@ -392,6 +392,17 @@ TEST_CASE("typecheck/error/number_literal", "")
 	REQUIRE_THROWS_AS(module.typecheck(), TypeError);
 }
 
+TEST_CASE("typecheck/error/number_literal_cons", "Test the the generic numbers cannot be specialized into a type which isn't a number")
+{
+	std::stringstream stream("test = 2 : 2\n");
+	Tokenizer tokenizer(stream);
+	Parser parser(tokenizer);
+
+	Module module = parser.module();
+
+	REQUIRE_THROWS_AS(module.typecheck(), TypeError);
+}
+
 TEST_CASE("typecheck/class", "")
 {
 	std::stringstream stream(
