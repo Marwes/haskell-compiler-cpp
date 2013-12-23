@@ -501,3 +501,17 @@ sum = foldl add\n");
 
 	REQUIRE_THROWS_AS(module.typecheck(), TypeError);
 }
+
+
+TEST_CASE("typecheck/typedeclaration/specialized", "")
+{
+	std::stringstream stream(
+"test :: Num a => a -> a -> a\n\
+test x y = primIntAdd x y\n");
+	Tokenizer tokenizer(stream);
+	Parser parser(tokenizer);
+
+	Module module = parser.module();
+
+	REQUIRE_THROWS_AS(module.typecheck(), TypeError);
+}

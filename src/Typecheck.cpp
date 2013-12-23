@@ -365,12 +365,20 @@ void TypeEnvironment::tryReplace(Type& toReplace, TypeVariable& replaceMe, const
 		{
 			if (replaceWith.which() == 0)//TypeVariable
 			{
+				const TypeVariable& replaceWithVar = boost::get<TypeVariable>(replaceWith);
+				if (isVariableLocked(x) && getConstraints(x) != getConstraints(replaceWithVar))
+				{
+					throw TypeError("Attempt to create a more specialized type than was declared", x);
+				}
 				//Merge the constraints from both variables
-				updateConstraints(x, boost::get<TypeVariable>(replaceWith));
-				constraints.erase(x);
+				updateConstraints(x, replaceWithVar);
 			}
 			else
 			{
+				if (isVariableLocked(x))
+				{
+					throw TypeError("Attempt to create a more specialized type than was declared", x);
+				}
 				auto varConstraints = getConstraints(replaceMe);
 				//Check that the TypeOperator fulfills all constraints of the variable
 				for (const std::string& className : varConstraints)

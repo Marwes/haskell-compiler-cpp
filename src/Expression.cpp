@@ -266,6 +266,19 @@ Type& Number::typecheck(TypeEnvironment& env)
 	return type = var;
 }
 
+void lockVariables(TypeEnvironment& env, const Type& type)
+{
+	if (const TypeVariable* var = boost::get<TypeVariable>(&type))
+	{
+		env.lockVariable(*var);
+	}
+	else if (const TypeOperator* op = boost::get<TypeOperator>(&type))
+	{
+		for (const Type& t : op->types)
+			lockVariables(env, t);
+	}
+}
+
 void addBindingsToGraph(Graph& graph, std::vector<Binding>& bindings)
 {
 
@@ -275,6 +288,7 @@ void addBindingsToGraph(Graph& graph, std::vector<Binding>& bindings)
 		graph[vert] = &bind;
 	}
 }
+
 void typecheckDependecyGraph(TypeEnvironment& env, Graph& graph)
 {
 	DependencyVisitor visitor(graph);
@@ -322,8 +336,22 @@ void typecheckDependecyGraph(TypeEnvironment& env, Graph& graph)
 		}
 		for (Binding* bind : groupedBindings)
 		{
+			bool isInstanceFunction = bind->expression->getType().which() == 1;//TODO
 			env.addNonGeneric(bind->expression->getType());
 			Type& actual = bind->expression->typecheck(env);
+			//Functions in instances should have the type unified since it needs to match the class declaration
+			if (!isInstanceFunction)
+			{
+				//TODO, functions such as: undefined :: a, will not have the variable locked
+				if (TypeOperator* op = boost::get<TypeOperator>(&bind->type.type))
+				{
+					lockVariables(env, bind->type.type);
+				}
+				for (TypeOperator& op : bind->type.constraints)
+				{
+					env.addConstraint(boost::get<TypeVariable>(op.types[0]), op.name);
+				}
+			}
 			unify(env, bind->type.type, actual);
 		}
 		env.removeNonGenerics(groupedBindings.size());
