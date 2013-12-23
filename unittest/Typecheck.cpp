@@ -380,6 +380,18 @@ main = test 3\n");
 	REQUIRE_THROWS(module.typecheck());
 }
 
+
+TEST_CASE("typecheck/error/number_literal", "")
+{
+	std::stringstream stream("test = primIntMultiply 2 []\n");
+	Tokenizer tokenizer(stream);
+	Parser parser(tokenizer);
+
+	Module module = parser.module();
+
+	REQUIRE_THROWS_AS(module.typecheck(), TypeError);
+}
+
 TEST_CASE("typecheck/class", "")
 {
 	std::stringstream stream(
