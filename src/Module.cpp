@@ -46,7 +46,7 @@ void addPrimitiveFunctions(std::vector<Binding>& bindings, const std::string& ty
 	{
 		std::string name = "prim" + typeName + func;
 		bindings.push_back(Binding(name, std::unique_ptr<Expression>(new Name("undefined"))));
-		bindings.back().expression->getType() = type;
+		bindings.back().type.type = type;
 	}
 }
 
@@ -184,6 +184,7 @@ TypeEnvironment Module::typecheck(std::map<std::string, Assembly*> assemblies)
 		{
 			std::string decoded = decodeBindingName(boost::get<TypeOperator>(instance.type).name, bind.name);
 			bind.expression->getType() = klass->declarations[decoded].type;
+			bind.type.type = bind.expression->getType();
 		}
 		addBindingsToGraph(graph, instance.bindings);
 	}

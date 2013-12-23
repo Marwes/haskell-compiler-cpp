@@ -423,7 +423,7 @@ main = 2 === 3");
 
 	TypeVariable& var = module.classes[0].variable;
 	Binding& eqInt = module.instances[0].bindings[0];
-	REQUIRE(sameTypes(eqInt.expression->getType(), Type(functionType(var, functionType(var, TypeOperator("Bool"))))));
+	REQUIRE(eqInt.expression->getType() > Type(functionType(var, functionType(var, TypeOperator("Bool")))));
 }
 
 TEST_CASE("typecheck/class/error", "")
@@ -479,4 +479,25 @@ main = 2 === 2");
 		TypeEnvironment env = module.typecheck();
 		GCompiler comp(env, &module);
 		comp.compileModule(module), TypeError);
+}
+
+
+TEST_CASE("typecheck/typedeclaration/mismatch", "")
+{
+	std::stringstream stream(
+"foldl :: (b -> a -> b) -> [a] -> [b]\n\
+foldl f x xs = case xs of\n\
+	: y ys -> foldl f (f x y) ys\n\
+	[] -> x\n\
+\n\
+add x y = x + y\n\
+\n\
+sum :: Num a => [a] -> a\n\
+sum = foldl add\n");
+	Tokenizer tokenizer(stream);
+	Parser parser(tokenizer);
+
+	Module module = parser.module();
+
+	REQUIRE_THROWS_AS(module.typecheck(), TypeError);
 }

@@ -318,22 +318,13 @@ void typecheckDependecyGraph(TypeEnvironment& env, Graph& graph)
 		for (Binding* bind : groupedBindings)
 		{
 			Type& type = bind->expression->getType();
-			if (type == Type(TypeVariable()))
-			{
-				type = env.newTypeVariable();
-			}
 			env.bindName(bind->name, type);
 		}
 		for (Binding* bind : groupedBindings)
 		{
-			Type newType = bind->expression->getType();
-			if (newType == Type(TypeVariable()))
-			{
-				newType = env.newTypeVariable();
-			}
-			env.addNonGeneric(newType);
+			env.addNonGeneric(bind->expression->getType());
 			Type& actual = bind->expression->typecheck(env);
-			unify(env, newType, actual);
+			unify(env, bind->type.type, actual);
 		}
 		env.removeNonGenerics(groupedBindings.size());
 
