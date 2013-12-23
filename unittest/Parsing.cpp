@@ -422,6 +422,21 @@ TEST_CASE("parser/typedeclaration3", "Function")
 	REQUIRE(type.type == functionType(functionType(TypeOperator("Int"), TypeOperator("Double")), TypeOperator("Int")));
 }
 
+TEST_CASE("parser/typedeclaration + function", "Function")
+{
+	const char* expr = 
+"(.) :: (b -> c) -> (a -> b) -> (a -> c)\n";
+	std::stringstream stream(expr);
+	Tokenizer tokenizer(stream);
+	Parser parser(tokenizer);
+
+	Module module = parser.module();
+	TypeDeclaration& type = module.typeDeclaration[0];
+	REQUIRE(type.name == ".");
+	TypeVariable a, b, c;
+	REQUIRE(type.type > functionType(functionType(b, c), functionType(functionType(a, b), functionType(a, c))));
+}
+
 TEST_CASE("parser/constraints", "")
 {
 	const char* expr = "add :: Num a => a -> a -> a\n";

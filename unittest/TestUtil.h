@@ -13,7 +13,10 @@ inline bool sameTypes(std::map<TypeVariable, TypeVariable>& idmap, const Type& l
 		auto& r = boost::get<TypeVariable>(rhs);
 		if (idmap.count(l) > 0)
 			return idmap[l] == r;
+		if (idmap.count(r) > 0)
+			return idmap[r] == l;
 		idmap[l] = r;
+		idmap[r] = l;
 		return true;
 	}
 	else if (lhs.which() == rhs.which())

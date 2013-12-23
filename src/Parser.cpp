@@ -902,7 +902,7 @@ Type Parser::type(std::map<std::string, TypeVariable>& typeVariableMapping)
 			{
 				const Token& arrow = tokenizer.nextToken();
 				if (arrow.type == SymbolEnum::ARROW)
-					return functionType(t, type());
+					return functionType(t, type(typeVariableMapping));
 				else
 				{
 					--tokenizer;
