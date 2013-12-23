@@ -79,35 +79,43 @@ public:
 
 	void evaluate(const std::string& line)
 	{
-		GCompiler compiler(globalTypeEnv, &module, 0, assemblies);
-		std::stringstream stream(line);
-		Tokenizer tokenizer(stream);
-		Parser parser(tokenizer);
-		if (std::unique_ptr<Expression> expr = parser.expression())
+		try
 		{
-			Type& type = expr->typecheck(globalTypeEnv);
-			//assert(type.which() != 0);
-			if (TypeVariable* var = boost::get<TypeVariable>(&type))
+			GCompiler compiler(globalTypeEnv, &module, 0, assemblies);
+			std::stringstream stream(line);
+			Tokenizer tokenizer(stream);
+			Parser parser(tokenizer);
+			if (std::unique_ptr<Expression> expr = parser.expression())
 			{
-				for (const std::string& constraint : globalTypeEnv.getConstraints(*var))
+				Type& type = expr->typecheck(globalTypeEnv);
+				//assert(type.which() != 0);
+				if (TypeVariable* var = boost::get<TypeVariable>(&type))
 				{
-					if (constraint == "Num")
+					for (const std::string& constraint : globalTypeEnv.getConstraints(*var))
 					{
-						type = TypeOperator("Int");
+						if (constraint == "Num")
+						{
+							type = TypeOperator("Int");
+						}
 					}
 				}
-			}
-			Assembly assembly = compiler.compileExpression(*expr, "_main", true);
-			SuperCombinator* comb = assembly.superCombinators.begin()->second.get();
-			machine.addAssembly(std::move(assembly));
-			Address addr = machine.evaluate(*comb);
+				Assembly assembly = compiler.compileExpression(*expr, "_main", true);
+				SuperCombinator* comb = assembly.superCombinators.begin()->second.get();
+				machine.addAssembly(std::move(assembly));
+				Address addr = machine.evaluate(*comb);
 
-			std::cout << addr << std::endl;
+				std::cout << addr << std::endl;
+			}
+			else
+			{
+				std::cout << "Failed to parse expression" << std::endl;
+			}
 			globalTypeEnv.clearTypes();
 		}
-		else
+		catch (...)
 		{
-			std::cout << "Failed to parse expression" << std::endl;
+			globalTypeEnv.clearTypes();
+			throw;
 		}
 	}
 
