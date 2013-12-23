@@ -876,6 +876,7 @@ Type Parser::type(std::map<std::string, TypeVariable>& typeVariableMapping)
 			{
 				return functionType(listType, type(typeVariableMapping));
 			}
+			--tokenizer;
 			return listType;
 		}
 	case SymbolEnum::LPARENS:
@@ -896,6 +897,7 @@ Type Parser::type(std::map<std::string, TypeVariable>& typeVariableMapping)
 				{
 					return functionType(tupleType(tupleArgs), type(typeVariableMapping));
 				}
+				--tokenizer;
 				return tupleType(tupleArgs);
 			}
 			else if (maybeComma.type == SymbolEnum::RPARENS)
