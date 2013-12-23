@@ -23,6 +23,7 @@ GMachine::GMachine()
 	: debug(false)
 {
 	heap.reserve(1024);//Just make sure the heap is large enough for small examples for now
+	assemblies.reserve(100);
 }
 
 Assembly compileInputStream(std::istream& file, int startIndex)
@@ -31,7 +32,7 @@ Assembly compileInputStream(std::istream& file, int startIndex)
 	Parser parser(tokens);
 	Module module = parser.module();
 	TypeEnvironment typeEnv = module.typecheck();
-	std::map<std::string, Assembly*> assemblies = { { "Prelude", &Module::prelude } };
+	std::map<std::string, Assembly*> assemblies = { { "Prelude", &Assembly::prelude } };
 	GCompiler comp(typeEnv, &module, startIndex, assemblies);
 
 	return comp.compileModule(module);

@@ -1,6 +1,7 @@
 #include <algorithm>
 #include "Typecheck.h"
 #include "Module.h"
+#include "Compiler.h"
 
 namespace MyVMNamespace
 {
@@ -100,12 +101,8 @@ TypeEnvironment::TypeEnvironment(Module* module, std::map<std::string, Assembly*
 {
 	if (assemblies.count("Prelude") == 0)
 	{
-		assemblies.insert(std::make_pair("Prelude", &Module::prelude));
+		assemblies.insert(std::make_pair("Prelude", &Assembly::prelude));
 	}
-	bindName("+", binop);
-	bindName("-", binop);
-	bindName("*", binop);
-	bindName("/", binop);
 	bindName("%", binop);
 	bindName("==", binop);
 	bindName("/=", binop);
@@ -171,6 +168,16 @@ const Type* findInAssembly(const TypeEnvironment& env, Assembly& assembly, const
 		if (ctor.name == name)
 			return &ctor.type;
 	}
+	for (auto& pair : assembly.classes)
+	{
+		for (auto& bind : pair.second)
+		{
+			if (bind.first == name)
+			{
+				return &bind.second.type;
+			}
+		}
+	}
 	
 	return nullptr;
 }
@@ -234,7 +241,7 @@ const Type* TypeEnvironment::getType(const std::string& name) const
 	else
 	{
 
-		const Type* t = findInAssembly(*this, Module::prelude, name);
+		const Type* t = findInAssembly(*this, Assembly::prelude, name);
 		if (t != nullptr)
 			return t;
 	}

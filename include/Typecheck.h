@@ -13,7 +13,7 @@ class Assembly;
 class TypeEnvironment
 {
 public:
-	TypeEnvironment(Module* module, std::map<std::string, Assembly*> assemblies = std::map<std::string, Assembly*>());
+	TypeEnvironment(Module* module = nullptr, std::map<std::string, Assembly*> assemblies = std::map<std::string, Assembly*>());
 	TypeEnvironment(TypeEnvironment && env);
 
 	TypeEnvironment child();
@@ -43,6 +43,28 @@ public:
 	{
 		auto found = assemblies.find(name);
 		return found == assemblies.end() ? nullptr : found->second;
+	}
+	void addAssembly(const std::string& name, Assembly* assembly)
+	{
+		assemblies.insert(std::make_pair(name, assembly));
+	}
+	const std::map<TypeVariable, std::vector<std::string>>& getAllConstraints() const
+	{
+		return constraints;
+	}
+	void addConstraints(const std::map<TypeVariable, std::vector<std::string>>& otherConstraints)
+	{
+		for (auto& pair : otherConstraints)
+		{
+			std::vector<std::string>& x = constraints[pair.first];
+			for (const std::string& constraint : pair.second)
+			{
+				if (std::find(x.begin(), x.end(), constraint) == x.end())
+				{
+					x.push_back(constraint);
+				}
+			}
+		}
 	}
 private:
 	Module* module;

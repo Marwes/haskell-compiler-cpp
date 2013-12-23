@@ -28,6 +28,10 @@ std::string readWord(const std::string& str, size_t start)
 class REPL
 {
 public:
+	REPL()
+		: globalTypeEnv(&module)
+	{}
+
 	void runCommand(const std::string& line)
 	{
 		if (line.size() < 2)
@@ -60,6 +64,8 @@ public:
 			Assembly& assembly = machine.addAssembly(compiler.compileModule(newModule));
 			assemblies.insert(std::make_pair(name, &assembly));
 			module.imports.push_back(name);
+			globalTypeEnv.addAssembly(name, &assembly);
+			globalTypeEnv.addConstraints(typeEnv.getAllConstraints());
 		}
 		else if (command == "q")
 		{
@@ -73,15 +79,15 @@ public:
 
 	void evaluate(const std::string& line)
 	{
-		TypeEnvironment typeEnv(&module, assemblies);
-		GCompiler compiler(typeEnv, &module, 0, assemblies);
+		GCompiler compiler(globalTypeEnv, &module, 0, assemblies);
 		std::stringstream stream(line);
 		Tokenizer tokenizer(stream);
 		Parser parser(tokenizer);
 		if (std::unique_ptr<Expression> expr = parser.expression())
 		{
-			Type& type = expr->typecheck(typeEnv);
+			Type& type = expr->typecheck(globalTypeEnv);
 			//assert(type.which() != 0);
+
 			SuperCombinator comb;
 			comb.arity = 0;
 			expr->compile(compiler, comb.instructions, true);
@@ -97,6 +103,7 @@ public:
 
 private:
 	int assemblyIndex;
+	TypeEnvironment globalTypeEnv;
 	std::map<std::string, Assembly*> assemblies;
 	Module module;
 	GMachine machine;

@@ -3,6 +3,7 @@
 #include "Tokenizer.h"
 #include "Module.h"
 #include "Typecheck.h"
+#include "Compiler.h"
 
 namespace MyVMNamespace
 {
@@ -36,73 +37,6 @@ TypeDeclaration::TypeDeclaration(TypeDeclaration && other)
 	, constraints(std::move(other.constraints))
 {
 }
-
-void addPrimitiveFunctions(std::vector<Binding>& bindings, const std::string& typeName)
-{
-	Type type = functionType(TypeOperator(typeName), functionType(TypeOperator(typeName), TypeOperator(typeName)));
-
-	std::array<const char*, 4> functions = {"Add", "Subtract", "Multiply", "Divide"};
-	for (const char* func : functions)
-	{
-		std::string name = "prim" + typeName + func;
-		bindings.push_back(Binding(name, std::unique_ptr<Expression>(new Name("undefined"))));
-		bindings.back().type.type = type;
-	}
-}
-
-Assembly createPrelude()
-{
-	std::shared_ptr<Module> prelude(std::make_shared<Module>());
-	prelude->imports.clear();//Remove prelude from itself
-	{
-		std::vector<Type> args(2);
-		args[0] = TypeVariable();
-		args[1] = TypeVariable();
-		Constructor ctor("(,)", functionType(args[0], functionType(args[1], TypeOperator("(,)", args))), 0, 2);
-		DataDefinition def;
-		def.name = "(,)";
-		def.constructors.push_back(ctor);
-		prelude->dataDefinitions.push_back(def);
-	}
-
-	{
-		std::vector<Type> args(1);
-		args[0] = TypeVariable();
-		TypeOperator listType("[]", args);
-		Constructor ctor(":", functionType(args[0], functionType(listType, listType)), 0, 2);
-		Constructor ctor2("[]", listType, 1, 0);
-		DataDefinition def;
-		def.name = "[]";
-		def.constructors.push_back(ctor);
-		def.constructors.push_back(ctor2);
-		prelude->dataDefinitions.push_back(def);
-	}
-	prelude->bindings.push_back(Binding("undefined", std::unique_ptr<Expression>(new Name("undefined"))));
-	{
-		prelude->bindings.push_back(Binding("primIntEq", std::unique_ptr<Expression>(new Name("undefined"))));
-		TypeVariable var;
-		prelude->bindings.back().expression->getType() = functionType(var, functionType(var, TypeOperator("Bool")));
-	}
-	
-	addPrimitiveFunctions(prelude->bindings, "Int");
-	addPrimitiveFunctions(prelude->bindings, "Double");
-
-	{
-		prelude->bindings.push_back(Binding("primIntRemainder", std::unique_ptr<Expression>(new Name("undefined"))));
-		TypeVariable varIntAdd;
-		prelude->bindings.back().expression->getType() = functionType(varIntAdd, functionType(varIntAdd, varIntAdd));
-	}
-	{
-		prelude->bindings.push_back(Binding("fromInteger", std::unique_ptr<Expression>(new Name("undefined"))));
-		TypeVariable var;
-		prelude->bindings.back().expression->getType() = functionType(TypeOperator("Int"), var);
-	}
-	
-	TypeEnvironment typeEnv = prelude->typecheck();
-	GCompiler comp(typeEnv, prelude.get());
-	return comp.compileModule(*prelude);
-}
-Assembly Module::prelude(createPrelude());
 
 Module::Module()
 {
@@ -160,7 +94,7 @@ TypeEnvironment Module::typecheck(std::map<std::string, Assembly*> assemblies)
 	{
 		if (import == "Prelude")
 		{
-			assemblies.insert(std::make_pair("Prelude", &Module::prelude));
+			assemblies.insert(std::make_pair("Prelude", &Assembly::prelude));
 		}
 		else
 		{

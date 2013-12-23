@@ -6,7 +6,6 @@
 #include <set>
 #include "Types.h"
 #include "SuperCombinator.h"
-#include "Compiler.h"
 #include "Util.h"
 #include <boost/graph/adjacency_list.hpp>
 
@@ -16,6 +15,7 @@ class Environment;
 class Binding;
 class Module;
 class Instance;
+class GCompiler;
 
 class Expression;
 

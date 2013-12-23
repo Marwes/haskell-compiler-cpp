@@ -4,6 +4,7 @@
 #include "Expression.h"
 #include "Module.h"
 #include "Typecheck.h"
+#include "Compiler.h"
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/strong_components.hpp>
 
@@ -147,10 +148,10 @@ std::vector<std::unique_ptr<Expression>> argVector(std::unique_ptr<Expression> &
 
 bool toGOP(const std::string& op, GOP& ret)
 {
-	if (op == "+" || op == "primIntAdd") { ret = GOP::ADD; return true; }
-	if (op == "-" || op == "primIntSubtract") { ret = GOP::SUBTRACT; return true; }
-	if (op == "*" || op == "primIntMultiply") { ret = GOP::MULTIPLY; return true; }
-	if (op == "/" || op == "primIntDivide") { ret = GOP::DIVIDE; return true; }
+	if (op == "primIntAdd") { ret = GOP::ADD; return true; }
+	if (op == "primIntSubtract") { ret = GOP::SUBTRACT; return true; }
+	if (op == "primIntMultiply") { ret = GOP::MULTIPLY; return true; }
+	if (op == "primIntDivide") { ret = GOP::DIVIDE; return true; }
 	if (op == "%" || op == "primIntRemainder") { ret = GOP::REMAINDER; return true; }
 	if (op == "==") { ret = GOP::COMPARE_EQ; return true; }
 	if (op == "/=") { ret = GOP::COMPARE_NEQ; return true; }

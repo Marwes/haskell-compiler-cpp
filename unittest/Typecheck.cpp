@@ -3,6 +3,7 @@
 #include "Tokenizer.h"
 #include "Parser.h"
 #include "Typecheck.h"
+#include "Compiler.h"
 
 using namespace MyVMNamespace;
 

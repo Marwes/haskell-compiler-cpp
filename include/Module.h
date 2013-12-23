@@ -78,6 +78,8 @@ public:
 	std::map<std::string, TypeDeclaration> declarations;
 };
 
+class Assembly;
+
 class Module
 {
 public:
@@ -95,8 +97,6 @@ public:
 	std::vector<Instance> instances;
 
 	std::vector<std::string> imports;
-
-	static Assembly prelude;
 };
 
 }

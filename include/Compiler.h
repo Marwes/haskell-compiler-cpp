@@ -2,6 +2,7 @@
 #include <string>
 #include "SuperCombinator.h"
 #include "Types.h"
+#include "Module.h"
 
 namespace MyVMNamespace
 {
@@ -45,6 +46,7 @@ public:
 		, globalIndices(std::move(o.globalIndices))
 		, instanceIndices(std::move(o.instanceIndices))
 		, instances(std::move(o.instances))
+		, classes(std::move(o.classes))
 	{}
 
 	Assembly& operator=(Assembly && o)
@@ -63,6 +65,9 @@ public:
 	std::map<SuperCombinator*, int> globalIndices;
 	std::map<std::vector<TypeOperator>, int> instanceIndices;
 	std::vector<TypeOperator> instances;
+	std::map<std::string, std::map<std::string, TypeDeclaration>> classes;
+
+	static Assembly prelude;
 };
 
 class GCompiler

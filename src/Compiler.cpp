@@ -2,6 +2,7 @@
 #include "Compiler.h"
 #include "Expression.h"
 #include "Module.h"
+#include "Typecheck.h"
 
 namespace MyVMNamespace
 {
@@ -14,7 +15,7 @@ GCompiler::GCompiler(TypeEnvironment& typeEnv, Module* module, int globalStartIn
 	, assemblies(std::move(assemblies))
 {
 	if (this->assemblies.count("Prelude") == 0)
-		this->assemblies.insert(std::make_pair("Prelude", &Module::prelude));
+		this->assemblies.insert(std::make_pair("Prelude", &Assembly::prelude));
 }
 
 void GCompiler::newStackVariable(const std::string& name)
@@ -172,10 +173,13 @@ SuperCombinator& GCompiler::getGlobal(const std::string& name)
 
 int GCompiler::getDictionaryIndex(const std::vector<TypeOperator>& constraints)
 {
-	auto found = assembly->instanceIndices.find(constraints);
-	if (found != assembly->instanceIndices.end())
+	for (auto a : assemblies)
 	{
-		return found->second;
+		auto found = a.second->instanceIndices.find(constraints);
+		if (found != a.second->instanceIndices.end())
+		{
+			return found->second;
+		}
 	}
 	//Add a new dictionary
 	std::vector<SuperCombinator*> dict;
@@ -273,7 +277,7 @@ void GCompiler::compileInstance(Instance& instance)
 	instances.insert(std::make_pair(instance.type, functions));
 }
 
-Assembly GCompiler::compileModule(Module& module)
+void GCompiler::compileModule(Module& module)
 {
 	Assembly result;
 	assembly = &result;
@@ -287,6 +291,10 @@ Assembly GCompiler::compileModule(Module& module)
 			ctor.tag = tag++;
 			result.dataDefinitions.push_back(ctor);
 		}
+	}
+	for (Class& klass : module.classes)
+	{
+		assembly->classes[klass.name] = klass.declarations;
 	}
 
 	for (Instance& instance : module.instances)
@@ -308,4 +316,71 @@ Assembly GCompiler::compileModule(Module& module)
 	assembly = nullptr;
 	return result;
 }
+
+void addPrimitiveFunctions(std::vector<Binding>& bindings, const std::string& typeName)
+{
+	Type type = functionType(TypeOperator(typeName), functionType(TypeOperator(typeName), TypeOperator(typeName)));
+
+	std::array<const char*, 4> functions = { "Add", "Subtract", "Multiply", "Divide" };
+	for (const char* func : functions)
+	{
+		std::string name = "prim" + typeName + func;
+		bindings.push_back(Binding(name, std::unique_ptr<Expression>(new Name("undefined"))));
+		bindings.back().type.type = type;
+	}
+}
+
+Assembly createPrelude()
+{
+	Module prelude;
+	prelude.imports.clear();//Remove prelude from itself
+	{
+		std::vector<Type> args(2);
+		args[0] = TypeVariable();
+		args[1] = TypeVariable();
+		Constructor ctor("(,)", functionType(args[0], functionType(args[1], TypeOperator("(,)", args))), 0, 2);
+		DataDefinition def;
+		def.name = "(,)";
+		def.constructors.push_back(ctor);
+		prelude.dataDefinitions.push_back(def);
+	}
+
+	{
+		std::vector<Type> args(1);
+		args[0] = TypeVariable();
+		TypeOperator listType("[]", args);
+		Constructor ctor(":", functionType(args[0], functionType(listType, listType)), 0, 2);
+		Constructor ctor2("[]", listType, 1, 0);
+		DataDefinition def;
+		def.name = "[]";
+		def.constructors.push_back(ctor);
+		def.constructors.push_back(ctor2);
+		prelude.dataDefinitions.push_back(def);
+	}
+	prelude.bindings.push_back(Binding("undefined", std::unique_ptr<Expression>(new Name("undefined"))));
+	{
+		prelude.bindings.push_back(Binding("primIntEq", std::unique_ptr<Expression>(new Name("undefined"))));
+		TypeVariable var;
+		prelude.bindings.back().expression->getType() = functionType(var, functionType(var, TypeOperator("Bool")));
+	}
+
+	addPrimitiveFunctions(prelude.bindings, "Int");
+	addPrimitiveFunctions(prelude.bindings, "Double");
+
+	{
+		prelude.bindings.push_back(Binding("primIntRemainder", std::unique_ptr<Expression>(new Name("undefined"))));
+		TypeVariable varIntAdd;
+		prelude.bindings.back().expression->getType() = functionType(varIntAdd, functionType(varIntAdd, varIntAdd));
+	}
+	{
+		prelude.bindings.push_back(Binding("fromInteger", std::unique_ptr<Expression>(new Name("undefined"))));
+		TypeVariable var;
+		prelude.bindings.back().expression->getType() = functionType(TypeOperator("Int"), var);
+	}
+
+	TypeEnvironment typeEnv = prelude.typecheck();
+	GCompiler comp(typeEnv, &prelude);
+	return comp.compileModule(prelude);
+}
+Assembly Assembly::prelude(createPrelude());
 }
