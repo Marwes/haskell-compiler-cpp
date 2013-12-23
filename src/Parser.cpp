@@ -130,7 +130,8 @@ bool bindingError(const Token& t)
 	return t.type != SymbolEnum::EQUALSSIGN
 		&& t.type != SymbolEnum::NAME
 		&& t.type != SymbolEnum::TYPEDECL
-		&& t.type != SymbolEnum::OPERATOR;
+		&& t.type != SymbolEnum::OPERATOR
+		&& t.type != SymbolEnum::RPARENS;
 }
 
 
@@ -163,18 +164,26 @@ Module Parser::module()
 		const Token& token = tokenizer.nextToken(toplevelError);
 		if (token.type == SymbolEnum::NAME || token.type == SymbolEnum::LPARENS)
 		{
-			const Token& equalOrType = tokenizer.nextToken(bindingError);
-			if (equalOrType.type == SymbolEnum::TYPEDECL)
+			int numberOfLookaheads = 2;
+			const Token* equalOrType = &tokenizer.nextToken(bindingError);
+			while (equalOrType->type != SymbolEnum::TYPEDECL
+				&& equalOrType->type != SymbolEnum::EQUALSSIGN)
+			{
+				equalOrType = &tokenizer.nextToken(bindingError);
+				numberOfLookaheads++;
+			}
+			for (int ii = 0; ii < numberOfLookaheads; ii++)
 			{
 				--tokenizer;
-				--tokenizer;
+			}
+
+			if (equalOrType->type == SymbolEnum::TYPEDECL)
+			{
 				auto bind = typeDeclaration();
 				module.typeDeclaration.push_back(std::move(bind));
 			}
 			else
 			{
-				--tokenizer;
-				--tokenizer;
 				auto bind = binding();
 				module.bindings.push_back(std::move(bind));
 			}
