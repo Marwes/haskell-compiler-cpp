@@ -45,7 +45,7 @@ std::string parseError(Tokenizer& tokenizer, SymbolEnum expected)
 	str << "Error: Unexpected token at " << token.sourceLocation.row << ":" << token.sourceLocation.column << "\n";
 	str << "Found: " << enumToString(token.type) << " '" << token.name << "'\n";
 	str << "Around: '" << buffer << "'\n";
-	str << std::string(std::min(token.sourceLocation.absolute, 20) + 10, ' ') << "^";
+	str << std::string(std::min(token.sourceLocation.column, 20) + 10, ' ') << "^";
 	return str.str();
 }
 
@@ -66,7 +66,7 @@ const Token& Parser::requireNext(SymbolEnum expected)
 {
 	const Token& tok = tokenizer.nextToken();
 	if (tok.type != expected)
-		throw ParseError(tok, expected);
+		throw ParseError(tokenizer, expected);
 	return tok;
 }
     
@@ -274,7 +274,6 @@ Instance Parser::instance()
 	
 	inst.type = type();
 
-	--tokenizer;
 	requireNext(SymbolEnum::WHERE);
 	requireNext(SymbolEnum::LBRACE);
 
@@ -758,16 +757,14 @@ TypeDeclaration Parser::typeDeclaration(std::map<std::string, TypeVariable>& typ
 		throw ParseError(tokenizer, SymbolEnum::TYPEDECL);
 	}
 	Type typeOrContext = type(typeVariableMapping);
-	const Token& maybeContextArrow = *tokenizer;
+	const Token& maybeContextArrow = tokenizer.nextToken();
 	if (maybeContextArrow.type == SymbolEnum::OPERATOR && maybeContextArrow.name == "=>")
 	{
 		Type t = type(typeVariableMapping);
-		--tokenizer;
 		TypeOperator& op = boost::get<TypeOperator>(typeOrContext);
 		return TypeDeclaration(std::move(name), std::move(t), createTypeConstraints(op));
 	}
 	--tokenizer;
-
 	return TypeDeclaration(std::move(name), std::move(typeOrContext));
 }
 
@@ -948,10 +945,10 @@ Type Parser::type(std::map<std::string, TypeVariable>& typeVariableMapping)
 			{
 				thisType = functionType(thisType, type(typeVariableMapping));
 			}
-			if (next->type == SymbolEnum::COMMA
-				|| next->type == SymbolEnum::RPARENS
-				|| next->type == SymbolEnum::RBRACKET)//in tuple or list
+			else
+			{
 				--tokenizer;
+			}
 			return thisType;
 		}
 		break;
