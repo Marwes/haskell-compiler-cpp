@@ -140,11 +140,12 @@ std::ostream& operator<<(std::ostream& out, const Address& addr)
 	case NUMBER:
 		{
 			out << addr.getNode()->number;
-			   }
+		}
+		break;
 	case DOUBLE:
 		{
 			out << addr.getNode()->numberDouble;
-			   }
+		}
 		break;
 	case GLOBAL:
 		{
