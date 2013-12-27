@@ -22,11 +22,10 @@ int evaluateInt(const char* str)
 
 TEST_CASE("compiler/arithmetic", "Test compiling an arithmetic expression")
 {
-	REQUIRE(evaluateInt("3+2") == 5);
-	REQUIRE(evaluateInt("2 * 4 + 3") == 11);
-	REQUIRE(evaluateInt("let three = 3 in 2 * 4 + three") == 11);
-	REQUIRE(evaluateInt("let six = 3 * 2 in 2 * 4 + six") == 14);
-	REQUIRE(evaluateInt("let six = 3 * 2; four = six - 2 in 2 * four + six") == 14);
+	REQUIRE(evaluateInt("primIntAdd 3 2") == 5);
+	REQUIRE(evaluateInt("primIntAdd (primIntMultiply 2 4) 3") == 11);
+	REQUIRE(evaluateInt("let three = 3 in primIntAdd (primIntMultiply 2 4) three") == 11);
+	REQUIRE(evaluateInt("let six = primIntMultiply 3 2; four = primIntSubtract six 2 in primIntAdd (primIntMultiply 2 four) six") == 14);
 
 	//Lambda lifting is not implemented so just avoid local functiosnm for now (even though they happen to work)
 	//REQUIRE(evaluateInt("let f x = x * x in f 3") == 9);
@@ -121,7 +120,7 @@ TEST_CASE("compiler/data/patternmatch", "")
 "data List = Cons Int List\n\
            | Nil\n\
 length xs = case xs of\n\
-    Cons n ys -> 1 + length ys\n\
+    Cons n ys -> primIntAdd 1 (length ys)\n\
     Nil -> 0\n\
 main = length (Cons 10 (Cons 20 Nil))\n";
 	std::stringstream expr(main);
@@ -139,14 +138,14 @@ TEST_CASE("compiler/data/map", "")
 "data List = Cons Int List\n\
            | Nil\n\
 length xs = case xs of\n\
-    Cons n ys -> 1 + length ys\n\
+    Cons n ys -> primIntAdd 1 (length ys)\n\
     Nil -> 0\n\
 map f xs = case xs of\n\
     Cons n ys -> Cons (f n) (map f ys)\n\
     Nil -> Nil\n\
-add2 x = x + 2\n\
+add2 x = primIntAdd x 2\n\
 sum xs = case xs of\n\
-    Cons n ys -> n + sum ys\n\
+    Cons n ys -> primIntAdd n (sum ys)\n\
     Nil -> 0\n\
 main = sum (map add2 (Cons 10 (Cons 20 Nil)))\n";
 	std::stringstream expr(main);
@@ -257,7 +256,7 @@ TEST_CASE("compiler/typeclass/2", "")
     ($-) :: a -> a -> a\n\
 instance Num Int where\n\
     ($+) x y = primIntAdd x y\n\
-    ($-) x y = x - y\n\
+    ($-) x y = primIntSubtract x y\n\
 main = 2 $+ 3 $- 8");
 	GMachine machine;
 	machine.compile(expr);
@@ -275,7 +274,7 @@ TEST_CASE("compiler/typeclass/unordered", "")
 	($+) :: a -> a -> a\n\
 	($-) :: a -> a -> a\n\
 instance Num Int where\n\
-	($-) x y = x - y\n\
+	($-) x y = primIntSubtract x y\n\
 	($+) x y = primIntAdd x y\n\
 main = 2 $+ 3 $- 8");
 	GMachine machine;
@@ -317,7 +316,7 @@ instance Number Int where\n\
 data Test = Test\n\
 instance Number Test where\n\
 	number x = 2\n\
-main = number (primIntAdd 0 0) - number Test");
+main = primIntSubtract (number (primIntAdd 0 0)) (number Test)");
 	GMachine machine;
 	machine.compile(expr);
 

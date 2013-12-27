@@ -64,7 +64,7 @@ TEST_CASE("gmachine/arithmetic", "")
 {
 	GMachine machine;
 	const char* str =
-		"main = 3 * 7";
+		"main = primIntMultiply 3 7";
 	std::stringstream expr(str);
 	machine.compile(expr);
 
@@ -77,7 +77,7 @@ TEST_CASE("gmachine/arithmetic/2", "")
 {
 	GMachine machine;
 	const char* str =
-		"main = let three = 3 in three * 7 - 5";
+		"main = let three = 3 in primIntSubtract (primIntMultiply three 7) 5";
 	std::stringstream expr(str);
 	machine.compile(expr);
 
@@ -90,7 +90,7 @@ TEST_CASE("gmachine/tuple", "")
 {
 	GMachine machine;
 	const char* str =
-		"main = case (1, 2) of { (x, y) -> x + y }";
+		"main = case (1, 2) of { (x, y) -> primIntAdd x y }";
 	std::stringstream expr(str);
 	machine.compile(expr);
 
@@ -105,7 +105,7 @@ TEST_CASE("gmachine/tuple2", "")
 "main =\n\
 	let\n\
 		ten = 10\n\
-	in case (ten, 5) of { (x, y) -> x + y }";
+	in case (ten, 5) of { (x, y) -> primIntAdd x y }";
 	std::stringstream expr(str);
 	machine.compile(expr);
 
@@ -117,9 +117,9 @@ TEST_CASE("gmachine/tuple2", "")
 TEST_CASE("gmachine/multiple_assemblies", "")
 {
 	GMachine machine;
-	std::stringstream main("main = 3 * 3");
+	std::stringstream main("main = primIntMultiply 3 3");
 	machine.compile(main);
-	std::stringstream first("f x = x + 2");
+	std::stringstream first("f x = primIntAdd x 2");
 	machine.compile(first);
 
 	Address result = machine.executeMain();
