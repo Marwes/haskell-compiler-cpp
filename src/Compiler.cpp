@@ -3,6 +3,8 @@
 #include "Expression.h"
 #include "Module.h"
 #include "Typecheck.h"
+#include "Stack.h"
+#include "GMachine.h"
 
 namespace MyVMNamespace
 {
@@ -67,6 +69,12 @@ Variable findInModule(GCompiler& comp, Assembly& assembly, Assembly& import, con
 			}
 			ii++;
 		}
+	}
+	auto foundFFI = import.ffiFunctions.find(name);
+	if (foundFFI != import.ffiFunctions.end())
+	{
+		int index = foundFFI->second.index;
+		return Variable{ VariableType::TOPLEVEL, index, nullptr, nullptr };
 	}
 	return Variable{ VariableType::NONE, -1, nullptr, nullptr };
 }
@@ -352,6 +360,23 @@ void addPrimitiveFunctions(std::vector<Binding>& bindings, const std::string& ty
 	}
 }
 
+int primIntEq(GMachine* machine, StackFrame<Address>* stackPtr)
+{
+	StackFrame<Address>& stack = *stackPtr;
+	assert(stack.stackSize() == 3);//2 arguments + function ptr
+	assert(stack[0].getType() == NUMBER && stack[1].getType() == NUMBER);
+	if (stack[0].getNode()->number == stack[1].getNode()->number)
+	{
+		machine->heap.push_back(Node(1, nullptr));
+	}
+	else
+	{
+		machine->heap.push_back(Node(0, nullptr));
+	}
+	stack.top() = Address::constructor(&machine->heap.back());
+	return 0;
+}
+
 Assembly createPrelude()
 {
 	Module prelude;
@@ -380,11 +405,6 @@ Assembly createPrelude()
 		prelude.dataDefinitions.push_back(def);
 	}
 	prelude.bindings.push_back(Binding("undefined", std::unique_ptr<Expression>(new Name("undefined"))));
-	{
-		prelude.bindings.push_back(Binding("primIntEq", std::unique_ptr<Expression>(new Name("undefined"))));
-		TypeVariable var;
-		prelude.bindings.back().expression->getType() = functionType(var, functionType(var, TypeOperator("Bool")));
-	}
 
 	addPrimitiveFunctions(prelude.bindings, "Int");
 	addPrimitiveFunctions(prelude.bindings, "Double");
@@ -402,7 +422,15 @@ Assembly createPrelude()
 
 	TypeEnvironment typeEnv = prelude.typecheck();
 	GCompiler comp(typeEnv, &prelude);
-	return comp.compileModule(prelude);
+	Assembly result = comp.compileModule(prelude);
+	int globalIndex = result.superCombinators.size() + result.instanceDictionaries.size() + result.ffiFunctions.size();
+	
+	ForeignFunction func;
+	func.function = primIntEq;
+	func.index = globalIndex++;
+	func.arity = 2;
+	result.ffiFunctions["primIntEq"] = func;
+	return result;
 }
 Assembly Assembly::prelude(createPrelude());
 }

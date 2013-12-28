@@ -35,6 +35,14 @@ TEST_CASE("compiler/arithmetic", "Test compiling an arithmetic expression")
 
 TEST_CASE("compiler/compare", "Test compiling an arithmetic expression")
 {
+	GMachine machine;
+	std::stringstream expr("main = primIntEq 1 2");
+	machine.compile(expr);
+
+	Address addr = machine.executeMain();
+	REQUIRE(addr.getType() == CONSTRUCTOR);
+	REQUIRE(addr.getNode()->constructor.tag == 0);//False is the tag 0
+
 	REQUIRE(evaluateInt("3==2") == 0);
 	REQUIRE(evaluateInt("3<=2") == 0);
 	REQUIRE(evaluateInt("3 > 2") == 1);

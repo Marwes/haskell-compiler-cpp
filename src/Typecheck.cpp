@@ -178,6 +178,14 @@ const Type* findInAssembly(const TypeEnvironment& env, Assembly& assembly, const
 			}
 		}
 	}
+	for (auto& pair : assembly.ffiFunctions)
+	{
+		if (pair.first == name)
+		{
+			static const Type any;
+			return &any;
+		}
+	}
 	
 	return nullptr;
 }

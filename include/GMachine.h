@@ -13,6 +13,8 @@ enum NodeType
 {
 	NUMBER,
 	DOUBLE,
+	FUNCTION_POINTER,
+
 	APPLICATION,
 	GLOBAL,
 	INDIRECTION,
@@ -46,6 +48,13 @@ public:
 		Address a;
 		a.node = node;
 		a.type = DOUBLE;
+		return a;
+	}
+	static Address functionPointer(Node* node)
+	{
+		Address a;
+		a.node = node;
+		a.type = FUNCTION_POINTER;
 		return a;
 	}
 	static Address application(Node* node)
@@ -115,10 +124,20 @@ public:
 		constructor.tag = tag;
 		constructor.arguments = arguments;
 	}
+	Node(t_ffi_func func, int args)
+	{
+		function.ptr = func;
+		function.args = args;
+	}
 	union
 	{
 		int number;
 		double numberDouble;
+		struct 
+		{
+			t_ffi_func ptr;
+			int args;
+		} function;
 		struct
 		{
 			Address func;
@@ -159,11 +178,10 @@ public:
 	void execute(GEnvironment& environment);
 	Address executeMain();
 
-	Assembly& addAssembly(Assembly&& assembly);
+	Assembly& addAssembly(Assembly assembly);
 
 	SuperCombinator* getCombinator(const std::string& name);
 
-private:
 	Array<Address> stack;
 	std::vector<Address> globals;
 	std::vector<Node> heap;

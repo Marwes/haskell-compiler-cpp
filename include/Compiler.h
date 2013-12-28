@@ -35,6 +35,20 @@ struct InstanceDictionary
 	std::vector<SuperCombinator*> dictionary;
 };
 
+class GMachine;
+class GEnvironment;
+class Address;
+template<class T>
+class StackFrame;
+
+typedef int(*t_ffi_func)(GMachine* machine, StackFrame<Address>* env);
+struct ForeignFunction
+{
+	t_ffi_func function;
+	int arity;
+	int index;
+};
+
 class Assembly
 {
 public:
@@ -47,7 +61,22 @@ public:
 		, instanceIndices(std::move(o.instanceIndices))
 		, instances(std::move(o.instances))
 		, classes(std::move(o.classes))
+		, ffiFunctions(std::move(o.ffiFunctions))
 	{}
+	Assembly(const Assembly& o)
+		: dataDefinitions(o.dataDefinitions)
+		, instanceDictionaries(o.instanceDictionaries)
+		, globalIndices(o.globalIndices)
+		, instanceIndices(o.instanceIndices)
+		, instances(o.instances)
+		, classes(o.classes)
+		, ffiFunctions(o.ffiFunctions)
+	{
+		for (auto& comb : o.superCombinators)
+		{
+			superCombinators[comb.first] = make_unique<SuperCombinator>(*comb.second);
+		}
+	}
 
 	Assembly& operator=(Assembly && o)
 	{
@@ -56,6 +85,9 @@ public:
 		instanceDictionaries = std::move(o.instanceDictionaries);
 		globalIndices = std::move(o.globalIndices);
 		instanceIndices = std::move(o.instanceIndices);
+		instances = std::move(o.instances);
+		classes = std::move(o.classes);
+		ffiFunctions = std::move(o.ffiFunctions);
 		return *this;
 	}
 
@@ -66,6 +98,7 @@ public:
 	std::map<std::vector<TypeOperator>, int> instanceIndices;
 	std::vector<TypeOperator> instances;
 	std::vector<Class> classes;
+	std::map<std::string, ForeignFunction> ffiFunctions;
 
 	static Assembly prelude;
 };

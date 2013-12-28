@@ -1,7 +1,7 @@
 #pragma once
 #include <vector>
 #include <stdarg.h>
-#include "Types.h"
+#include <assert.h>
 #include "Array.h"
 
 namespace MyVMNamespace
@@ -46,7 +46,7 @@ public:
 
     StackFrame<T> makeChildFrame(size_t numParameters)
     {
-		StackObject* newBase = Slice<T>::data() + currentSize - numParameters;
+		T* newBase = Slice<T>::data() + currentSize - numParameters;
 		return StackFrame<T>(newBase, Slice<T>::size() - (currentSize - numParameters), numParameters);
     }
 

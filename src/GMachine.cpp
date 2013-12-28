@@ -24,6 +24,7 @@ GMachine::GMachine()
 {
 	heap.reserve(1024);//Just make sure the heap is large enough for small examples for now
 	assemblies.reserve(100);
+	addAssembly(Assembly::prelude);
 }
 
 Assembly compileInputStream(std::istream& file, int startIndex)
@@ -43,12 +44,12 @@ void GMachine::compile(std::istream& input)
 	addAssembly(compileInputStream(input, globals.size()));
 }
 
-Assembly& GMachine::addAssembly(Assembly&& inputAssembly)
+Assembly& GMachine::addAssembly(Assembly inputAssembly)
 {
 	assemblies.push_back(std::move(inputAssembly));
 	Assembly& assembly = assemblies.back();
 
-	globals.resize(globals.size() + assembly.superCombinators.size() + assembly.instanceDictionaries.size());
+	globals.resize(globals.size() + assembly.superCombinators.size() + assembly.instanceDictionaries.size() + assembly.ffiFunctions.size());
 	for (auto& sc : assembly.superCombinators)
 	{
 		int index = assembly.globalIndices[sc.second.get()];
@@ -66,6 +67,12 @@ Assembly& GMachine::addAssembly(Assembly&& inputAssembly)
 			ctor[ii] = globals[assembly.globalIndices[dict.dictionary[ii]]];
 		}
 		ctor[dict.dictionary.size()] = Address::indirection(nullptr);//endmarker
+	}
+	for (auto& pair : assembly.ffiFunctions)
+	{
+		ForeignFunction& func = pair.second;
+		heap.push_back(Node(func.function, func.arity));
+		globals[func.index] = Address::functionPointer(&heap.back());
 	}
 	return assembly;
 }
@@ -345,6 +352,36 @@ void GMachine::execute(GEnvironment& environment)
 						Node& n = *top.getNode();
 						environment.stack.push(n.apply.func);
 						--index;//Redo the unwind instruction
+					}
+					break;
+				case FUNCTION_POINTER:
+					{
+						int arity = top.getNode()->function.args;
+						if (stack.stackSize() - 1 < size_t(arity))
+						{
+							while (stack.stackSize() > 1)
+							{
+								stack.pop();
+							}
+						}
+						else
+						{
+							size_t ii = environment.stack.stackSize() - arity - 1;
+							for (; ii < environment.stack.stackSize() - 1; ii++)
+							{
+								Address& addr = environment.stack[ii];
+								assert(addr.getType() == APPLICATION);
+								addr = addr.getNode()->apply.arg;
+							}
+							t_ffi_func func = top.getNode()->function.ptr;
+							assert(func != nullptr);
+							StackFrame<Address> newStack = stack.makeChildFrame(arity + 1);
+							func(this, &newStack);
+							Address result = newStack.top();
+							for (int i = 0; i < arity; i++)
+								environment.stack.pop();
+							environment.stack.push(result);
+						}
 					}
 					break;
 				case GLOBAL:
