@@ -107,6 +107,20 @@ TEST_CASE("parser/3+2", "3 + 2")
     REQUIRE (*func->arguments[1]== Number(2));
 }
 
+TEST_CASE("parser/negative number", "")
+{
+	std::stringstream stream("-2");
+	Tokenizer tokenizer(stream);
+	Parser parser(tokenizer);
+
+	std::unique_ptr<Expression> maybeExpression = parser.run();
+	REQUIRE(maybeExpression.get() != NULL);
+
+	Apply* func = dynamic_cast<Apply*>(maybeExpression.get());
+	REQUIRE(func != NULL);
+	REQUIRE(*func->function == Name("negate"));
+	REQUIRE(*func->arguments[0] == Number(2));
+}
 
 TEST_CASE("parser/float_literal", "")
 {

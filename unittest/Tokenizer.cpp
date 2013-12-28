@@ -176,3 +176,18 @@ TEST_CASE("tokenizer/float_literal", "")
 		REQUIRE(*tokenizer == expected[ii]);
 	}
 }
+TEST_CASE("tokenizer/negative number", "")
+{
+	std::stringstream stream("-2");
+	Tokenizer tokenizer(stream);
+
+	Token expected[] = {
+		Token(SymbolEnum::OPERATOR, "-"),
+		Token(SymbolEnum::NUMBER, "2")
+	};
+	tokenizer.tokenize();
+	for (int ii = 0; tokenizer; ++tokenizer, ++ii)
+	{
+		REQUIRE(*tokenizer == expected[ii]);
+	}
+}

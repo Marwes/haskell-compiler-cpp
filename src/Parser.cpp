@@ -291,8 +291,6 @@ Instance Parser::instance()
 std::unique_ptr<Expression> Parser::expression()
 {
 	auto app = application();
-	if (app == nullptr)
-		return nullptr;
 	return parseOperatorExpression(std::move(app), 0);
 }
 
@@ -481,10 +479,21 @@ std::unique_ptr<Expression> Parser::parseOperatorExpression(std::unique_ptr<Expr
 		{
 			return nullptr;
 		}
-		std::unique_ptr<Expression> name(new Name(op.name, op.sourceLocation));
-		std::vector<std::unique_ptr<Expression>> args(2);
-		args[0] = std::move(lhs);
-		args[1] = std::move(rhs);
+		std::unique_ptr<Name> name(new Name(op.name, op.sourceLocation));
+		std::vector<std::unique_ptr<Expression>> args(lhs == nullptr ? 1 : 2);
+		if (lhs == nullptr)
+		{
+			if (op.name == "-")
+			{
+				name->name = "negate";
+			}
+			args[0] = std::move(rhs);
+		}
+		else
+		{
+			args[0] = std::move(lhs);
+			args[1] = std::move(rhs);
+		}
 		Location loc = args[0]->sourceLocation;
 		lhs = std::unique_ptr<Expression>(new Apply(std::move(name), std::move(args), loc));
 	}
