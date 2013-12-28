@@ -54,6 +54,22 @@ TEST_CASE("compiler/compare", "Test compiling an arithmetic expression")
 	REQUIRE(!evaluateBool("main = primIntLt 10 1"));
 }
 
+TEST_CASE("compile/compare/case", "Test if the Bool from the primitive operators work")
+{
+	GMachine machine;
+	std::stringstream expr(
+"data Bool = False | True\n\
+not x = case x of\n\
+	True -> False\n\
+	False -> True\n\
+main = not (primIntLt 2 1)");
+	machine.compile(expr);
+
+	Address result = machine.executeMain();
+	REQUIRE(result.getType() == CONSTRUCTOR);
+	REQUIRE(result.getNode()->constructor.tag == 1);//True
+}
+
 TEST_CASE("compiler/arithmetic/double", "Test compiling an arithmetic expression")
 {
 	GMachine machine;
