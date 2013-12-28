@@ -8,6 +8,17 @@
 
 using namespace MyVMNamespace;
 
+bool evaluateBool(const char* str)
+{
+	GMachine machine;
+	std::stringstream expr(str);
+	machine.compile(expr);
+
+	Address addr = machine.executeMain();
+	REQUIRE(addr.getType() == CONSTRUCTOR);
+	return addr.getNode()->constructor.tag == 1;//False is the tag 0
+}
+
 int evaluateInt(const char* str)
 {
 	GMachine machine;
@@ -35,20 +46,12 @@ TEST_CASE("compiler/arithmetic", "Test compiling an arithmetic expression")
 
 TEST_CASE("compiler/compare", "Test compiling an arithmetic expression")
 {
-	GMachine machine;
-	std::stringstream expr("main = primIntEq 1 2");
-	machine.compile(expr);
-
-	Address addr = machine.executeMain();
-	REQUIRE(addr.getType() == CONSTRUCTOR);
-	REQUIRE(addr.getNode()->constructor.tag == 0);//False is the tag 0
-
-	REQUIRE(evaluateInt("3==2") == 0);
-	REQUIRE(evaluateInt("3<=2") == 0);
-	REQUIRE(evaluateInt("3 > 2") == 1);
-	REQUIRE(evaluateInt("3>=2") == 1);
-	REQUIRE(evaluateInt("3 < 2") == 0);
-	REQUIRE(evaluateInt("let one = 1 in one /= 2") == 1);
+	REQUIRE(!evaluateBool("main = primIntEq 1 2"));
+	REQUIRE(evaluateBool("main = primIntGt 30 2"));
+	REQUIRE(!evaluateBool("main = primIntLt 1 1"));
+	REQUIRE(evaluateBool("main = primIntGe 1 1"));
+	REQUIRE(evaluateBool("main = primIntLe 2 2"));
+	REQUIRE(!evaluateBool("main = primIntLt 10 1"));
 }
 
 TEST_CASE("compiler/arithmetic/double", "Test compiling an arithmetic expression")

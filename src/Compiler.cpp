@@ -360,12 +360,13 @@ void addPrimitiveFunctions(std::vector<Binding>& bindings, const std::string& ty
 	}
 }
 
-int primIntEq(GMachine* machine, StackFrame<Address>* stackPtr)
+template<bool (*op)(int, int)>
+int primitiveBoolBinop(GMachine* machine, StackFrame<Address>* stackPtr)
 {
 	StackFrame<Address>& stack = *stackPtr;
 	assert(stack.stackSize() == 3);//2 arguments + function ptr
 	assert(stack[0].getType() == NUMBER && stack[1].getType() == NUMBER);
-	if (stack[0].getNode()->number == stack[1].getNode()->number)
+	if (op(stack[1].getNode()->number, stack[0].getNode()->number))
 	{
 		machine->heap.push_back(Node(1, nullptr));
 	}
@@ -375,6 +376,27 @@ int primIntEq(GMachine* machine, StackFrame<Address>* stackPtr)
 	}
 	stack.top() = Address::constructor(&machine->heap.back());
 	return 0;
+}
+
+bool primIntEq(int l, int r)
+{
+	return l == r;
+}
+bool primIntLt(int l, int r)
+{
+	return l < r;
+}
+bool primIntGt(int l, int r)
+{
+	return l > r;
+}
+bool primIntLe(int l, int r)
+{
+	return l <= r;
+}
+bool primIntGe(int l, int r)
+{
+	return l >= r;
 }
 
 Assembly createPrelude()
@@ -425,11 +447,21 @@ Assembly createPrelude()
 	Assembly result = comp.compileModule(prelude);
 	int globalIndex = result.superCombinators.size() + result.instanceDictionaries.size() + result.ffiFunctions.size();
 	
-	ForeignFunction func;
-	func.function = primIntEq;
-	func.index = globalIndex++;
-	func.arity = 2;
-	result.ffiFunctions["primIntEq"] = func;
+#define PRIM(name)\
+{\
+	ForeignFunction func;\
+	func.function = primitiveBoolBinop< name >;\
+	func.index = globalIndex++;\
+	func.arity = 2;\
+	result.ffiFunctions[ #name ] = func;\
+}
+	PRIM(primIntEq);
+	PRIM(primIntGt);
+	PRIM(primIntLt);
+	PRIM(primIntGe);
+	PRIM(primIntLe);
+
+#undef PRIM
 	return result;
 }
 Assembly Assembly::prelude(createPrelude());
