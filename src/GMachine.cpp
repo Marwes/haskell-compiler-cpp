@@ -332,7 +332,7 @@ void GMachine::execute(GEnvironment& environment)
 		case GOP::PUSH_DOUBLE:
 			{
 				heap.push_back(Node(instruction.doubleValue));
-				environment.stack.push(Address::number(&heap.back()));
+				environment.stack.push(Address::numberDouble(&heap.back()));
 			}
 			break;
 		case GOP::SLIDE:
