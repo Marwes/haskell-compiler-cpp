@@ -66,6 +66,16 @@ TEST_CASE("compiler/arithmetic/double", "Test compiling an arithmetic expression
 	REQUIRE(result.getNode()->numberDouble == 3.0 * 1.5);
 }
 
+TEST_CASE("compiler/compare/double", "Test compiling an arithmetic expression")
+{
+	REQUIRE(!evaluateBool("main = primDoubleEq 1. 2."));
+	REQUIRE(evaluateBool("main = primDoubleGt 30. 2."));
+	REQUIRE(!evaluateBool("main = primDoubleLt 1. 1."));
+	REQUIRE(evaluateBool("main = primDoubleGe 1. 1."));
+	REQUIRE(evaluateBool("main = primDoubleLe 2. 2."));
+	REQUIRE(!evaluateBool("main = primDoubleLt 10. 1."));
+}
+
 
 TEST_CASE("compiler/data", "")
 {
