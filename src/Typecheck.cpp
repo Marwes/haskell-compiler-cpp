@@ -564,7 +564,7 @@ public:
 
 		if (t1.name != t2.name || t1.types.size() != t2.types.size())
 		{
-			throw TypeError(t1, t2);
+			throw TypeError(env, t1, t2);
 		}
 
 		for (size_t ii = 0; ii < t1.types.size(); ii++)

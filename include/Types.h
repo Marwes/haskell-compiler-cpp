@@ -154,7 +154,6 @@ class TypeError : public std::runtime_error
 {
 public:
 	TypeError(TypeEnvironment& env, const Type& expected, const Type& actual);
-	TypeError(const Type& expected, const Type& actual);
 	TypeError(const std::string& expected, const Type& actual);
 	TypeError(const std::string& errorMessage);
 };
