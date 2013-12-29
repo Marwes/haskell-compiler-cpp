@@ -49,7 +49,7 @@ Assembly& GMachine::addAssembly(Assembly inputAssembly)
 	assemblies.push_back(std::move(inputAssembly));
 	Assembly& assembly = assemblies.back();
 
-	globals.resize(globals.size() + assembly.superCombinators.size() + assembly.instanceDictionaries.size() + assembly.ffiFunctions.size());
+	globals.resize(globals.size() + numAssemblyIds(assembly));
 	for (auto& sc : assembly.superCombinators)
 	{
 		int index = assembly.globalIndices[sc.second.get()];

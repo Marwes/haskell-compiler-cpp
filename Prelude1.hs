@@ -1,4 +1,6 @@
 
+id x = x
+
 data Bool = True | False
 
 not b = case b of
@@ -19,16 +21,19 @@ class Num a where
     (+) :: a -> a -> a
     (-) :: a -> a -> a
     (*) :: a -> a -> a
+    fromInteger :: Int -> a
 
 instance Num Int where
     (+) x y = primIntAdd x y
     (-) x y = primIntSubtract x y
     (*) x y = primIntMultiply x y
+    fromInteger = id
 
 instance Num Double where
     (+) x y = primDoubleAdd x y
     (-) x y = primDoubleSubtract x y
     (*) x y = primDoubleMultiply x y
+    fromInteger x = primIntToDouble x
 
 (||) :: Bool -> Bool -> Bool
 (||) x y = case x of

@@ -8,6 +8,12 @@
 
 namespace MyVMNamespace
 {
+
+size_t numAssemblyIds(Assembly& a)
+{
+	return a.superCombinators.size() + a.instanceDictionaries.size() + a.ffiFunctions.size();
+}
+
 GCompiler::GCompiler(TypeEnvironment& typeEnv, Module* module, int globalStartIndex, std::map<std::string, Assembly*> assemblies)
 	: module(module)
 	, uniqueGlobalIndex(globalStartIndex)
@@ -17,7 +23,13 @@ GCompiler::GCompiler(TypeEnvironment& typeEnv, Module* module, int globalStartIn
 	, assemblies(std::move(assemblies))
 {
 	if (this->assemblies.count("Prelude") == 0)
+	{
 		this->assemblies.insert(std::make_pair("Prelude", &Assembly::prelude));
+	}
+	if (globalStartIndex == 0)
+	{
+		uniqueGlobalIndex = numAssemblyIds(Assembly::prelude);
+	}
 }
 
 void GCompiler::newStackVariable(const std::string& name)
@@ -496,16 +508,11 @@ Assembly createPrelude()
 		TypeVariable varIntAdd;
 		prelude.bindings.back().expression->getType() = functionType(varIntAdd, functionType(varIntAdd, varIntAdd));
 	}
-	{
-		prelude.bindings.push_back(Binding("fromInteger", std::unique_ptr<Expression>(new Name("undefined"))));
-		TypeVariable var;
-		prelude.bindings.back().expression->getType() = functionType(TypeOperator("Int"), var);
-	}
 
 	TypeEnvironment typeEnv = prelude.typecheck();
 	GCompiler comp(typeEnv, &prelude);
 	Assembly result = comp.compileModule(prelude);
-	int globalIndex = result.superCombinators.size() + result.instanceDictionaries.size() + result.ffiFunctions.size();
+	int globalIndex = numAssemblyIds(result);
 
 #define PRIM(name, funcName)\
 	{\

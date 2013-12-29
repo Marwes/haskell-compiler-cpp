@@ -81,7 +81,7 @@ public:
 	{
 		try
 		{
-			GCompiler compiler(globalTypeEnv, &module, 0, assemblies);
+			GCompiler compiler(globalTypeEnv, &module, machine.globals.size(), assemblies);
 			std::stringstream stream(line);
 			Tokenizer tokenizer(stream);
 			Parser parser(tokenizer);

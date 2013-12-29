@@ -103,6 +103,8 @@ public:
 	static Assembly prelude;
 };
 
+size_t numAssemblyIds(Assembly& a);
+
 class GCompiler
 {
 public:
