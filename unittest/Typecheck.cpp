@@ -354,6 +354,19 @@ test3 = (undefined, primIntAdd 3 3)\n");
 	CHECK(module.bindings[2].expression->getType() > test3);
 }
 
+TEST_CASE("typecheck/partial operator", "")
+{
+	std::stringstream stream(
+"(+) x y = primIntAdd x y\n\
+main = (+2)\n");
+	Tokenizer tokenizer(stream);
+	Parser parser(tokenizer);
+	Module module = parser.module();
+	TypeEnvironment typeEnv = module.typecheck();
+
+	REQUIRE(module.bindings[1].expression->getType() == functionType(TypeOperator("Int"), TypeOperator("Int")));
+}
+
 TEST_CASE("typecheck/error_recursive", "Check that type errors are also thrown for using bindings declared later")
 {
 	std::stringstream stream(
