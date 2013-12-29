@@ -682,7 +682,10 @@ void Apply::compile(GCompiler& env, std::vector<GInstruction>& instructions, boo
 		GOP op;
 		if (toGOP(nameFunc->name, op))
 		{
-			assert(arguments.size() == 2);
+			if (arguments.size() != 2)
+			{
+				throw std::runtime_error("Binary primitives must stand in a position where they are fully applied: " + nameFunc->name);
+			}
 			arguments[0]->compile(env, instructions, true);
 			arguments[1]->compile(env, instructions, true);
 			instructions.push_back(GInstruction(op));
