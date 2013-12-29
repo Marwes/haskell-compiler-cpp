@@ -461,6 +461,7 @@ Alternative Parser::alternative()
 std::unique_ptr<Expression> Parser::parseOperatorExpression(std::unique_ptr<Expression> lhs, int minPrecedence)
 {
 	++tokenizer;
+	const Token& f = *tokenizer;
 	while (tokenizer && tokenizer->type == SymbolEnum::OPERATOR
 		&& getPrecedence(tokenizer->name) >= minPrecedence)
 	{
@@ -475,27 +476,48 @@ std::unique_ptr<Expression> Parser::parseOperatorExpression(std::unique_ptr<Expr
 			rhs = parseOperatorExpression(std::move(rhs), getPrecedence(lookahead.name));
 			++tokenizer;
 		}
-		if (rhs == nullptr)
+		if (rhs == nullptr && lhs == nullptr)
 		{
 			return nullptr;
 		}
 		std::unique_ptr<Name> name(new Name(op.name, op.sourceLocation));
 		std::vector<std::unique_ptr<Expression>> args(lhs == nullptr ? 1 : 2);
-		if (lhs == nullptr)
+		Location loc = lhs == nullptr ? op.sourceLocation : lhs->sourceLocation;
+		if (rhs == nullptr)
+		{
+			std::vector<std::unique_ptr<Expression>> args(2);
+			args[0] = std::move(lhs);
+			args[1] = std::unique_ptr<Expression>(new Name("#", loc));
+			std::unique_ptr<Expression> apply(new Apply(std::move(name), std::move(args), loc));
+			std::vector<std::string> params(1);
+			params[0] = "#";
+			lhs = std::unique_ptr<Expression>(new Lambda(std::move(params), std::move(apply), loc));
+		}
+		else if (lhs == nullptr)
 		{
 			if (op.name == "-")
 			{
 				name->name = "negate";
+				args[0] = std::move(rhs);
+				lhs = std::unique_ptr<Expression>(new Apply(std::move(name), std::move(args), loc));
 			}
-			args[0] = std::move(rhs);
+			else
+			{
+				std::vector<std::unique_ptr<Expression>> args(2);
+				args[0] = std::unique_ptr<Expression>(new Name("#", loc));
+				args[1] = std::move(rhs);
+				std::unique_ptr<Expression> apply(new Apply(std::move(name), std::move(args), loc));
+				std::vector<std::string> params(1);
+				params[0] = "#";
+				lhs = std::unique_ptr<Expression>(new Lambda(std::move(params), std::move(apply), loc));
+			}
 		}
 		else
 		{
 			args[0] = std::move(lhs);
 			args[1] = std::move(rhs);
+			lhs = std::unique_ptr<Expression>(new Apply(std::move(name), std::move(args), loc));
 		}
-		Location loc = args[0]->sourceLocation;
-		lhs = std::unique_ptr<Expression>(new Apply(std::move(name), std::move(args), loc));
 	}
 	--tokenizer;
 	return lhs;

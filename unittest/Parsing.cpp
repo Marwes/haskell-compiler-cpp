@@ -315,6 +315,42 @@ TEST_CASE("parser/applyOperator", "Function application")
 	REQUIRE(*op.arguments[1] == Name("two"));
 }
 
+TEST_CASE("parser/partial operator", "")
+{
+	std::stringstream stream("(2-)");
+	Tokenizer tokenizer(stream);
+	Parser parser(tokenizer);
+
+	std::unique_ptr<Expression> maybeExpression = parser.run();
+	REQUIRE(maybeExpression.get() != NULL);
+
+	Lambda& lambda = dynamic_cast<Lambda&>(*maybeExpression);
+	REQUIRE(lambda.arguments.size() == 1);
+	Apply& minusOp = dynamic_cast<Apply&>(*lambda.body);
+	REQUIRE(minusOp.arguments.size() == 2);
+	REQUIRE(*minusOp.arguments[0] == Number(2));
+	REQUIRE(typeid(*minusOp.arguments[1]) == typeid(Name));
+}
+TEST_CASE("parser/partial operator/2", "")
+{
+	std::stringstream stream("map (+2)");
+	Tokenizer tokenizer(stream);
+	Parser parser(tokenizer);
+
+	std::unique_ptr<Expression> maybeExpression = parser.run();
+	REQUIRE(maybeExpression.get() != NULL);
+
+	Apply* func = dynamic_cast<Apply*>(maybeExpression.get());
+	REQUIRE(func != NULL);
+	REQUIRE(*func->function == Name("map"));
+	Lambda& lambda = dynamic_cast<Lambda&>(*func->arguments[0]);
+	REQUIRE(lambda.arguments.size() == 1);
+	Apply& plusOp = dynamic_cast<Apply&>(*lambda.body);
+	REQUIRE(plusOp.arguments.size() == 2);
+	REQUIRE(typeid(*plusOp.arguments[0]) == typeid(Name));
+	REQUIRE(*plusOp.arguments[1] == Number(2));
+}
+
 TEST_CASE("parser/tuple", "Function application")
 {
 	std::stringstream stream("(1,2)");
