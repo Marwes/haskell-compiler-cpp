@@ -30,6 +30,18 @@ int evaluateInt(const char* str)
 	Address result = machine.executeMain();
 	return result.getNode()->number;
 }
+double evaluateDouble(const char* str)
+{
+	GMachine machine;
+	std::string main("main = ");
+	main += str;
+	std::stringstream expr(main);
+	machine.compile(expr);
+
+	Address result = machine.executeMain();
+	assert(result.getType() == DOUBLE);
+	return result.getNode()->numberDouble;
+}
 
 TEST_CASE("compiler/arithmetic", "Test compiling an arithmetic expression")
 {
@@ -92,6 +104,11 @@ TEST_CASE("compiler/compare/double", "Test compiling an arithmetic expression")
 	REQUIRE(!evaluateBool("main = primDoubleLt 10. 1."));
 }
 
+TEST_CASE("compile/cast numbers", "")
+{
+	REQUIRE(evaluateInt("primDoubleToInt 3.14") == (int)3.14);
+	REQUIRE(evaluateDouble("primIntToDouble 10") == 10.0);
+}
 
 TEST_CASE("compiler/data", "")
 {

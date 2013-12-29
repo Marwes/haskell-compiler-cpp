@@ -421,6 +421,44 @@ bool primGe(T l, T r)
 	return l >= r;
 }
 
+template<class T>
+T& getNode(Node& n)
+{
+	static_assert(false, "Need to specify a valid type for getNode");
+}
+template<>
+double& getNode(Node& n)
+{
+	return n.numberDouble;
+}
+template<>
+int& getNode(Node& n)
+{
+	return n.number;
+}
+
+template<class From, class To>
+To primCast(From u)
+{
+	return static_cast<To>(u);
+}
+
+template<Address (*makeAddress)(Node*), class From, class To>
+int primConvertNumber(GMachine* machine, StackFrame<Address>* stackPtr)
+{
+	StackFrame<Address>& stack = *stackPtr;
+	assert(stack.stackSize() == 2);//1 arguments + function ptr
+	assert(stack[0].getType() == NUMBER || stack[0].getType() == DOUBLE);
+	
+	To to = primCast<From, To>(getNode<From>(*stack[0].getNode()));
+	
+	machine->heap.push_back(Node(to));
+	
+	stack.top() = makeAddress(&machine->heap.back());
+	return 0;
+}
+
+
 Assembly createPrelude()
 {
 	Module prelude;
@@ -468,10 +506,10 @@ Assembly createPrelude()
 	GCompiler comp(typeEnv, &prelude);
 	Assembly result = comp.compileModule(prelude);
 	int globalIndex = result.superCombinators.size() + result.instanceDictionaries.size() + result.ffiFunctions.size();
-	
+
 #define PRIM(name, funcName)\
-{\
-	ForeignFunction func;\
+	{\
+	ForeignFunction func; \
 	func.function = primitiveBoolBinop < funcName<int> >; \
 	func.index = globalIndex++; \
 	func.arity = 2; \
@@ -498,8 +536,19 @@ Assembly createPrelude()
 	PRIM(primDoubleGe, primGe);
 	PRIM(primDoubleLe, primLe);
 
-#undef PRIM2
 #undef PRIM
+
+#define PRIM_CAST(addr, From, from, To, to)\
+	{\
+	ForeignFunction func; \
+	func.function = primConvertNumber<addr, from , to>; \
+	func.arity = 1; \
+	func.index = globalIndex++; \
+	result.ffiFunctions["prim"  From  "To"  To] = func; \
+	}
+	PRIM_CAST(Address::number, "Double", double, "Int", int);
+	PRIM_CAST(Address::numberDouble, "Int", int, "Double", double);
+#undef PRIM_CAST
 	return result;
 }
 Assembly Assembly::prelude(createPrelude());
