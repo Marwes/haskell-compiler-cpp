@@ -1,4 +1,5 @@
 #pragma once
+#include <iosfwd>
 #include <string.h>
 
 namespace MyVMNamespace
@@ -13,6 +14,9 @@ struct Location
 
 	int column, row, absolute;
 };
+
+std::ostream& operator<<(std::ostream& out, const Location& loc);
+
 
 }
 

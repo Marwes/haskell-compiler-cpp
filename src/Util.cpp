@@ -7,6 +7,11 @@
 namespace MyVMNamespace
 {
 
+std::ostream& operator<<(std::ostream& out, const Location& loc)
+{
+	return out << loc.row << ":" << loc.column;
+}
+
 int swapEndian(int i)
 {
     unsigned char b1, b2, b3, b4;

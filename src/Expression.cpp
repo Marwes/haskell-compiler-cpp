@@ -250,7 +250,7 @@ public:
 Type& Name::typecheck(TypeEnvironment& env)
 {
 	this->type = env.newTypeVariable();
-	env.registerType(this->type);
+	env.registerType(*this);
 	this->type = env.getFreshType(this->name);
 	return this->type;
 }
@@ -264,6 +264,7 @@ Type& Number::typecheck(TypeEnvironment& env)
 {
 	TypeVariable var = env.newTypeVariable();
 	env.addConstraint(var, "Num");
+	env.registerType(*this);
 	return type = var;
 }
 
@@ -332,8 +333,7 @@ void typecheckDependecyGraph(TypeEnvironment& env, Graph& graph)
 		}
 		for (Binding* bind : groupedBindings)
 		{
-			Type& type = bind->expression->getType();
-			env.bindName(bind->name, type);
+			env.bindName(bind->name, *bind->expression);
 		}
 		for (Binding* bind : groupedBindings)
 		{
@@ -388,7 +388,7 @@ Type& Let::typecheck(TypeEnvironment& env)
 	{
 		for (auto& bind : bindings)
 		{
-			child.bindName(bind.name, bind.expression->getType());
+			child.bindName(bind.name, *bind.expression);
 			Type& t = bind.expression->typecheck(child);
 		}
 	}
@@ -448,19 +448,19 @@ Type& Lambda::typecheck(TypeEnvironment& env)
 Type& Apply::typecheck(TypeEnvironment& env)
 {
 	this->type = env.newTypeVariable();
-	env.registerType(this->type);
-	this->type = function->typecheck(env);
+	env.registerType(*this);
+	Type funcType = this->type = function->typecheck(env);
 	for (size_t ii = 0; ii < arguments.size(); ii++)
 	{
 		auto& arg = arguments[ii];
 		Type& argType = arg->typecheck(env);
 		Type temp = functionType(argType, TypeVariable(env));
 
-		unify(env, temp, this->type);
+		unify(env, temp, *arg, funcType, *this);
 
-		this->type = boost::get<TypeOperator>(temp).types[1];
+		funcType = boost::get<TypeOperator>(temp).types[1];
 	}
-	return this->type;//TODO
+	return this->type = funcType;//TODO
 }
 
 Type& Case::typecheck(TypeEnvironment& env)

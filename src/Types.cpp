@@ -108,6 +108,23 @@ std::ostream& operator<<(std::ostream& str, const TypeToString& x)
 	return str << x.type;
 }
 
+
+std::string createTypeErrorString(const Type& expected, const Location& expectedLocation, const Type& actual, const Location& actualLocation, TypeEnvironment& env)
+{
+	std::stringstream err;
+	err << "Types are not compatible.\n";
+	err << "Expected: " << TypeToString(err, env, expected) << " at " << expectedLocation << "\n";
+	err << "Actual: " << TypeToString(err, env, actual) << " at " << actualLocation << "\n";
+	return err.str();
+}
+
+TypeError::TypeError(TypeEnvironment& env, const Type& expected, const Location& expectedLocation, const Type& actual, const Location& actualLocation)
+: std::runtime_error(createTypeErrorString(expected, expectedLocation, actual, actualLocation, env))
+{
+
+}
+
+
 std::string createTypeErrorString(const Type& expected, const Type& actual, TypeEnvironment& env)
 {
 	std::stringstream err;

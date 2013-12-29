@@ -9,6 +9,8 @@ namespace MyVMNamespace
 
 class Module;
 class Assembly;
+class Expression;
+struct Location;
 
 class TypeEnvironment
 {
@@ -20,8 +22,10 @@ public:
 
 	TypeVariable newTypeVariable();
 
+	void bindName(const std::string& name, Expression& expr);
 	void bindName(const std::string& name, Type& type);
 	void registerType(Type& type);
+	void registerType(Expression& expr);
 
 	const Type* getType(const std::string& name) const;
 	Type getFreshType(const std::string& name);
@@ -72,11 +76,14 @@ public:
 		types.clear();
 	}
 
+	const Location* getLocation(const Type& type);
+
 private:
 	Module* module;
 	std::map<std::string, Assembly*> assemblies;
 	TypeEnvironment* parent;
 	std::map<std::string, Type*> namedTypes;
+	std::map<const Type*, const Location*> locations;
 	std::vector<Type*> types;
 	std::vector<Type> nonGeneric;
 	std::map<TypeVariable, std::vector<std::string>> constraints;
@@ -87,6 +94,7 @@ private:
 };
 
 
+void unify(TypeEnvironment& env, Type& lhs, Expression& lhsExpr, Type& rhs, Expression& rhsExpr);
 void unify(TypeEnvironment& env, Type& lhs, Type& rhs);
 
 extern Type intType;

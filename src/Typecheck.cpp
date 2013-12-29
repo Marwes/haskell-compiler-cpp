@@ -148,12 +148,21 @@ void TypeEnvironment::bindName(const std::string& name, Type& type)
 	namedTypes.insert(std::make_pair(name, &type));
 	registerType(type);
 }
+void TypeEnvironment::bindName(const std::string& name, Expression& expr)
+{
+	bindName(name, expr.getType());
+}
 void TypeEnvironment::registerType(Type& type)
 {
 	if (parent == nullptr)
 		types.push_back(&type);
 	else
 		parent->registerType(type);
+}
+void TypeEnvironment::registerType(Expression& expr)
+{
+	registerType(expr.getType());
+	locations[&expr.getType()] = &expr.sourceLocation;
 }
 
 const Type* findInAssembly(const TypeEnvironment& env, Assembly& assembly, const std::string& name)
@@ -500,6 +509,14 @@ bool TypeEnvironment::isVariableLocked(TypeVariable var)
 	return lockedVariables.find(var) != lockedVariables.end();
 }
 
+const Location* TypeEnvironment::getLocation(const Type& type)
+{
+	auto found = locations.find(&type);
+	if (found != locations.end())
+		return found->second;
+	return nullptr;
+}
+
 class RecursiveUnification : public std::runtime_error
 {
 public:
@@ -578,9 +595,37 @@ public:
 	Type& rhs;
 };
 
+void unify(TypeEnvironment& env, Type& lhs, Expression& lhsExpr, Type& rhs, Expression& rhsExpr)
+{
+	try
+	{
+		Unify(env, lhs, rhs);
+	}
+	catch (TypeError&)
+	{
+		const Location* lhsLoc = env.getLocation(lhsExpr.getType());
+		const Location* rhsLoc = env.getLocation(rhsExpr.getType());
+		if (lhsLoc && rhsLoc)
+			throw TypeError(env, lhsExpr.getType(), *lhsLoc, rhsExpr.getType(), *rhsLoc);
+		else
+			throw TypeError(env, lhs, rhs);
+	}
+}
 void unify(TypeEnvironment& env, Type& lhs, Type& rhs)
 {
-	Unify(env, lhs, rhs);
+	try
+	{
+		Unify(env, lhs, rhs);
+	}
+	catch (TypeError&)
+	{
+		const Location* lhsLoc = env.getLocation(lhs);
+		const Location* rhsLoc = env.getLocation(rhs);
+		if (lhsLoc && rhsLoc)
+			throw TypeError(env, lhs, *lhsLoc, rhs, *rhsLoc);
+		else
+			throw TypeError(env, lhs, rhs);
+	}
 }
 
 }
